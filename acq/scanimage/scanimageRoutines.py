@@ -517,12 +517,12 @@ def calculateEpochAverages(epoch,averageImagesFlag,averageADFlag):
         for j in range(len(epoch['activeChannels'])):
             if epoch['activeChannels'][j]:
                 try:
-                    epoch['averageTrials']['chan'+str(j+1)]=np.average(epoch['images']['chan'+str(j+1)][:,:,:,epoch['trialsInAverage']],axis=3).astype('uint8');
+                    epoch['averageTrials']['chan'+str(j+1)]=np.average(epoch['images']['chan'+str(j+1)][:,:,:,epoch['trialsInAverage']],axis=3).astype('uint16');
                 except ValueError:
                     print "Error in calcuating average image in channel %d, possible inconsistancies across trials" % j+1
                 except IndexError:
                     print 'Error in calculateTrialAverages: Index error: only one trial?'
-                    epoch['averageTrials']['chan'+str(j+1)]=epoch['images']['chan'+str(j+1)][:,:,:,0].astype('uint8')
+                    epoch['averageTrials']['chan'+str(j+1)]=epoch['images']['chan'+str(j+1)][:,:,:,0].astype('uint16')
 
     if averageADFlag:
         for currentAD in epoch['AD_list']:
