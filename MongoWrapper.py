@@ -6,6 +6,8 @@ import pickle
 import numpy as np
 import datetime
 
+import copy
+
 import hashlib
 
 __all__ = ['MongoWrapper']
@@ -142,7 +144,7 @@ class MongoWrapper(object):
         id_values = []
         for doc in document:
 
-            docCopy = dict(doc)
+            docCopy = copy.deepcopy(doc)
 
             # make a list of any existing referenced gridfs files
             try:
@@ -179,7 +181,7 @@ class MongoWrapper(object):
     def loadFromIDs(self, IDs):
         pass
 
-    def load(self, query, getarrays=True, useparallel=True):
+    def load(self, query, getarrays=True):
         """Preforms a search using the presented query. For examples, see:
         See http://api.mongodb.org/python/2.0/tutorial.html
         The basic idea is to send in a dictionaries which key-value pairs like
@@ -192,12 +194,7 @@ class MongoWrapper(object):
         results = self.collection.find(query)
         
         if getarrays:
-            if useparallel:
-                from multiprocessing import Pool
-                pool = Pool(4)
-                allResults = pool.map(self._loadNPArrays, results)
-            else:
-                allResults = [self._loadNPArrays(doc) for doc in results]
+            allResults = [self._loadNPArrays(doc) for doc in results]
         else:
             allResults = results
         
