@@ -16,9 +16,9 @@ import pickle
 
 from progressbar import ProgressBar
 
-import imaging_analysis.io
-import imaging_analysis.alignment
-import imaging_analysis.segmentation
+import imaging.io
+import imaging.alignment
+import imaging.segmentation
 from DotDict import DotDict
 
 
@@ -30,7 +30,7 @@ all = ['readRawSIImages', 'parseSIHeaderFile', 'addLineToStateVar', 'readMultiOd
 #### SI specific file i/o
 
 def readRawSIImages(tif_files, txt_files):
-    image = imaging_analysis.io.imread(tif_files[0])
+    image = imaging.io.imread(tif_files[0])
     nFrames = image.shape[2]
 
     headerState = parseSIHeaderFile(txt_files[0])
@@ -48,7 +48,7 @@ def readRawSIImages(tif_files, txt_files):
     files = zip(tif_files,txt_files)
     for index, (tifFileName,headerFileName) in enumerate(files):
         print index
-        image = imaging_analysis.io.imread(tifFileName)
+        image = imaging.io.imread(tifFileName)
         nFrames = image.shape[2]
 
         for chanNum in range(4):
@@ -176,7 +176,7 @@ def readMultiOdorEpoch(epochNumber, alignFlag=True, optionalParams='',goodTrials
             for channelName in odorEpoch['images'].keys():
                 channelNumber=int(channelName[4])-1
                 if odorEpoch['activeChannels'][channelNumber]:
-                    odorEpoch['images'][channelName] = imaging_analysis.core.alignment.alignStack(odorEpoch['images'][channelName])
+                    odorEpoch['images'][channelName] = imaging.alignment.alignStack(odorEpoch['images'][channelName])
         p.render(100, 'Done!')
     
     p = ProgressBar(width=40)
@@ -204,7 +204,7 @@ def readMultiOdorEpoch(epochNumber, alignFlag=True, optionalParams='',goodTrials
         # save
         #saveEpoch(odorEpoch)
 
-    epochs=[imaging_analysis.core.DotDict.DotDict(e) for e in epochs]
+    epochs=[DotDict(e) for e in epochs]
     return epochs
 
 def addTrialToEpoch(epochs, tif_fn, header_fn, alignFlag, optionalParams):
@@ -355,7 +355,7 @@ def addTrialToEpoch(epochs, tif_fn, header_fn, alignFlag, optionalParams):
     print '--------------------------------------------------'
     print 'reading raw image file: %s ... ' % tif_fn,
     sys.stdout.flush()
-    image=imaging_analysis.core.io.imread(tif_fn)
+    image=imaging.io.imread(tif_fn)
     nFrames = image.shape[2]
     print 'done.'
     print '--------------------------------------------------'
@@ -504,11 +504,11 @@ def calculateEpochAverages(epoch,averageImagesFlag,averageADFlag):
 
 
 def buildCellDataFromEpoch(epoch,baselineFrames=[1,15], odorFrames=[29,30]):
-    epoch['cells'] = imaging_analysis.core.segmentation.extractTimeCoursesFromStack(epoch['images']['chan1'], epoch['segmentationMask'])
+    epoch['cells'] = imaging.segmentation.extractTimeCoursesFromStack(epoch['images']['chan1'], epoch['segmentationMask'])
     epoch['cells'] = averageCellData(epoch['cells'])
 
     # calcuate baselined dF/F
-    epoch['normalizedCells'] = imaging_analysis.core.segmentation.extractTimeCoursesFromStack(epoch['images']['chan1'], epoch['segmentationMask'])
+    epoch['normalizedCells'] = imaging.segmentation.extractTimeCoursesFromStack(epoch['images']['chan1'], epoch['segmentationMask'])
     epoch['normalizedCells'] = normalizeCellData(epoch['normalizedCells'],baselineFrames)
     epoch['normalizedCells'] = baselineCellData(epoch['normalizedCells'],baselineFrames)
     epoch['normalizedCells'] = averageCellData(epoch['normalizedCells'])
