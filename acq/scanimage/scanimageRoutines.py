@@ -15,8 +15,6 @@ import scipy.io
 import pymongo
 import pickle
 
-from progressbar import ProgressBar
-
 import imaging.io
 import imaging.alignment
 import imaging.segmentation
