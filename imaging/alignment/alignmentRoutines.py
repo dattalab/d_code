@@ -125,7 +125,7 @@ def alignStack(stack, mode='translation', supressOutput=True):
 
     target=np.squeeze(np.mean(stack[:,:,1:3,0],axis=2))
 
-    external_java_dir = os.path.join(os.path.expandvars('$HOME'), 'Dropbox/python_modules/imaging_analysis/external_java_scripts')
+    external_java_dir = os.path.join(os.path.expandvars('$HOME'), 'Dropbox/python_modules/dattacode/imaging/external_java_scripts')
 
     if os.path.isfile(os.path.join(external_java_dir, 'temp.hdf5')):
         handle=subprocess.Popen('rm -rf *.hdf5 *.h5 temp.txt temperr.txt',
