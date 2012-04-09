@@ -2,6 +2,7 @@
 
 import glob
 import sys
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -13,8 +14,6 @@ import scipy.io
 
 import pymongo
 import pickle
-
-from progressbar import ProgressBar
 
 import imaging.io
 import imaging.alignment
@@ -121,15 +120,44 @@ def readMultiOdorEpoch(epochNumber, alignFlag=True, optionalParams='',goodTrials
     - `epochNumber`: Integer, the epoch number to parse
     - `alignFlag`: Boolean flag for image alignment
     - `optionalParams`: nested dictionary that adds and/or overwrites values in the headerfile
-    - `badTrials`: a list booleans signifying weather or not to include a acq
+    - `goodTrials`: a list booleans signifying weather or not to include a acq
     """
 
     epoch='e'+str(epochNumber)
 
     epochFileNames = glob.glob('*'+epoch+'*')
 
-    tif_files=[fname for fname in epochFileNames if 'tif' in fname and not 'mean' in fname]
-    txt_files=[fname for fname in epochFileNames if 'txt' in fname and not 'mean' in fname]
+    tif_files      = [fname for fname in epochFileNames if 'tif' in fname and not 'mean' in fname]
+    txt_files      = [fname for fname in epochFileNames if 'hdr.txt' in fname and not 'mean' in fname]
+    mouse_ox_files = [fname for fname in epochFileNames if 'mouseox.txt' in fname and not 'mean' in fname]
+
+
+    # check to make sure the sizes of all tif files is the same.  Highlight anything that doesn't have the
+    # mode filesize
+
+    tif_file_sizes = np.array([os.path.getsize(tif_file) for tif_file in tif_files])
+    tif_file_size_mode = int(scipy.stats.mode(tif_file_sizes)[0])
+
+    goodTrials = np.logical_not(np.zeros_like(tif_files, dtype=bool))
+
+    if np.any(np.logical_not(tif_file_sizes == tif_file_size_mode)):
+        print ''
+        print 'File size mismatch- please indicate which trials to exclude by their numbers, seperated by spaces:'
+        for i, (fileName, fileSize) in enumerate(zip(tif_files, tif_file_sizes)):
+            if fileSize != tif_file_size_mode:
+                print '%d --> ' % i,
+            else:
+                print '%d     ' % i,
+            print '%s - %s' % (fileSize, fileName),
+            if not goodTrials[i]:
+                print ' - NOTE: pre-excluded based on goodTrials function argument'
+            else:
+                print ''
+
+    ex = raw_input("Trials to exclude: ")
+    if ex is not u'':
+        ex = [int(i) for i in ex.split()]
+        goodTrials[ex] = False
 
     # select only the good trials passed in.  If this arguement is
     # empty, then assume all trials are good.
@@ -155,37 +183,27 @@ def readMultiOdorEpoch(epochNumber, alignFlag=True, optionalParams='',goodTrials
     # normalize images to uint16 ()
     # it is unclear if this is needed.... > SI3.8 saves as uint16
     # and do we even want to normalize??
-    p = ProgressBar(width=40)
-    print '\n'
-    print 'Normalizing images...'
-    for i in range(nEpochs):
-        p.render(i*100/nEpochs, '|')
-        for channel in epochs[i]['images']:
-            if epochs[i]['images'][channel].any():
-                maxPixelValue                = float(scipy.ndimage.maximum(epochs[i]['images'][channel]))
-                epochs[i]['images'][channel] *= np.iinfo('uint16').max / maxPixelValue
-                epochs[i]['images'][channel] = (epochs[i]['images'][channel]*255).astype('uint16')
-    p.render(100,'Done!')
+    # print '\n'
+    # print 'Normalizing images...'
+    # for i in range(nEpochs):
+    #     for channel in epochs[i]['images']:
+    #         if epochs[i]['images'][channel].any():
+    #             maxPixelValue                = float(scipy.ndimage.maximum(epochs[i]['images'][channel]))
+    #             epochs[i]['images'][channel] *= np.iinfo('uint16').max / maxPixelValue
+    #             epochs[i]['images'][channel] = (epochs[i]['images'][channel]*255).astype('uint16')
 
     if alignFlag:
-        p = ProgressBar(width=40)
         print '\n'
         print 'Aligning image stacks (via JAVA)...'
         for i, odorEpoch in enumerate(epochs):
-            p.render(i*100/nEpochs,'|')
             for channelName in odorEpoch['images'].keys():
                 channelNumber=int(channelName[4])-1
                 if odorEpoch['activeChannels'][channelNumber]:
                     odorEpoch['images'][channelName] = imaging.alignment.alignStack(odorEpoch['images'][channelName])
-        p.render(100, 'Done!')
-    
-    p = ProgressBar(width=40)
     print '\n'
     print 'Calculating epoch averages...'
     for i, odorEpoch in enumerate(epochs):
-        p.render(i*100/nEpochs,'|')
         odorEpoch = calculateEpochAverages(odorEpoch,1,0)
-        p.render(100, 'Done!')
 
     # build average tif file names
     for i, odorEpoch in enumerate(epochs):
@@ -265,6 +283,10 @@ def addTrialToEpoch(epochs, tif_fn, header_fn, alignFlag, optionalParams):
 
     nOdors = len([odorState for odorState in state['olfactometer']['odorStateList'] if odorState != '0'])
 
+    basename = tif_fn[0:-4].split('_')[0]
+    epoch = tif_fn[0:-4].split('_')[1][1:]
+    acqNum = tif_fn[0:-4].split('_')[2]
+
     # If this is the first trial, then build up some meta data from state
     # *** this should be factored out
     if (not epochs):
@@ -283,11 +305,18 @@ def addTrialToEpoch(epochs, tif_fn, header_fn, alignFlag, optionalParams):
                 odor2Dilutions[odorIndex] = state['olfactometer']['valveOdor2Dilution_'+valveNumber]
                 odorIndex+=1
 
-
         for i in range(nOdors):
             # basic metadata from header
-            newEpochArray[i]['baseName']       = state['files']['baseName'][0:-1]
-            newEpochArray[i]['epochNumber']    = state['epoch']
+            try:
+                newEpochArray[i]['baseName'] = state['files']['baseName'][0:-1]
+            except KeyError:
+                newEpochArray[i]['baseName'] = basename                
+
+            try:
+                newEpochArray[i]['epochNumber'] = state['epoch']
+            except KeyError:
+                newEpochArray[i]['epochNumber'] = epoch
+
             newEpochArray[i]['date']           = state['internal']['startupTimeString']
             newEpochArray[i]['resolution']     = (state['acq']['linesPerFrame'] + 'x' +
                                                   state['acq']['linesPerFrame'] + 'x' +
@@ -362,7 +391,7 @@ def addTrialToEpoch(epochs, tif_fn, header_fn, alignFlag, optionalParams):
 
     
     # *** need to change to call XSG instead.
-    AD_files=glob.glob('*AD*_'+state['files']['fileCounter']+'.mat')
+    AD_files=glob.glob('*AD*_%s.mat' % acqNum)
     AD_waves={}
     for file in AD_files:
         wavename=file.split('.')[0]

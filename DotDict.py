@@ -12,16 +12,20 @@ class DotDict(dict):
                 self[k]=DotDict(arg[k])
             else:
                 self[k]=arg[k]
+
     def __getattr__(self, attr):
         return self.get(attr, None)
+
     def __setattr__(self, name, value):
         if isinstance(value, dict):
             dict.__setitem__(self, name, DotDict(value))
         else:
             dict.__setitem__(self, name, value)
     __delattr__= dict.__delitem__
+
     def __dir__(self):
         return self.keys() + dir(dict(self))
 
     def __deepcopy__(self, memo):
-        return DotDict([(copy.deepcopy(k, memo), copy.deepcopy(v, memo)) for k, v in self.items()])
+        # for details: http://www.peterbe.com/plog/must__deepcopy__
+        return DotDict(copy.deepcopy(dict(self))) 
