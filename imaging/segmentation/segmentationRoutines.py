@@ -82,23 +82,18 @@ def extractTimeCoursesFromStack(imageStack, mask):
 
     :param stack: X by Y by time by trial
     :param labelImage: 2-D labeled image of cell masks
-    :returns: traces: a numobjects by time by trial numpy array
+    :returns: traces: a time by numobjects by trial numpy array
     """
 
     Xsize, Ysize, nTimePoints, nTrials = imageStack.shape
 
-    objectLabels = [i for i in set(mask.ravel())]
-    #    objectLabels = [i for i in set(mask.ravel()) if i>0]
+    objectLabels = set(mask.ravel())
     nObjects = len(objectLabels)
-    traces = np.zeros((nObjects,nTimePoints,nTrials))
+    traces = np.zeros((nTimePoints, nObjects, nTrials))
 
     for i, obj in enumerate(objectLabels):
         index = mask == obj
-        traces[i,:,:] = avgFromROIInStack(imageStack, index)
-
-        # nPixels=np.sum(index)
-        # objectTimeCourse = np.sum(stack[index,:,:],axis=0)/nPixels # all the time points, all the trials, for every X and Y which == object
-        # traces[i,:,:]=objectTimeCourse
+        traces[:,i,:] = avgFromROIInStack(imageStack, index)
 
     return traces
 
