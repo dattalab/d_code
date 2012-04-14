@@ -15,14 +15,8 @@ class _ImageProcGUI(ManipulateGUI):
 
         super(_ImageProcGUI, self).__init__(parameterDict, liveUpdate)
 
-        #draw initial figure
-        self.figure = plt.figure(num='ImageProcFigure',figsize=(10,4), dpi=72)
-        self.inputAxis = self.figure.add_subplot(1,2,1)
-        self.inputAxis.imshow(self.inputImage)
-
-        self.outputAxis = self.figure.add_subplot(1,2,2)
+        self.inputDisplay = self.inputAxis.imshow(self.inputImage)
         self.outputDisplay = self.outputAxis.imshow(self.outputImage)
-
         self.figure.canvas.draw()
 
         plt.ion()
@@ -68,7 +62,7 @@ class _Threshold(_ImageProcGUI):
 def threshold(inputImage, parameterDict=None, liveUpdate=True):
     gui = _Threshold(inputImage, parameterDict=None, liveUpdate=True)
     gtk.main()
-    plt.close('ImageProcFigure')
+
     print gui.parameterDict
     
     return gui.outputImage
@@ -100,7 +94,7 @@ class _SubGaussian(_ImageProcGUI):
 def subGaussian(inputImage, parameterDict=None, liveUpdate=True):
     gui = _SubGaussian(inputImage, parameterDict=None, liveUpdate=True)
     gtk.main()
-    plt.close('ImageProcFigure')
+    
     print gui.parameterDict
     
     return gui.outputImage
@@ -131,7 +125,7 @@ class _Gaussian(_ImageProcGUI):
 def gaussian(inputImage, parameterDict=None, liveUpdate=True):
     gui = _Gaussian(inputImage, parameterDict=None, liveUpdate=True)
     gtk.main()
-    plt.close('ImageProcFigure')
+    
     print gui.parameterDict
     
     return gui.outputImage
@@ -162,7 +156,7 @@ class _Median(_ImageProcGUI):
 def median(inputImage, parameterDict=None, liveUpdate=True):
     gui = _Median(inputImage, parameterDict=None, liveUpdate=True)
     gtk.main()
-    plt.close('ImageProcFigure')
+    
     print gui.parameterDict
     
     return gui.outputImage
@@ -193,7 +187,7 @@ class _GaussianLaplace(_ImageProcGUI):
 def gaussianLaplace(inputImage, parameterDict=None, liveUpdate=True):
     gui = _GaussianLaplace(inputImage, parameterDict=None, liveUpdate=True)
     gtk.main()
-    plt.close('ImageProcFigure')
+    
     print gui.parameterDict
     
     return gui.outputImage
@@ -222,7 +216,7 @@ class _HPF(_ImageProcGUI):
 def hpf(inputImage, parameterDict=None, liveUpdate=True):
     gui = _HPF(inputImage, parameterDict=None, liveUpdate=True)
     gtk.main()
-    plt.close('ImageProcFigure')
+    
     print gui.parameterDict
     
     return gui.outputImage
@@ -253,7 +247,7 @@ class _Laplace(_ImageProcGUI):
 def laplace(inputImage, parameterDict=None, liveUpdate=True):
     gui = _Laplace(inputImage, parameterDict=None, liveUpdate=True)
     gtk.main()
-    plt.close('ImageProcFigure')
+    
     print gui.parameterDict
     
     return gui.outputImage
@@ -289,7 +283,7 @@ class _BinaryErode(_ImageProcGUI):
 def binaryErode(inputImage, parameterDict=None, liveUpdate=True):
     gui = _BinaryErode(inputImage, parameterDict=None, liveUpdate=True)
     gtk.main()
-    plt.close('ImageProcFigure')
+    
     print gui.parameterDict
     
     return gui.outputImage
@@ -325,7 +319,7 @@ class _BinaryDilate(_ImageProcGUI):
 def binaryDialate(inputImage, parameterDict=None, liveUpdate=True):
     gui = _BinaryDilate(inputImage, parameterDict=None, liveUpdate=True)
     gtk.main()
-    plt.close('ImageProcFigure')
+    
     print gui.parameterDict
     
     return gui.outputImage
@@ -368,7 +362,7 @@ class _ConnectedPixelFilter(_ImageProcGUI):
 def connectedPixelFilter(inputImage, parameterDict=None, liveUpdate=True):
     gui = _ConnectedPixelFilter(inputImage, parameterDict=None, liveUpdate=True)
     gtk.main()
-    plt.close('ImageProcFigure')
+    
     print gui.parameterDict
     
     return gui.outputImage

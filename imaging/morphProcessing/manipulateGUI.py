@@ -2,6 +2,12 @@ import sys
 import numpy as np
 import os
 
+import matplotlib
+from matplotlib.figure import Figure
+from matplotlib.axes import Subplot
+from matplotlib.backends.backend_gtk import FigureCanvasGTK
+from matplotlib.backends.backend_gtk import NavigationToolbar2GTK as NavigationToolbar
+
 try:
     import pygtk
     pygtk.require("2.0")
@@ -16,20 +22,9 @@ def findFileInPythonPath(fileName):
     for dirname in sys.path:
         possible = os.path.join(dirname, fileName)
         if os.path.isfile(possible):
+            print 'loading gui from %s' % possible
             return possible
     return None
-
-def histeq(im,nbr_bins=256):
-   im = im.astype('float')
-   #get image histogram
-   imhist,bins = np.histogram(im.flatten(),nbr_bins,normed=True)
-   cdf = imhist.cumsum() #cumulative distribution function
-   cdf = 255 * cdf / cdf[-1] #normalize
-
-   #use linear interpolation of cdf to find new pixel values
-   im2 = np.interp(im.flatten(),bins[:-1],cdf)
-
-   return im2.reshape(im.shape), cdf
 
 class ManipulateGUI(object):
     """woot"""
@@ -39,7 +34,7 @@ class ManipulateGUI(object):
 	self.parameterDict = parameterDict
         self.liveUpdate = liveUpdate
         self.nParams = len(parameterDict)
-        
+
         #Set the Glade file and build from it
         self.gladefile = findFileInPythonPath('manipulateGUI.glade')
         self.builder = gtk.Builder()
@@ -58,13 +53,13 @@ class ManipulateGUI(object):
         self.widgetList = []
         self.adjustmentList = []
         self.comboboxList = []
-        
+
         for arg, params in self.parameterDict.iteritems():
             hbox = gtk.HBox(False, 0)
             label = gtk.Label(arg+':')
             label.show()
             hbox.pack_start(label, True, True)
-                        
+
             if params['type'] == 'fixed':
                 #add a new GTKlabel
                 self.widgetList.append(gtk.Label(params['value']))
@@ -92,6 +87,19 @@ class ManipulateGUI(object):
             self.paramBox.pack_start(child=hbox, expand=True, fill=True)
             # self.paramBox.pack_start(child=self.widgetList[-1], expand=True, fill=True)
 
+
+        # setup matplotlib in the matplotlibWindow
+        self.figure = Figure(figsize=(10,4), dpi=72)
+        self.inputAxis = self.figure.add_subplot(1,2,1)
+        self.outputAxis = self.figure.add_subplot(1,2,2)
+        
+        self.canvas = FigureCanvasGTK(self.figure) # a gtk.DrawingArea
+        self.canvas.show()
+        self.canvas.draw()
+        
+        self.plotView = self.builder.get_object("mplBox")
+        self.plotView.pack_start(self.canvas, True, True)
+
         # connect and init data
         self.builder.connect_signals(self)
         self.window.show_all()
@@ -103,12 +111,12 @@ class ManipulateGUI(object):
 
     def on_refresh_clicked(self, widget):
         self.eval_function()
-        
+
     def on_param_change_range_value(self, widget, event, paramValue):
         self.parameterDict[widget.argName]['value'] = paramValue
         if self.liveUpdate:
             self.eval_function()
-            
+
     def on_param_change_list_value(self, widget):
         self.parameterDict[widget.argName]['value'] = widget.get_active()
         if self.liveUpdate:
