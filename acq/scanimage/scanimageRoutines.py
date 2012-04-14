@@ -21,7 +21,7 @@ import imaging.segmentation
 from DotDict import DotDict
 
 
-all = ['readRawSIImages', 'parseSIHeaderFile', 'addLineToStateVar', 'readMultiOdorEpoch', 'addTrialToEpoch',
+__all__ = ['readRawSIImages', 'parseSIHeaderFile', 'addLineToStateVar', 'readMultiOdorEpoch', 'addTrialToEpoch',
        'saveEpoch', 'loadEpoch', 'calculateEpochAverages', 'buildCellDataFromEpoch', 'calculateCellDataAmplitudes',
        'calculateResponderMasks', 'baselineCellData', 'normalizeCellData', 'averageCellData', 'plotNormCells', 'plotMeanCells',
        'plotRespondersAndNonResponders', 'plotMeanRespondersAndNonResponders', 'parseXSG']
@@ -131,7 +131,6 @@ def readMultiOdorEpoch(epochNumber, alignFlag=True, optionalParams='',goodTrials
     txt_files      = [fname for fname in epochFileNames if 'hdr.txt' in fname and not 'mean' in fname]
     mouse_ox_files = [fname for fname in epochFileNames if 'mouseox.txt' in fname and not 'mean' in fname]
 
-
     # check to make sure the sizes of all tif files is the same.  Highlight anything that doesn't have the
     # mode filesize
 
@@ -162,9 +161,9 @@ def readMultiOdorEpoch(epochNumber, alignFlag=True, optionalParams='',goodTrials
     # select only the good trials passed in.  If this arguement is
     # empty, then assume all trials are good.
     if goodTrials !=[]:
-        tif_files=[tif[1] for tif in zip(goodTrials,tif_files) if tif[0]]
-        txt_files=[txt[1] for txt in zip(goodTrials,txt_files) if txt[0]]
-
+        tif_files = [tif[1] for tif in zip(goodTrials, tif_files) if tif[0]]
+        txt_files = [txt[1] for txt in zip(goodTrials, txt_files) if txt[0]]
+        mouse_ox_files = [mouseox[1] for mouseox in zip(goodTrials, mouse_ox_files) if mouseox[0]]
     numTrials=len(tif_files)
 
     print 'Reading the the following files: %s' % tif_files
@@ -178,20 +177,6 @@ def readMultiOdorEpoch(epochNumber, alignFlag=True, optionalParams='',goodTrials
     nEpochs = len(epochs)
     
     # normalization, alignment, averaging, saving
-    # broken up to include seperate progress meters for each section
-
-    # normalize images to uint16 ()
-    # it is unclear if this is needed.... > SI3.8 saves as uint16
-    # and do we even want to normalize??
-    # print '\n'
-    # print 'Normalizing images...'
-    # for i in range(nEpochs):
-    #     for channel in epochs[i]['images']:
-    #         if epochs[i]['images'][channel].any():
-    #             maxPixelValue                = float(scipy.ndimage.maximum(epochs[i]['images'][channel]))
-    #             epochs[i]['images'][channel] *= np.iinfo('uint16').max / maxPixelValue
-    #             epochs[i]['images'][channel] = (epochs[i]['images'][channel]*255).astype('uint16')
-
     if alignFlag:
         print '\n'
         print 'Aligning image stacks (via JAVA)...'
