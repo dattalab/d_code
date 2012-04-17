@@ -56,7 +56,7 @@ def writeMultiImageStack(fileName, npArray):
 
     for i in range(npArray.shape[2]):
         frame = npArray[:,:,i].T
-        imsave('%s_%06d.tif' % (fileName, i), frame)
+        imsave(frame, '%s_%06d.tif' % (fileName, i))
 
 def imread(filename, usePIL=False):
     """Simple wrapper to read various file formats.
