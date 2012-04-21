@@ -91,7 +91,7 @@ class MongoWrapper(object):
     
     Each document, when inserted, is given a key-value pair containing a 
     TimeDate object that is time of insertion. Each document must have a 
-    unique key-value called '_id' which contains an objectID which is unique 
+    unique key-value called '_id' which contains an objectId which is unique 
     for that object. If the document lacks this, one is created on insertion.  
     If the document being is inserted already has an '_id' key-value pair, it 
     will update/overwrite any document with such an id.
@@ -129,12 +129,12 @@ class MongoWrapper(object):
         Note that if the dictionary has an '_id' field, and a document in the
         collection as the same '_id' key-value pair, that object will be
         overwritten.  Any numpy arrays will be stored in the gridFS,
-        replaced with ObjectID pointers, and a list of their ObjectIDs will be
+        replaced with ObjectId pointers, and a list of their ObjectIds will be
         also be stored in the 'npObjectID' key-value pair.  If re-saving an
         object- the method will check for old gridfs objects and delete them. 
 
         :param: document: dictionary of arbitrary size and structure, can contain numpy arrays. Can also be a list of such objects.
-        :returns: List of ObjectIDs of the inserted object(s).
+        :returns: List of ObjectIds of the inserted object(s).
         """
 
         # simplfy things below by making even a single document a list
@@ -178,7 +178,7 @@ class MongoWrapper(object):
         print 'Successfully inserted document(s)'
         return id_values
 
-    def loadFromIDs(self, IDs):
+    def load(self, IDs):
         pass
 
     def load(self, query, getarrays=True):
@@ -206,13 +206,13 @@ class MongoWrapper(object):
             return None
 
     def delete(self, objectId):
-        """Deletes a specific document from the collection based on the objectID.
-        Note that it first deletes all the gridFS files pointed to by ObjectIDs
+        """Deletes a specific document from the collection based on the objectId.
+        Note that it first deletes all the gridFS files pointed to by ObjectIds
         within the document.
 
         Use with caution, clearly.
 
-        :param objectID: an id of an object in the database.
+        :param objectId: an id of an object in the database.
         """
         # *** Add confirmation?
         documentToDelete= self.collection.find_one({"_id": objectId})
@@ -247,7 +247,7 @@ class MongoWrapper(object):
         return pickle.loads(binary)
 
     def _loadNPArrays(self, document):
-        """Utility method to recurse through a document and gather all ObjectIDs and
+        """Utility method to recurse through a document and gather all ObjectIds and
         replace them one by one with their corresponding data from the gridFS collection
 
         Skips any entries with a key of '_id'.
