@@ -91,9 +91,9 @@ def extractTimeCoursesFromStack(imageStack, mask):
     nObjects = len(objectLabels)
     traces = np.zeros((nTimePoints, nObjects, nTrials))
 
-    for i, obj in enumerate(objectLabels):
+    for obj in objectLabels:
         index = mask == obj
-        traces[:,i,:] = avgFromROIInStack(imageStack, index)
+        traces[:, obj, :] = avgFromROIInStack(imageStack, index)
 
     return traces
 
