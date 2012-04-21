@@ -24,9 +24,14 @@ def baseline(A, baseRange, baseAxis):
     base = np.mean(A[baseSlice], axis=baseAxis)
 
     # make a slice to pad the numbers to make the broadcasting work
-    subSlice=[slice(None) if axis == base.shape[0] else None for axis in shape]
-    return A - base[subSlice]
-
+    try:
+        return A - base
+    except:
+        subSlice=[slice(None) if axis == base.shape[0] else None for axis in shape]
+        return A - base[subSlice]
+    finally:
+        pass
+    
 def normalize(A, normRange, normAxis):
     """Normalize a numpy array using a given range over a specfied axis.
 
@@ -44,9 +49,15 @@ def normalize(A, normRange, normAxis):
 
     # make a slice to pad the numbers to make the broadcasting work
     # again, slice(None) means ':' and None means an empty dimension (note difference!)
-    subSlice=[slice(None) if axis == norm.shape[0] else None for axis in shape]
-    return A / norm[subSlice]
 
+    try:
+        return A/norm
+    except:
+        subSlice=[slice(None) if axis == norm.shape[0] else None for axis in shape]
+        return A / norm[subSlice]
+    finally:
+        pass
+    
 def normalizeAndBaseline(A, baseRange, baseAxis):
     """Normalize, then baseline a numpy array over a given range and on a specfied axis.
 
