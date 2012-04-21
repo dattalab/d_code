@@ -41,7 +41,7 @@ def save3dNPArrayAsMovie(fileName, npArray, frameRate=6):
     """
     writeMultiImageStack(fileName,npArray)
     os.system('ffmpeg -r %s -i %s' % (frameRate, fileName) + '_%06d.tif ' + '%s.m4v' % fileName) # you should have ffmpeg by default
-    os.system('rm -f %s_*png' % fileName)
+    os.system('rm -f %s_*tif' % fileName)
 
 def writeMultiImageStack(fileName, npArray):
     """This method saves a 3d numpy array as a number of .tif files.
