@@ -178,9 +178,27 @@ class MongoWrapper(object):
         print 'Successfully inserted document(s)'
         return id_values
 
-    def load(self, IDs):
-        pass
+    def loadFromIds(self, Ids):
+        """Conveience function to load from a list of ObjectIds or from their string
+        representations.  Takes a singleton or a list of either type.
 
+        :param Ids: can be an ObjectId, string representation of an ObjectId, or a list containing items of either type.
+        :returns: List of documents from the DB.  If a document w/the object did not exist, a None object is returned instead.
+        """
+        if type(Ids) is not list:
+            Ids = [Ids]
+
+        out = []
+
+        for id in Ids:
+            if type(id) is ObjectId:
+                obj_id = id
+            elif (type(id) is str or type(id) is unicode):
+                obj_id = ObjectId(id)
+            out.append(self.load({'_id':obj_id}))
+
+        return out
+    
     def load(self, query, getarrays=True):
         """Preforms a search using the presented query. For examples, see:
         See http://api.mongodb.org/python/2.0/tutorial.html
