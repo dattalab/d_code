@@ -22,8 +22,8 @@ from DotDict import DotDict
 
 
 __all__ = ['readRawSIImages', 'parseSIHeaderFile', 'addLineToStateVar', 'readMultiOdorEpoch', 'addTrialToEpoch',
-       'saveEpoch', 'loadEpoch', 'calculateEpochAverages', 'buildCellDataFromEpoch', 'calculateCellDataAmplitudes',
-       'calculateResponderMasks', 'baselineCellData', 'normalizeCellData', 'averageCellData', 'plotNormCells', 'plotMeanCells',
+       'calculateEpochAverages', 'buildCellDataFromEpoch', 'calculateCellDataAmplitudes', 'calculateResponderMasks',
+       'baselineCellData', 'normalizeCellData', 'averageCellData', 'plotNormCells', 'plotMeanCells',
        'plotRespondersAndNonResponders', 'plotMeanRespondersAndNonResponders', 'parseXSG']
 
 #### SI specific file i/o
@@ -464,29 +464,6 @@ def addTrialToEpoch(epochs, tif_fn, header_fn, alignFlag, optionalParams):
     return newEpochArray
 
 
-def saveEpoch(epoch, db=''):
-    """
-    Saves an epoch structure
-
-    No return value.
-
-    Arguments:
-    - `epoch`:an individual epoch structure
-    - `db`: string for the appropripate db options
-    """
-    
-    record={}
-    y=np.atleast_3d([])
-
-    # For multidimensional data, I believe you'll need to use pickle and pymongo.binary.Binary:
-    # serialize 2D array y
-    record['feature2'] = pymongo.binary.Binary( pickle.dumps( y, protocol=2) )
-    # deserialize 2D array y
-    y = pickle.loads( record['feature2'] )
-
-def loadEpoch(db='', query=''):
-    pass
-
 #### extractions and calculations
 
 def calculateEpochAverages(epoch,averageImagesFlag,averageADFlag):
@@ -518,11 +495,13 @@ def calculateEpochAverages(epoch,averageImagesFlag,averageADFlag):
 
 
 def buildCellDataFromEpoch(epoch,baselineFrames=[1,15], odorFrames=[29,30]):
-    epoch['cells'] = imaging.segmentation.extractTimeCoursesFromStack(epoch['images']['chan1'], epoch['segmentationMask'])
+    epoch['cells'] = {}
+    epoch['cells']['allTraces'] = imaging.segmentation.extractTimeCoursesFromStack(epoch['images']['chan1'], epoch['segmentationMask'])
     epoch['cells'] = averageCellData(epoch['cells'])
 
     # calcuate baselined dF/F
-    epoch['normalizedCells'] = imaging.segmentation.extractTimeCoursesFromStack(epoch['images']['chan1'], epoch['segmentationMask'])
+    epoch['normalizedCells'] = {}
+    epoch['normalizedCells']['allTraces'] = epoch['cells']['allTraces'].copy()
     epoch['normalizedCells'] = normalizeCellData(epoch['normalizedCells'],baselineFrames)
     epoch['normalizedCells'] = baselineCellData(epoch['normalizedCells'],baselineFrames)
     epoch['normalizedCells'] = averageCellData(epoch['normalizedCells'])
@@ -534,14 +513,16 @@ def buildCellDataFromEpoch(epoch,baselineFrames=[1,15], odorFrames=[29,30]):
 def calculateCellDataAmplitudes(cellData, baselineFrames, stimFrames, fieldOfViewPositionOffset=[0,0,0], stdThreshold=2):
     nCells,nTimePoints,nTrials = cellData['allTraces'].shape
 
-    cellData['baselineAverage'] = np.mean(cellData['allTraces'][:,baselineFrames[0]:baselineFrames[1],:],axis=1)
-    cellData['baselineSTD'] = scipy.std(cellData['allTraces'][:,baselineFrames[0]:baselineFrames[1],:],axis=1)
+    cellData['baselineAverage'] = np.mean(cellData['allTraces'][baselineFrames[0]:baselineFrames[1],:,:],axis=0)
+    cellData['baselineSTD'] = scipy.std(cellData['allTraces'][baselineFrames[0]:baselineFrames[1],:,:],axis=0)
 
-    cellData['stimAverage'] = np.mean(cellData['allTraces'][:,stimFrames[0]:stimFrames[1],:],axis=1)
+    cellData['stimAverage'] = np.mean(cellData['allTraces'][stimFrames[0]:stimFrames[1],:,:],axis=0)
     cellData['deltaValues'] = np.squeeze(np.array([t[1]-t[0] for t in zip(cellData['baselineAverage'],cellData['stimAverage'])]))
 
-    cellData['responders']= cellData['deltaValues'] > 2*cellData['baselineSTD'] # list of True for each cell by default
-    cellData['position']=[[0,0,0] for i in range(cellData['allTraces'].shape[0])] # list of 0,0,0 for each cell by default
+    # note this works because the deltas are post-baselining
+    cellData['responders']= cellData['deltaValues'] > stdThreshold * cellData['baselineSTD'] # list of True for each cell by default
+
+    cellData['position']=[fieldOfViewPositionOffset for i in range(cellData['allTraces'].shape[0])] # list of 0,0,0 for each cell by default
 
     cellData['meanDelta'] = np.mean(cellData['deltaValues'],axis=1)
     cellData['meanBaseline'] = np.mean(cellData['baselineValues'],axis=1)
@@ -568,18 +549,19 @@ def calculateResponderMasks(epoch):
     return epoch
 
 def baselineCellData(cellData, baselineFrames):
-    cellData['baselineValues'] = np.expand_dims(np.mean(cellData['allTraces'][:,baselineFrames[0]:baselineFrames[1],:],axis=1),1)
+    cellData['baselineValues'] = np.expand_dims(np.mean(cellData['allTraces'][baselineFrames[0]:baselineFrames[1],:,:],axis=0),0)
     cellData['allTraces'] = cellData['allTraces'] - cellData['baselineValues']
     return cellData
 
 def normalizeCellData(cellData, normFrames):
-    cellData['normValues'] = np.expand_dims(np.mean(cellData['allTraces'][:,normFrames[0]:normFrames[1],:],axis=1),1)
+    cellData['normValues'] = np.expand_dims(np.mean(cellData['allTraces'][normFrames[0]:normFrames[1],:,:],axis=0),0)
     cellData['allTraces'] = cellData['allTraces'].astype('float') / cellData['normValues']
     return cellData
 
 def averageCellData(cellData):
-    cellData['meanTraces'] = np.mean(cellData['allTraces'],axis=2)
-    cellData['sem'] = scipy.stats.sem(cellData['allTraces'],axis=2)
+    # allTraces is time x cell x trial
+    cellData['meanTraces'] = np.mean(cellData['allTraces'], axis=2) 
+    cellData['sem'] = scipy.stats.sem(cellData['allTraces'], axis=2)
     return cellData
 
 
