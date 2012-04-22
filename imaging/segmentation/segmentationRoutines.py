@@ -40,8 +40,8 @@ def pickCells(stack, seedPoints=None):
     f.create_dataset('fovimage',data=fovimage)
     if seedPoints is not None:
         f.create_dataset('seedPoints',data=seedPoints)
-    else:
-        f.create_dataset('seedPoints',data=np.array([]))
+        #    else:
+        #        f.create_dataset('seedPoints',data=np.array([]))
     f.close()
 
     # call picking code (external matlab function, which is itself a wrapper for java... yuck)
