@@ -2,12 +2,16 @@ import sys
 import numpy as np
 import os
 
-import matplotlib
-from matplotlib.figure import Figure
-from matplotlib.axes import Subplot
-from matplotlib.backends.backend_gtk import FigureCanvasGTK
-from matplotlib.backends.backend_gtk import NavigationToolbar2GTK as NavigationToolbar
-
+try:
+    import matplotlib
+    from matplotlib.figure import Figure
+    from matplotlib.axes import Subplot
+    from matplotlib.backends.backend_gtk import FigureCanvasGTK
+    from matplotlib.backends.backend_gtk import NavigationToolbar2GTK as NavigationToolbar
+except:
+    print 'Error importing ImageProcGUI. (Likely no gui mode or no appropriate matplotlib backend available).'
+    raise ImportError
+    
 try:
     import pygtk
     pygtk.require("2.0")

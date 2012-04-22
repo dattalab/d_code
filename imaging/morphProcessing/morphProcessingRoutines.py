@@ -1,5 +1,9 @@
 import numpy as np
-import ImageProcGUI as ipg
+try:
+    import ImageProcGUI as ipg
+except:
+    print 'Error importing ImageProcGUI. (Likely no gui mode or no appropriate matplotlib backend available).  highPassFilter() will be disabled.'
+    ipg = None
 import pymorph
 import scipy.ndimage as nd
 
@@ -26,6 +30,10 @@ def highPassFilter(imageSeries, averageRange=None, neg=False):
     :param averageRange: an optional list of ints, specifying the frames over which to pre- average
     :returns: 2d numpy array, a high pass filtered version of the average of imageSeries.
     """
+    if ipg is None:
+        print 'highPassFilter disabled'
+        return None
+    
     if not averageRange:
         image = np.floor(np.mean(imageSeries, axis=2)).astype('uint16')
     else:
