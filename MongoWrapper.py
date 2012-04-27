@@ -194,7 +194,10 @@ class MongoWrapper(object):
             if type(id) is ObjectId:
                 obj_id = id
             elif (type(id) is str or type(id) is unicode):
-                obj_id = ObjectId(id)
+                try:
+                    obj_id = ObjectId(id)
+                except:
+                    obj_id = id
             out.append(self.load({'_id':obj_id}))
 
         return out
