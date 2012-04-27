@@ -143,7 +143,7 @@ def alignStack(stack, mode='translation', supressOutput=True):
     if not supressOutput:
         print 'Launching JAVA to align image...\n'
     
-    handle=subprocess.Popen('java -cp .:* AlignWrapper temp.hdf5',
+    handle=subprocess.Popen('java -Xmx2048m -cp .:* AlignWrapper temp.hdf5',
                             cwd=external_java_dir,
                             stdout=open('temp.txt','a+'), stdin=open('/dev/null'), shell=True, executable="/bin/bash")
     handle.wait()
