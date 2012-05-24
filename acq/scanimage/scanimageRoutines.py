@@ -14,10 +14,12 @@ import scipy.io
 
 import pymongo
 import pickle
+import pymorph
 
 import imaging.io
 import imaging.alignment
 import imaging.segmentation
+import traces
 from DotDict import DotDict
 
 
@@ -494,7 +496,7 @@ def calculateEpochAverages(epoch,averageImagesFlag,averageADFlag):
 
 
 
-def buildCellDataFromEpoch(epoch,baselineFrames=[1,15], odorFrames=[29,30]):
+def buildCellDataFromEpoch(epoch,baselineFrames=[1,15], odorFrames=[29,30], subAverage=False):
     epoch['cells'] = {}
     epoch['cells']['allTraces'] = imaging.segmentation.extractTimeCoursesFromStack(epoch['images']['chan1'], epoch['segmentationMask'])
     epoch['cells'] = averageCellData(epoch['cells'])
@@ -502,11 +504,53 @@ def buildCellDataFromEpoch(epoch,baselineFrames=[1,15], odorFrames=[29,30]):
     # calcuate baselined dF/F
     epoch['normalizedCells'] = {}
     epoch['normalizedCells']['allTraces'] = epoch['cells']['allTraces'].copy()
+
+    if subAverage:
+        #        averageSignal = np.expand_dims(epoch['normalizedCells']['allTraces'][:,0,:].copy(), 1)
+        #        epoch['normalizedCells']['allTraces'] -= averageSignal
+
+        # calculate local average for subtraction
+        for ROI in range(1, epoch['normalizedCells']['allTraces'].shape[1]):
+            mask_dilated = epoch['segmentationMask'] == ROI
+            for i in range(3):
+                mask_dilated = pymorph.dilate(mask_dilated)
+
+            mask_dilated = np.logical_and(mask_dilated, np.logical_not(pymorph.dilate(epoch['segmentationMask']==ROI)))
+            
+            local_neuropil_mask = np.logical_and(mask_dilated, epoch['segmentationMask'] == 0)
+            local_neuropil_signals = imaging.segmentation.avgFromROIInStack(epoch['images']['chan1'], local_neuropil_mask)
+            local_neuropil_signals = local_neuropil_signals.astype(float) - np.atleast_2d(np.mean(local_neuropil_signals[baselineFrames[0]:baselineFrames[1], :], axis=0))
+
+            for trial in range(epoch['nTrials']):
+                local_neuropil_signals[:, trial] = traces.boxcar(local_neuropil_signals[:,trial])
+                #            plt.matshow(local_neuropil_signals)
+
+            epoch['normalizedCells']['allTraces'][:,ROI,:] -= local_neuropil_signals
+
     epoch['normalizedCells'] = normalizeCellData(epoch['normalizedCells'],baselineFrames)
     epoch['normalizedCells'] = baselineCellData(epoch['normalizedCells'],baselineFrames)
-    epoch['normalizedCells'] = averageCellData(epoch['normalizedCells'])
 
-    epoch['normalizedCells'] = calculateCellDataAmplitudes(epoch['normalizedCells'],baselineFrames, odorFrames)
+    # if subAverage:
+    #     #        averageSignal = np.expand_dims(epoch['normalizedCells']['allTraces'][:,0,:].copy(), 1)
+    #     #        epoch['normalizedCells']['allTraces'] -= averageSignal
+
+    #     # calculate local average for subtraction
+    #     for ROI in range(1, epoch['normalizedCells']['allTraces'].shape[1]):
+    #         mask_dilated = epoch['segmentationMask'] == ROI
+    #         for i in range(5):
+    #             mask_dilated = pymorph.dilate(mask_dilated)
+    #         local_neuropil_mask = np.logical_and(mask_dilated, epoch['segmentationMask'] == 0)
+    #         local_neuropil_signals = imaging.segmentation.avgFromROIInStack(epoch['images']['chan1'], local_neuropil_mask)
+
+    #         local_neuropil_signals = local_neuropil_signals.astype(float) / np.atleast_2d(np.mean(local_neuropil_signals[baselineFrames[0]:baselineFrames[1], :], axis=0))
+    #         local_neuropil_signals -= 1.0
+    #         for trial in range(epoch['nTrials']):
+    #             local_neuropil_signals[:, trial] = traces.boxcar(local_neuropil_signals[:,trial])
+
+    #         epoch['normalizedCells']['allTraces'][:,ROI,:] -= local_neuropil_signals
+
+    epoch['normalizedCells'] = averageCellData(epoch['normalizedCells'])
+    epoch['normalizedCells'] = calculateCellDataAmplitudes(epoch['normalizedCells'], baselineFrames, odorFrames)
 
     return epoch
 
@@ -526,7 +570,8 @@ def calculateCellDataAmplitudes(cellData, baselineFrames, stimFrames, fieldOfVie
 
     cellData['meanDelta'] = np.mean(cellData['deltaValues'],axis=1)
     cellData['meanBaseline'] = np.mean(cellData['baselineValues'],axis=1)
-    cellData['meanResponders'] = np.mean(cellData['responders'],axis=1)>=0.3
+    cellData['meanResponders'] = np.mean(cellData['responders'],axis=1)>=0.25
+    cellData['meanResponders'][0] = 0
     return cellData
 
 def calculateResponderMasks(epoch):

@@ -308,7 +308,7 @@ def smooth(A, window_len=11, window='hanning'):
     if window == 'flat': #moving average
         w=np.ones(window_len,'d')
     else:
-        w=eval('numpy.'+window+'(window_len)')
+        w=eval('np.'+window+'(window_len)')
 
     y=np.convolve(w/w.sum(),s,mode='valid')
     return y
