@@ -2,6 +2,8 @@ import numpy as np
 import scipy
 import glob
 
+__all__ = ['parseXSG', 'parseAllXSGFiles']
+
 def parseXSG(filename):
     """Function to parse the XSG file format.  Returns a dictionary with epoch string,
     sample rate (assuming equal sample rates on all channels), and data.  Data is stored
