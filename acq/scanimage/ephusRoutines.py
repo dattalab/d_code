@@ -66,13 +66,21 @@ def parseAllXSGFiles(listOfFilenames, epoch=None):
     # acq channels
     for acq_channel in acq_chans:
         data['acquirer'][acq_channel] = np.zeros((xsg_files[0]['acquirer'][acq_channel].shape[0], len(xsg_files)))
-        for i in range(len(xsg_files)):
-            data['acquirer'][acq_channel][:,i] = xsg_files[1]['acquirer'][acq_channel].copy()
-
+        try:
+            for i in range(len(xsg_files)):
+                data['acquirer'][acq_channel][:,i] = xsg_files[1]['acquirer'][acq_channel].copy()
+        except ValueError:
+            print "Acquirer trace size mis-match.  Make sure settings didn't change from file to file- ensure files are same all same size."
+            return None
+            
     # ephys channels
     for ephys_channel in ephys_chans:
         data['ephys'][ephys_channel] = np.zeros((xsg_files[0]['ephys'][ephys_channel].shape[0], len(xsg_files)))
-        for i in range(len(xsg_files)):
-            data['ephys'][acq_channel][:,i] = xsg_files[1]['ephys'][ephys_channel].copy()
+        try:
+            for i in range(len(xsg_files)):
+                data['ephys'][acq_channel][:,i] = xsg_files[1]['ephys'][ephys_channel].copy()
+        except ValueError:
+            print "Ephys trace size mis-match.  Make sure settings didn't change from file to file- ensure files are same all same size."
+            return None
 
     return data
