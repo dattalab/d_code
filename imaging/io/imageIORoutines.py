@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import os
 import time
 
+import tempfile
+
 import subprocess
 import tifffile
 try:
@@ -204,3 +206,29 @@ def readImagesFromList(listOfFiles):
         return imageArray
     except:
         return []
+
+
+def npArrayFromClipboard():
+    """This function pulls information off the OS X clipboard and builds a numpy array.
+    Generally, this would be data copied from Excel (tab seperated cols, return seperated rows)
+
+    :returns: numpy array of appropriate dimension.
+    """
+    p = subprocess.Popen(['pbpaste'], stdout=subprocess.PIPE)
+    output = p.communicate()
+    return np.array([i.split('\t') for i in output[0].split('\r')])
+        
+def openArrayInExcel(A):
+    """This function writes a temporary csv file from a 1 or 2D numpy array
+    and uses the 'open' command in OS X to open it in Excel.
+
+    Note that the temporary file is not deleted, which could lead to a leak in
+    some cases.  Use with prudence.
+
+    :param: A: 1 or 2d numpy array 
+    """
+
+    t = tempfile.NamedTemporaryFile(suffix='.csv', delete=False)
+    np.savetxt(t.file, A, delimiter=',')
+    t.file.close()
+    os.system('open ' + t.name)
