@@ -3,6 +3,14 @@ import scipy
 import glob
 
 def parseXSG(filename):
+    """Function to parse the XSG file format.  Returns a dictionary with epoch string,
+    sample rate (assuming equal sample rates on all channels), and data.  Data is stored
+    in sub-dictionaries, one for each ephus program (ephys, acquirer, etc).  In turn,
+    each of those dictionaries contains a numpy array with the raw values.
+
+    :param: filename: string of .xsg file to parse.
+    :returns: dictionary of values as described above
+    """
     raw = scipy.io.loadmat(filename, squeeze_me=True)
 
     header = raw['header']
@@ -42,6 +50,19 @@ def parseXSG(filename):
     return xsgDict
 
 def parseAllXSGFiles(listOfFilenames, epoch=None):
+    """Convienence function to parse multiple XSG files in one go.  Takes a list of
+    files to read in.  Easiest to generate this using the 'files = !ls *.xsg' command in
+    ipython, or the glob.glob module.
+
+    Returns a dictionary with epoch and sample rate, and sub-dictionaries for each ephus
+    program (ephys, acquirer, etc).  These sub-dictionaries include 2d numpy arrays for each
+    channel acquirered.  The first dimension is the number of sampled points, and the second
+    is the number of files passed in.
+
+    :param: listOfFilenames: list of strings of the files to read
+    :param: epoch: optional parameter to filter by epoch value.  can be a string or an int.
+    :returns: dictionary of data as described above.
+    """
     if isinstance(epoch, int):
         epoch = unicode(epoch)
 
