@@ -7,13 +7,9 @@ def parseXSG(filename):
 
     header = raw['header']
     data = raw['data']
-
     
     acq_fields = data.dtype.names
     header_fields = header.dtype.names
-
-    number_of_acq_types = len(acq_fields)
-    number_of_header_fields = len(header_fields)
 
     xsgDict = {}
 
@@ -30,25 +26,26 @@ def parseXSG(filename):
         print "No ephys traces?"
         ephys_trace_fields = []
     for chan in ephys_trace_fields:
-        xsgDict['ephys']['chan0'] = data['ephys'][()][chan][()]
+        xsgDict['ephys'][u'chan0'] = data['ephys'][()][chan][()]
 
     try:
         acq_trace_fields = [i for i in data['acquirer'][()].dtype.names if 'trace' in i]
     except TypeError: #no traces
         print "No acquirer traces?"
         acq_trace_fields = []
-    acq_chanName_fields = [i for i in data['acquirer'][()].dtype.names if 'channelName' in i]
-    for chan, chanName in zip(acq_trace_fields, acq_chanName_fields):
+
+    acq_channel_field_names = [i for i in data['acquirer'][()].dtype.names if 'channelName' in i]
+    acq_chan_names = [data['acquirer'][()][i][()][()] for i in acq_channel_field_names]
+    for chan, chanName in zip(acq_trace_fields, acq_chan_names):
         xsgDict['acquirer'][chanName] = data['acquirer'][()][chan][()]
 
     return xsgDict
 
-def parseAllXSGFiles(dirname, epoch=None):
+def parseAllXSGFiles(listOfFilenames, epoch=None):
     if isinstance(epoch, int):
         epoch = unicode(epoch)
 
-    fileNames = glob.glob(dirname+'/*.xsg')
-    all_xsg_files = [parseXSG(i) for i in fileNames]
+    all_xsg_files = [parseXSG(i) for i in listOfFilenames]
 
     if epoch is not None:
         xsg_files = [i for i in all_xsg_files if i['epoch'] == epoch]
@@ -56,16 +53,26 @@ def parseAllXSGFiles(dirname, epoch=None):
         xsg_files = all_xsg_files
 
     data = {}
-    data['ephys'] = []
-    data['acquirer'] = []
+    # we're assuming that the files are consistant-
+    # same channels, same sample rates, etc
+    data['epoch'] = xsg_files[0]['epoch']
+    data['sampleRate'] = xsg_files[0]['sampleRate']
+    data['acquirer'] = {}
+    data['ephys'] = {}
+    
+    acq_chans = xsg_files[0]['acquirer'].keys()
+    ephys_chans = xsg_files[0]['ephys'].keys()
 
-    try:        
-        data['ephys'].append(np.array([i['ephys']['chan0'] for i in xsg_files]))
-    except KeyError:
-        print "No phys chan0, aborting phys"
-        data['ephys'] = []
+    # acq channels
+    for acq_channel in acq_chans:
+        data['acquirer'][acq_channel] = np.zeros((xsg_files[0]['acquirer'][acq_channel].shape[0], len(xsg_files)))
+        for i in range(len(xsg_files)):
+            data['acquirer'][acq_channel][:,i] = xsg_files[1]['acquirer'][acq_channel].copy()
 
-    for i in xsg_files[0]['acquirer'].keys():
-        data['acquirer'].append([x['acquirer'][i] for x in xsg_files])
-        
+    # ephys channels
+    for ephys_channel in ephys_chans:
+        data['ephys'][ephys_channel] = np.zeros((xsg_files[0]['ephys'][ephys_channel].shape[0], len(xsg_files)))
+        for i in range(len(xsg_files)):
+            data['ephys'][acq_channel][:,i] = xsg_files[1]['ephys'][ephys_channel].copy()
+
     return data
