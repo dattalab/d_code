@@ -7,7 +7,8 @@ import scipy
 __all__ = ['baseline', 'normalize', 'normalizeAndBaseline', 'findLevels', \
        'subBaseline', 'normAndCorrectBaseline', 'correctionMatrixLinearFit', \
        'correctionMatrixSmoothed', 'boxcar', 'smooth', \
-       'calcCorrectedSTDs', 'calcTracesOverThreshhold',  'calcPosTraces', 'partitionTracesBySTD']
+       'calcCorrectedSTDs', 'calcTracesOverThreshhold',  'calcPosTraces', 'partitionTracesBySTD',
+       'findLevels1d', 'findLevelsNd']
 
 def baseline(A, baseRange, baseAxis):
     """Baseline a numpy array using a given range over a specfied axis.
