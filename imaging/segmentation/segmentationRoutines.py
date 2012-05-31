@@ -4,6 +4,7 @@ import os
 import h5py
 import subprocess
 import pymorph
+import tempfile
 
 import scipy.stats as stats
 import scipy.signal as sig
@@ -34,9 +35,9 @@ def pickCells(stack, seedPoints=None):
 
     fovimage = np.mean(np.atleast_3d(stack),axis=2)
 
-    if os.path.isfile('temp.hdf5'):
-        os.system('rm -rf *.hdf5')
-    f = h5py.File('temp.hdf5')
+    temp_dir = tempfile.mkdtemp()
+    
+    f = h5py.File(os.path.join(temp_dir, 'temp.hdf5'))
     f.create_dataset('fovimage',data=fovimage)
     if seedPoints is not None:
         f.create_dataset('seedPoints',data=seedPoints)
@@ -44,18 +45,18 @@ def pickCells(stack, seedPoints=None):
         #        f.create_dataset('seedPoints',data=np.array([]))
     f.close()
 
-    # call picking code (external matlab function, which is itself a wrapper for java... yuck)
+    # call picking code (external matlab function, yuck)
     print 'Launching MATLAB to pick cells...\n'
-    handle = subprocess.Popen('matlab -nodesktop -r \'imCellEditinteractiveExternal\'',stdin=open('/dev/null'), shell=True, executable="/bin/bash")
+    handle = subprocess.Popen('matlab -nodesktop -r \'imCellEditinteractiveExternal\'',stdin=open('/dev/null'), shell=True, executable="/bin/bash", cwd=temp_dir)
     handle.wait()
 
     # import the masks and delete temporary files
-    f = h5py.File('temp.hdf5','r')
+    f = h5py.File(os.path.join(temp_dir, 'temp.hdf5'),'r')
     bwOut = np.array(f.get('bwOut')[:])
     #    mask = np.array(f.get('mask')[:])
     f.close()
 
-    os.system("rm -rf *.hdf5")
+    os.system("rm -rf " + temp_dir)
 
     return bwOut, pymorph.label(bwOut)
 
