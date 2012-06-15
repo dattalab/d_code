@@ -262,7 +262,8 @@ def watershedSegment(image, diskSize=20):
 
     # call watershed
     segmented_cells, segmented_cell_lines = mahotas.cwatershed(gradmag2, mahotas.label(all_markers)[0], eight_conn, return_lines=True)
-
+    segmented_cells -= 1
+    
     # seperate watershed regions
     segmented_cells[gradientMagnitudue(segmented_cells) > 0] = 0
     return segmented_cells > 0, segmented_cells
