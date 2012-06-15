@@ -252,8 +252,8 @@ def watershedSegment(image, diskSize=20):
     eight_conn = pymorph.sebox()
 
     distance_markers = mahotas.label(mahotas.regmin(image_distance, eight_conn))[0]
-    image_dist_wshed, image_dist_wshed_lines =mahotas.cwatershed(image_distance, distance_markers, eight_conn, return_lines=True)
-    background_markers = image_distance_watershed_lines - image_black_white
+    image_dist_wshed, image_dist_wshed_lines = mahotas.cwatershed(image_distance, distance_markers, eight_conn, return_lines=True)
+    background_markers = image_dist_wshed_lines - image_black_white
 
     all_markers = np.logical_or(foreground_markers, background_markers)
 
