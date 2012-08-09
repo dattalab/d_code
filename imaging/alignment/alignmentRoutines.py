@@ -113,7 +113,7 @@ def alignStack(stack, mode='translation', supressOutput=True):
 
     stack should be 4D, X x Y x Frames x Trials
 
-    target is np.mean(stack[:,:,1:3:1])
+    target is np.mean(stack[:,:,1:3:0])
 
     :param stack: 3d or 4d numpy array to align on a frame by frame basis
     :param mode: one of 'translation', 'scaledRotation', 'rigidBody', 'affine'
@@ -125,11 +125,13 @@ def alignStack(stack, mode='translation', supressOutput=True):
 
     target=np.squeeze(np.mean(stack[:,:,1:3,0],axis=2))
 
-    external_java_dir = os.path.join(os.path.expandvars('$HOME'), 'Dropbox/python_modules/dattacode/imaging/external_java_wrapper_functions')
+    external_java_dir = os.path.join(os.path.expandvars('$HOME'), 'external_java_wrapper_functions')
 
     if os.path.isfile(os.path.join(external_java_dir, 'temp.hdf5')):
         handle=subprocess.Popen('rm -rf *.hdf5 *.h5 temp.txt temperr.txt',
                                 cwd=external_java_dir, shell=True, executable="/bin/bash")
+        handle.wait()
+
     f=h5py.File(os.path.join(external_java_dir, 'temp.hdf5'))
     f.create_dataset('stack',data=stack, dtype='single')
     f.create_dataset('target',data=target, dtype='single')
@@ -162,5 +164,6 @@ def alignStack(stack, mode='translation', supressOutput=True):
     handle=subprocess.Popen('rm -rf *.hdf5 *.h5 temp.txt temperr.txt',
                             cwd=external_java_dir,
                             shell=True, executable="/bin/bash")
-    
+    handle.wait()
+
     return alignedImage
