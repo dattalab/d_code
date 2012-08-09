@@ -113,25 +113,21 @@ def addLineToStateVar(keyList,value,state):
     return DotDict(state)
 
 
-def readMultiOdorEpoch(epochNumber, alignFlag=True, optionalParams='',goodTrials=[]):
+def readMultiOdorEpoch(epochNumber, optionalParams=''):
     """
     Parse a multi odor epoch of scanimage data in the current directory.
 
     Takes a number and
     Arguments:
     - `epochNumber`: Integer, the epoch number to parse
-    - `alignFlag`: Boolean flag for image alignment
     - `optionalParams`: nested dictionary that adds and/or overwrites values in the headerfile
-    - `goodTrials`: a list booleans signifying weather or not to include a acq
     """
 
     epoch='e'+str(epochNumber)
 
     epochFileNames = glob.glob('*'+epoch+'*')
 
-    tif_files      = [fname for fname in epochFileNames if 'tif' in fname and not 'mean' in fname]
-    txt_files      = [fname for fname in epochFileNames if 'hdr.txt' in fname and not 'mean' in fname]
-    mouse_ox_files = [fname for fname in epochFileNames if 'mouseox.txt' in fname and not 'mean' in fname]
+    tif_files = [fname for fname in epochFileNames if 'tif' in fname and not 'mean' in fname]
 
     # check to make sure the sizes of all tif files is the same.  Highlight anything that doesn't have the
     # mode filesize
@@ -139,80 +135,33 @@ def readMultiOdorEpoch(epochNumber, alignFlag=True, optionalParams='',goodTrials
     tif_file_sizes = np.array([os.path.getsize(tif_file) for tif_file in tif_files])
     tif_file_size_mode = int(scipy.stats.mode(tif_file_sizes)[0])
 
+    # assume that all tifs are good to start
     goodTrials = np.logical_not(np.zeros_like(tif_files, dtype=bool))
 
-    if np.any(np.logical_not(tif_file_sizes == tif_file_size_mode)):
-        print ''
-        print 'File size mismatch- please indicate which trials to exclude by their numbers, seperated by spaces:'
-        for i, (fileName, fileSize) in enumerate(zip(tif_files, tif_file_sizes)):
-            if fileSize != tif_file_size_mode:
-                print '%d --> ' % i,
-            else:
-                print '%d     ' % i,
-            print '%s - %s' % (fileSize, fileName),
-            if not goodTrials[i]:
-                print ' - NOTE: pre-excluded based on goodTrials function argument'
-            else:
-                print ''
+    # check for any files that are different than the most common size, and ignore them
+    file_size_same_as_mode = tif_file_sizes == tif_file_size_mode
+    goodTrials = np.logical_and(goodTrials, file_size_same_as_mode)
 
-    ex = raw_input("Trials to exclude: ")
-    if ex is not u'':
-        ex = [int(i) for i in ex.split()]
-        goodTrials[ex] = False
+    # check for any files that don't have an associated header file
+    associated_header_file = np.array([os.path.exists(tif_name.replace('.tif', '_hdr.txt')) for tif_name in tif_files])
+    goodTrials = np.logical_and(goodTrials, associated_header_file)
 
-    # select only the good trials passed in.  If this arguement is
-    # empty, then assume all trials are good.
-    if goodTrials !=[]:
-        tif_files = [tif[1] for tif in zip(goodTrials, tif_files) if tif[0]]
-        txt_files = [txt[1] for txt in zip(goodTrials, txt_files) if txt[0]]
-        mouse_ox_files = [mouseox[1] for mouseox in zip(goodTrials, mouse_ox_files) if mouseox[0]]
+    tif_files = [tif[1] for tif in zip(goodTrials, tif_files) if tif[0]]
+    txt_files = [tif_name.replace('.tif', '_hdr.txt') for tif_name in tif_files]
     numTrials=len(tif_files)
 
     print 'Reading the the following files: %s' % tif_files
     print 'With the following txt headers: %s' % txt_files
 
     # read in files into a list of epoch dictionaries.
-    epochs=addTrialToEpoch([], tif_files[0], txt_files[0], True, optionalParams)
-    for trial in range(1,numTrials):
-        epochs=addTrialToEpoch(epochs, tif_files[trial], txt_files[trial], alignFlag, optionalParams)
-
-    nEpochs = len(epochs)
-    
-    # normalization, alignment, averaging, saving
-    if alignFlag:
-        print '\n'
-        print 'Aligning image stacks (via JAVA)...'
-        for i, odorEpoch in enumerate(epochs):
-            for channelName in odorEpoch['images'].keys():
-                channelNumber=int(channelName[4])-1
-                if odorEpoch['activeChannels'][channelNumber]:
-                    odorEpoch['images'][channelName] = imaging.alignment.alignStack(odorEpoch['images'][channelName])
-    print '\n'
-    print 'Calculating epoch averages...'
-    for i, odorEpoch in enumerate(epochs):
-        odorEpoch = calculateEpochAverages(odorEpoch,1,0)
-
-    # build average tif file names
-    for i, odorEpoch in enumerate(epochs):
-        odorEpoch['fn_tifs']=[]
-        for j, activeChannel in enumerate(odorEpoch['activeChannels']):
-            if activeChannel:
-                odorEpoch['fn_tifs'].append(odorEpoch['baseName'] +
-                                            '_mean_e' + str(odorEpoch['epochNumber']) +
-                                            '_o' + str(i) +
-                                            '_chan' + str(j) +
-                                            '.tif')
-
-        # build data structure file name
-        odorEpoch['epochID']= '%s_e%s_o%s' % (odorEpoch['baseName'], str(odorEpoch['epochNumber']), str(i))
-
-        # save
-        #saveEpoch(odorEpoch)
+    epochs=addTrialToEpoch([], tif_files[0], txt_files[0], optionalParams)
+    for trial in range(1, numTrials):
+        epochs=addTrialToEpoch(epochs, tif_files[trial], txt_files[trial], optionalParams)
 
     epochs=[DotDict(e) for e in epochs]
     return epochs
 
-def addTrialToEpoch(epochs, tif_fn, header_fn, alignFlag, optionalParams):
+def addTrialToEpoch(epochs, tif_fn, header_fn, optionalParams):
     """
     Adds a trial's worth of data to the epoch structure 'epoch'
 
@@ -225,7 +174,6 @@ def addTrialToEpoch(epochs, tif_fn, header_fn, alignFlag, optionalParams):
     - `epochs`: nil, or a list of epoch structures (nested dictionaries)
     - `tif_fn`: String, name of a tif file in the current dir to read
     - `header_fn`: String, name of the header txt file
-    - `alignFlag`: Boolean, true or false to align the current image to the template
     - `optionalParams`: nested dictionary that adds and/or overwrites values in the headerfile
     """
 
@@ -552,7 +500,7 @@ def buildCellDataFromEpoch(epoch,baselineFrames=[1,15], odorFrames=[29,30], subA
     epoch['normalizedCells'] = averageCellData(epoch['normalizedCells'])
     epoch['normalizedCells'] = calculateCellDataAmplitudes(epoch['normalizedCells'], baselineFrames, odorFrames)
 
-    return epoch
+    return DotDict(epoch)
 
 def calculateCellDataAmplitudes(cellData, baselineFrames, stimFrames, fieldOfViewPositionOffset=[0,0,0], stdThreshold=2):
     nCells,nTimePoints,nTrials = cellData['allTraces'].shape
