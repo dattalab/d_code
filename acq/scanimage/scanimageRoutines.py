@@ -23,7 +23,7 @@ import traces
 from DotDict import DotDict
 
 
-__all__ = ['readRawSIImages', 'parseSIHeaderFile', 'addLineToStateVar', 'readMultiOdorEpoch', 'addTrialToEpoch',
+__all__ = ['readRawSIImages', 'parseSIHeaderFile', 'importTrial', 'addLineToStateVar', 'readMultiOdorEpoch', 'addTrialToEpoch',
        'calculateEpochAverages', 'buildCellDataFromEpoch', 'calculateCellDataAmplitudes', 'calculateResponderMasks',
        'baselineCellData', 'normalizeCellData', 'averageCellData', 'plotNormCells', 'plotMeanCells',
        'plotRespondersAndNonResponders', 'plotMeanRespondersAndNonResponders', 'parseXSG']
@@ -111,6 +111,122 @@ def addLineToStateVar(keyList,value,state):
         state[top]=value
 
     return DotDict(state)
+
+
+def importTrial(tif_filename, header_filename):
+    # returns a list of odor response dictionaries for this trial
+
+    raw_image = imaging.io.imread(tif_filename)
+    
+    state = parseSIHeaderFile(header_filename)
+
+    # calc base, odor, post frame numbers
+
+
+    frames = map(int, state['olfactometer']['odorFrameListString'].split(';'))
+    frame_states = map(int, state['olfactometer']['odorStateListString'].split(';'))
+    frame_states_no_zeros = filter(lambda x: x>0, frame_states)
+
+    pre_frames   = frames[0]
+    odor_frames  = frames[1]
+    post_frames  = frames[2]
+    blank_frames = frames[3]
+
+
+    single_odor_frame_length = np.sum(frames[0:3])
+    single_odor_frame_length_with_blank = np.sum(frames[0:4])
+
+    # make a list of imaging channels acquired
+
+    activeChannels = map(int, [state['acq']['savingChannel1'],
+                               state['acq']['savingChannel2'],
+                               state['acq']['savingChannel3'],
+                               state['acq']['savingChannel4']])
+
+    nActiveChannels=sum(activeChannels)
+
+    # first, let's demultiplex image into it's channels
+    # this will be used below
+
+    raw_image_in_channels = {}
+    for chanNum in range(4):
+        if (activeChannels[chanNum]):
+            raw_image_in_channels[chanNum] = raw_image[:,:,chanNum::nActiveChannels].copy()
+        else:
+            raw_image_in_channels[chanNum] = np.array([])
+    
+
+    # get list of odors
+
+    state['olfactometer']['odorStateList'] = state['olfactometer']['odorStateListString'].split(';')
+    state['olfactometer']['odorTimeList']  = state['olfactometer']['odorTimeListString'].split(';')
+    state['olfactometer']['odorFrameList'] = state['olfactometer']['odorFrameListString'].split(';')
+
+    valve_numbers_as_presented = state['olfactometer']['odorStateList'][1::4]
+    odor_list_indicies = map(lambda x: int(x)-1, valve_numbers_as_presented) # annoyingly, valve # is 1-order, not 0 order
+    nOdors = state['olfactometer']['nOdors']
+
+    basename = tif_filename[0:-4].split('_')[0]
+    epoch = tif_filename[0:-4].split('_')[1][1:]
+    acqNum = tif_filename[0:-4].split('_')[2]
+
+    trial = [{} for odor in odor_list_indicies]
+
+    for odor_index in odor_list_indicies:
+        trial[odor_index] = {}
+
+        # store meta data
+        trial[odor_index]['allHeaderData'] = state
+
+        trial[odor_index]['raw_tif_filename'] = tif_filename
+
+        trial[odor_index]['epochNumber'] = epoch
+        trial[odor_index]['baseName'] = basename
+        trial[odor_index]['date'] =  state['internal']['startupTimeString']
+
+
+        trial[odor_index]['resolution'] = (state['acq']['linesPerFrame'] + 'x' +
+                                           state['acq']['linesPerFrame'] + 'x' +
+                                           state['acq']['msPerLine'] + 'ms')
+
+        trial[odor_index]['baselineFrames'] = [0, pre_frames]
+        trial[odor_index]['odorFrames']     = [pre_frames, pre_frames + odor_frames]
+        trial[odor_index]['postFrames']     = [pre_frames + odor_frames, pre_frames + odor_frames + post_frames]
+
+        trial[odor_index]['odor1Name'] = state['olfactometer']['valveOdor1Name_'+str(odor_index+1)]
+        trial[odor_index]['odor2Name'] = state['olfactometer']['valveOdor2Name_'+str(odor_index+1)]
+        trial[odor_index]['odor1Dilution'] = state['olfactometer']['valveOdor1Dilution_'+str(odor_index+1)]
+        trial[odor_index]['odor2Dilution'] = state['olfactometer']['valveOdor2Dilution_'+str(odor_index+1)]
+
+        trial[odor_index]['activeChannels'] = activeChannels
+        trial[odor_index]['nActiveChannels'] = nActiveChannels
+
+        # added later by other routines and importation
+        # but we should expect them to be there
+        trial[odor_index]['segmentationMask'] = None
+
+        trial[odor_index]['cells'] = None
+        trial[odor_index]['normalizedCells'] = None
+
+        trial[odor_index]['trialNumber'] = None # done when storing doc
+
+        trial[odor_index]['difference_image'] = None  # done post alignment
+ 
+        # extract and store image data
+        
+        trial[odor_index]['images'] = {}
+        trial[odor_index]['images']['chan1'] = np.array([])
+        trial[odor_index]['images']['chan2'] = np.array([])
+        trial[odor_index]['images']['chan3'] = np.array([])
+        trial[odor_index]['images']['chan4'] = np.array([])
+
+        for chanNum in range(4):
+            if activeChannels[chanNum]:
+                offset = odor_index * single_odor_frame_length_with_blank
+                trial[odor_index]['images']['chan'+str(chanNum+1)] = raw_image_in_channels[chanNum][:,:,offset:offset+single_odor_frame_length].copy()
+
+    return trial # a list of single trial odor exposure dictionaries
+
 
 
 def readMultiOdorEpoch(epochNumber, optionalParams=''):
@@ -556,8 +672,6 @@ def averageCellData(cellData):
     cellData['meanTraces'] = np.mean(cellData['allTraces'], axis=2) 
     cellData['sem'] = scipy.stats.sem(cellData['allTraces'], axis=2)
     return cellData
-
-
 
 #### plotting
 
