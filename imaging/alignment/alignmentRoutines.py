@@ -101,7 +101,7 @@ def alignSeries(series, mode='translation', target=None, supressOutput=True):
     :param supressOutout: boolean, defaults to True
     :returns: an aligned 3d numpy array
     """
-
+    assert series.ndim == 3, 'series must be a 3d numpy array'
     return np.squeeze(alignStack(np.expand_dims(series, axis=3), mode, target, supressOutput))
     
 def alignStack(stack, mode='translation', target=None, supressOutput=True):
@@ -111,7 +111,6 @@ def alignStack(stack, mode='translation', target=None, supressOutput=True):
     and aligns the array, and writes it back out to another part of the hdf5 file
 
     stack should be 4D, X x Y x Frames x Trials
-
     :param stack: 3d or 4d numpy array to align on a frame by frame basis
     :param mode: one of 'translation', 'scaledRotation', 'rigidBody', 'affine'
     :param supressOutout: boolean, defaults to True
@@ -120,6 +119,8 @@ def alignStack(stack, mode='translation', target=None, supressOutput=True):
     """
 
     modeDict = {'translation':0, 'scaledRotation':1, 'rigidBody':2, 'affine':3}
+
+    assert series.ndim == 4, 'stack must be a 4d numpy array'
 
     if target is None:
         target=np.squeeze(np.mean(stack[:,:,0:2,0],axis=2))
