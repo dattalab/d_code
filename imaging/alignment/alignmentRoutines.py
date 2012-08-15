@@ -120,7 +120,7 @@ def alignStack(stack, mode='translation', target=None, supressOutput=True):
 
     modeDict = {'translation':0, 'scaledRotation':1, 'rigidBody':2, 'affine':3}
 
-    assert series.ndim == 4, 'stack must be a 4d numpy array'
+    assert stack.ndim == 4, 'stack must be a 4d numpy array'
 
     if target is None:
         target=np.squeeze(np.mean(stack[:,:,0:2,0],axis=2))
