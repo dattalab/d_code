@@ -174,7 +174,7 @@ def importTrial(tif_filename, header_filename):
 
     trial = [{} for odor in odor_list_indicies]
 
-    for odor_index in odor_list_indicies:
+    for i, odor_index in enumerate(odor_list_indicies):
         trial[odor_index] = {}
 
         # store meta data
@@ -221,10 +221,13 @@ def importTrial(tif_filename, header_filename):
         trial[odor_index]['images']['chan2'] = np.array([])
         trial[odor_index]['images']['chan3'] = np.array([])
         trial[odor_index]['images']['chan4'] = np.array([])
-
+        
         for chanNum in range(4):
             if activeChannels[chanNum]:
-                offset = odor_index * single_odor_frame_length_with_blank
+#                offset = odor_index * single_odor_frame_length_with_blank
+                offset = i * single_odor_frame_length_with_blank
+
+#                print trial[odor_index]['odor1Name'], odor_index, offset, offset+single_odor_frame_length
                 trial[odor_index]['images']['chan'+str(chanNum+1)] = raw_image_in_channels[chanNum][:,:,offset:offset+single_odor_frame_length].copy()
 
     return trial # a list of single trial odor exposure dictionaries

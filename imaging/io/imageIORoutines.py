@@ -6,6 +6,8 @@ import os
 import time
 import scipy.signal as sig
 
+from IPython.display import HTML
+
 import tempfile
 
 import subprocess
@@ -15,22 +17,7 @@ try:
 except ImportError:
     import Image
 
-__all__ = ['play3dNpArray', 'save3dNPArrayAsMovie', 'writeMultiImageStack', 'imread', 'imreadStack', 'imsave', 'imview', 'splitAndResaveChannels', 'readMultiImageTifStack', 'readImagesFromList', 'downsample2d', 'downsample3d']
-
-def play3dNpArray(npArray, frameRate=6):
-    """This method loops a 3d numpy array in a matplotlib window.
-
-    A bit defunct due to imview, but here for reference.
-    
-    :param npArray: a 3d numpy array
-    :param frameRate: optional, defaults to 6
-    """
-    plt.figure()
-    axis=plt.imshow(npArray[:,:,0])
-    for i in range(1, npArray.shape[2]):
-        axis.set_data(npArray[:,:,i])
-        plt.draw()
-        time.sleep(1.0/frameRate)
+__all__ = ['play', 'save3dNPArrayAsMovie', 'writeMultiImageStack', 'imread', 'imreadStack', 'imsave', 'imview', 'splitAndResaveChannels', 'readMultiImageTifStack', 'readImagesFromList', 'downsample2d', 'downsample3d']
 
 def save3dNPArrayAsMovie(fileName, npArray, frameRate=6):
     """This method saves a 3d numpy array to a m4v current working directory, using temporary
@@ -134,6 +121,41 @@ def imsave(npArray, filename):
         tifffile.imsave(filename, np.transpose(npArray, [2,0,1]))
     else:
         tifffile.imsave(filename, npArray)
+
+
+def play(npArray, frameRate = 6):
+    """IPython Notebook based interface for playing a 3d numpy array using HTML5 and the Ipython HTML() function
+    
+    Requires ffmpeg to be installed.
+
+    :param npArray: 3d numpy array
+    :param frameRate: integer framerate value, defaults to 6
+    """
+    # ffmpeg is fussy- images must be in the right format to encode right
+    uint8_array = np.uint8(npArray.astype('float').copy() / float(npArray.max()) * 2**8-1)
+    
+    fileName = 'temp'
+    temp_dir = tempfile.mkdtemp()
+    
+    # save the jpeg frames
+    for i in range(uint8_array.shape[2]):
+        im = Image.fromarray(uint8_array[:,:,i])
+        im.save(os.path.join(temp_dir, '%s_%06d.jpg' % (fileName, i)), format='jpeg')
+
+    # encode the video
+    command = 'ffmpeg -y -r %s -i %s' % (frameRate, fileName) + '_%06d.jpg ' + '%s.webm' % fileName
+    handle = subprocess.Popen(command, shell=True, cwd=temp_dir)
+    handle.wait()
+
+    # build the appropriate html from the video file
+    video = open(os.path.join(temp_dir, 'temp.webm'), 'rb').read()
+    video_encoded = video.encode('base64')
+    video_tag = '<video controls alt="test" src="data:video/webm;base64,{0}">'.format(video_encoded)
+    
+    # kill the temp files
+    subprocess.Popen('rm -rf ' + temp_dir, shell=True)
+
+    return HTML(data=video_tag)
 
 def imview(npArray, timeOut=8):
     """Function to view the numpy array in imageJ.  This function currently only works on OS X.
