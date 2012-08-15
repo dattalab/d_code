@@ -84,7 +84,7 @@ def alignStackMATLAB(stack, mode='translation', supressOutput=True):
     return alignedImage
 
 
-def alignSeries(series, mode='translation', supressOutput=True):
+def alignSeries(series, mode='translation', target=None, supressOutput=True):
     """This is a wrapper function for some MATLAB code that aligns a 3d stack of images
     to a target frame.  Based on TurboReg plugin for ImageJ and some MATLAB code
     from the Reid lab.  Depends on a simple matlab function which opens the hdf5 file
@@ -95,17 +95,16 @@ def alignSeries(series, mode='translation', supressOutput=True):
 
     series should be 3D, X x Y x Frames
 
-    target is np.mean(series[:,:,1:3])
-    
     :param series: 3d numpy array to align on a frame by frame basis
     :param mode: one of 'translation', 'scaledRotation', 'rigidBody', 'affine'
+    :param target: 2d numpy array to use as a target, defaults to average of first three frames
     :param supressOutout: boolean, defaults to True
     :returns: an aligned 3d numpy array
     """
 
-    return np.squeeze(alignStack(np.expand_dims(series, axis=3), mode, supressOutput))
+    return np.squeeze(alignStack(np.expand_dims(series, axis=3), mode, target, supressOutput))
     
-def alignStack(stack, mode='translation', supressOutput=True):
+def alignStack(stack, mode='translation', target=None, supressOutput=True):
     """This is a wrapper function for some MATLAB code that aligns a 3d stack of images
     to a target frame.  Based on TurboReg plugin for ImageJ and some MATLAB code
     from the Reid lab.  Depends on a simple matlab function which opens the hdf5 file
@@ -113,17 +112,17 @@ def alignStack(stack, mode='translation', supressOutput=True):
 
     stack should be 4D, X x Y x Frames x Trials
 
-    target is np.mean(stack[:,:,1:3:0])
-
     :param stack: 3d or 4d numpy array to align on a frame by frame basis
     :param mode: one of 'translation', 'scaledRotation', 'rigidBody', 'affine'
     :param supressOutout: boolean, defaults to True
+    :param target: 2d numpy array to use as a target, defaults to average of first three frames of the first image
     :returns: an aligned 4d numpy array
     """
 
     modeDict = {'translation':0, 'scaledRotation':1, 'rigidBody':2, 'affine':3}
 
-    target=np.squeeze(np.mean(stack[:,:,1:3,0],axis=2))
+    if target is None:
+        target=np.squeeze(np.mean(stack[:,:,0:2,0],axis=2))
 
     external_java_dir = os.path.join(os.path.expandvars('$HOME'), 'external_java_wrapper_functions')
 
