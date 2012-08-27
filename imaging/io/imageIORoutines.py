@@ -7,6 +7,8 @@ import time
 import scipy.signal as sig
 
 from IPython.display import HTML
+from IPython.core import display
+import IPython.core.pylabtools as pylabtools
 
 import tempfile
 
@@ -163,8 +165,10 @@ def embed():
     Use at the end of a cell.  Only works when the ipython notebook has been started with '--pylab'
     (note: NOT '--pylab=inline')"""
 
-    display(*getfigs())
-    close('all')
+    # getfigs = pylabtools.getfigs
+
+    display.display(*pylabtools.getfigs())
+    plt.close('all')
 
 
 def imview(npArray, timeOut=8):
