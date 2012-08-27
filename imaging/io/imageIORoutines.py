@@ -17,7 +17,8 @@ try:
 except ImportError:
     import Image
 
-__all__ = ['play', 'save3dNPArrayAsMovie', 'writeMultiImageStack', 'imread', 'imreadStack', 'imsave', 'imview', 'splitAndResaveChannels', 'readMultiImageTifStack', 'readImagesFromList', 'downsample2d', 'downsample3d']
+__all__ = ['play', 'embed', 'save3dNPArrayAsMovie', 'writeMultiImageStack', 'imread', 'imreadStack', 'imsave', 'imview', 'splitAndResaveChannels', 'readMultiImageTifStack', 'readImagesFromList', 'downsample2d', 'downsample3d']
+
 
 def save3dNPArrayAsMovie(fileName, npArray, frameRate=6):
     """This method saves a 3d numpy array to a m4v current working directory, using temporary
@@ -156,6 +157,15 @@ def play(npArray, frameRate = 6):
     subprocess.Popen('rm -rf ' + temp_dir, shell=True)
 
     return HTML(data=video_tag)
+
+def embed():
+    """Simple method for embedding all current figures in the current ipython notebook cell.
+    Use at the end of a cell.  Only works when the ipython notebook has been started with '--pylab'
+    (note: NOT '--pylab=inline')"""
+
+    display(*getfigs())
+    close('all')
+
 
 def imview(npArray, timeOut=8):
     """Function to view the numpy array in imageJ.  This function currently only works on OS X.
