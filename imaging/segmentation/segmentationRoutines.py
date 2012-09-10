@@ -92,7 +92,7 @@ def extractTimeCoursesFromStack(imageStack, mask):
     Xsize, Ysize, nTimePoints, nTrials = imageStack.shape
 
     objectLabels = set(mask.ravel())
-    nObjects = len(objectLabels)
+    nObjects = max(objectLabels) + 1
     traces = np.zeros((nTimePoints, nObjects, nTrials))
 
     for obj in objectLabels:
