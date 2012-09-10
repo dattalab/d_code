@@ -11,9 +11,11 @@ import scipy.stats as stats
 import scipy.signal as sig
 import scipy.ndimage as nd
 
-__all__ = ['pickCells', 'extractTimeCoursesFromSeries', 'extractTimeCoursesFromStack', 'avgFromROIInSeries', 'avgFromROIInStack', 'allPixelsFromROIInSeries', 'refineMask', 'watershedSegment']
+from CellPicker import pickCells
 
-def pickCells(stack, seedPoints=None):
+__all__ = ['pickCells', 'pickCellsMatlab', 'extractTimeCoursesFromSeries', 'extractTimeCoursesFromStack', 'avgFromROIInSeries', 'avgFromROIInStack', 'allPixelsFromROIInSeries', 'refineMask', 'watershedSegment']
+
+def pickCellsMatlab(stack, seedPoints=None):
     """
     This is a wrapper function for MATLAB code that allows for semi-automated picking
     of cells via some MATLAB code from the Reid lab.  Depends on a simple matlab
