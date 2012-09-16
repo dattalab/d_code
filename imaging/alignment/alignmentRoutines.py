@@ -156,10 +156,10 @@ def alignStack(stack, mode='translation', target=None, supressOutput=True):
     alignedImage=np.array(f.get('alignedStack')[:], dtype='single')
     f.close()
 
+    # threshold to deal with alignment round-off artifacts
+    alignedImage[alignedImage<0] = 0
     # set all edges to 0 to deal with alignment artifacts
     alignedImage = alignedImage.astype('uint16')
-    # threshold to deal with alignment round-off artifacts
-    alignedImage[alignedImage>65250] = 0
 
     handle=subprocess.Popen('rm -rf *.hdf5 *.h5 temp.txt temperr.txt',
                             cwd=external_java_dir,
