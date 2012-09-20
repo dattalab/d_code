@@ -1,3 +1,4 @@
+
 from bson.binary import Binary
 from bson.objectid import ObjectId
 import gridfs
@@ -217,12 +218,15 @@ class MongoWrapper(object):
         if getarrays:
             allResults = [self._loadNPArrays(doc) for doc in results]
         else:
-            allResults = results
+            allResults = [doc for doc in results]
         
-        if len(allResults) > 1:
-            return allResults
-        elif len(allResults) == 1:
-            return allResults[0]
+        if allResults:
+            if len(allResults) > 1:
+                return allResults
+            elif len(allResults) == 1:
+                return allResults[0]
+            else:
+                return None
         else:
             return None
 

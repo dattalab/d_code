@@ -56,8 +56,17 @@ class MatplotlibWidget(FigureCanvas):
     #signal
     def mousePressEvent(self, event):
         self.setFocus()
-        x = int(float(event.pos().y()) / self.height * self.image.shape[0])
-        y = int(float(event.pos().x()) / self.width * self.image.shape[1])
+        if self.height == self.width:
+            x = int(float(event.pos().y()) / self.height * self.image.shape[0])
+            y = int(float(event.pos().x()) / self.width * self.image.shape[1])
+        elif self.height < self.width:
+            y = int(float(event.pos().x()) / self.width * self.image.shape[1])
+            
+            x = 0
+        elif self.height > self.width:
+            x = int(float(event.pos().y()) / self.height * self.image.shape[0])
+
+            y = 0
         
         #switch here for shift-click (emit different signal)
         if QtCore.Qt.Modifier.SHIFT and event.modifiers():
@@ -134,7 +143,7 @@ class CellPickerGUI(object):
         if mask is None:
             self.currentMask = np.zeros_like(cellImage)
         else:
-            self.currentMask = mask
+            self.currentMask = mask.astype('float')
         
         self.listOfMasks = []
         self.listOfMasks.append(self.currentMask)
@@ -177,7 +186,9 @@ class CellPickerGUI(object):
     def addCell(self, eventTuple):
         x, y = eventTuple
         localValue = self.currentMask[x,y].copy()
-        
+        print localValue
+        sys.stdout.flush()
+
         if localValue > 0 and localValue != self.currentMaskNumber:
             print 'we are altering mask at at %d, %d' % (x, y)
             
@@ -239,6 +250,9 @@ class CellPickerGUI(object):
     @QtCore.Slot(tuple)
     def deleteCell(self, eventTuple):
         x, y = eventTuple
+        localValue = self.currentMask[x,y].copy()
+        print 'mask value at %d, %d is %f' % (x, y, localValue)
+        sys.stdout.flush()
         
         if self.currentMask[x,y] > 0:
             #print 'we are deleting at %d, %d' % (x, y)

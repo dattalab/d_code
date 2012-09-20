@@ -217,10 +217,10 @@ def importTrial(tif_filename, header_filename):
         # extract and store image data
         
         trial[odor_index]['images'] = {}
-        trial[odor_index]['images']['chan1'] = np.array([])
-        trial[odor_index]['images']['chan2'] = np.array([])
-        trial[odor_index]['images']['chan3'] = np.array([])
-        trial[odor_index]['images']['chan4'] = np.array([])
+#         trial[odor_index]['images']['chan1'] = np.array([])
+#         trial[odor_index]['images']['chan2'] = np.array([])
+#         trial[odor_index]['images']['chan3'] = np.array([])
+#         trial[odor_index]['images']['chan4'] = np.array([])
         
         for chanNum in range(4):
             if activeChannels[chanNum]:
@@ -229,7 +229,8 @@ def importTrial(tif_filename, header_filename):
 
 #                print trial[odor_index]['odor1Name'], odor_index, offset, offset+single_odor_frame_length
                 trial[odor_index]['images']['chan'+str(chanNum+1)] = raw_image_in_channels[chanNum][:,:,offset:offset+single_odor_frame_length].copy()
-
+            else:
+                trial[odor_index]['images']['chan'+str(chanNum+1)] = np.array([])
     return trial # a list of single trial odor exposure dictionaries
 
 
