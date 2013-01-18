@@ -13,6 +13,9 @@ import numpy as np
 import pymorph
 import mahotas
 
+import matplotlib.nxutils as nx
+
+
 class Communicate(QtCore.QObject):
     keyPressed = QtCore.Signal(tuple)
     mouseSingleClicked = QtCore.Signal(tuple)
@@ -79,7 +82,7 @@ class MatplotlibWidget(FigureCanvas):
     def mouseDoubleClickEvent(self, event):
         self.setFocus()
         event.accept()
-
+    
 class CellPickerGUI(object):
     def setupUi(self, MainWindow, cellImage, mask=None):
         MainWindow.setObjectName("MainWindow")
@@ -152,6 +155,9 @@ class CellPickerGUI(object):
         self.cellRadius = 3
         self.currentMaskNumber = 1
         
+        self.mode = None # can be standard (None), 'poly', or 'square'
+        self.modeData = None # or a list of point tuples
+
         self.makeNewMaskAndBackgroundImage()
         
     def retranslateUi(self, MainWindow):
@@ -178,72 +184,220 @@ class CellPickerGUI(object):
             self.decrementContrastThreshold()
         elif keyPressed == QtCore.Qt.Key_Equal or keyPressed == QtCore.Qt.Key_Plus:
             self.incrementContrastThreshold()
-        
+
+
+        elif keyPressed == QtCore.Qt.Key_BracketLeft:
+            self.decrementDiskSize()
+        elif keyPressed == QtCore.Qt.Key_BracketRight:
+            self.incrementDiskSize()
+
+        elif keyPressed == QtCore.Qt.Key_P:
+            if self.mode is 'poly':
+                self.mode = None
+            else:
+                self.clearModeData()
+                self.mode = 'poly'
+
+        elif keyPressed == QtCore.Qt.Key_T:
+            if self.mode is 'poly':
+                self.addPolyCell()
+                self.clearModeData()
+
+        elif keyPressed == QtCore.Qt.Key_S:
+            if self.mode is 'square':
+                self.mode = None
+            else:
+                self.clearModeData()
+                self.mode = 'square'
+
+        elif keyPressed == QtCore.Qt.Key_C:
+            if self.mode is 'circle':
+                self.mode = None
+            else:
+                self.clearModeData()
+                self.mode = 'circle'
+                
+        elif keyPressed == QtCore.Qt.Key_K:
+            self.correlateLastROI()
+
+        elif keyPressed == QtCore.Qt.Key_X:
+            self.clearModeData()
+            self.mode = None
         else:
             pass
+
+    def mask_from_points(self, vertex_list, size_x, size_y):
+        #poly_verts = [(20,0), (50,50), (0,75)]
+
+        # Create vertex coordinates for each grid cell...
+        # (<0,0> is at the top left of the grid in this system)
+        x, y = np.meshgrid(np.arange(size_x), np.arange(size_y))
+        x, y = x.flatten(), y.flatten()
+        point_space = np.vstack((x,y)).T
+
+        poly_mask = nx.points_inside_poly(point_space, vertex_list)
+        poly_mask = poly_mask.reshape(size_x, size_y)
+
+        return poly_mask.T
+
+
+    def addPolyCell(self):
+        # build poly_mask
+        poly_mask = self.mask_from_points(self.modeData, self.currentMask.shape[0], self.currentMask.shape[1])
+        # check if poly_mask interfers with current mask, if so, abort
+        if np.any(np.logical_and(poly_mask, self.currentMask)):
+            return None
+
+        # add poly_mask to mask
+        newMask = (poly_mask * self.currentMaskNumber) + self.currentMask
+
+        self.listOfMasks.append(newMask)
+        self.currentMask = self.listOfMasks[-1]
+
+        sys.stdout.flush()
+        self.makeNewMaskAndBackgroundImage()
+
+    def clearModeData(self):
+        self.modeData = []
+
+    def correlateLastROI(self):
+        lastROI = np.logical_xor(listOfMasks[-1], listOfMasks[-2]) 
+
+        # build correlation matrix
+        
+
+        # set corr matrix to zero where other ROIs exist
+
+        # multiply with gaussian falloff
+
+        # use threshold t inc. pixels
+
+        # open and close to remove holes
+
+        # update mask and redisplay
+
+        pass
+
 
     @QtCore.Slot(tuple)
     def addCell(self, eventTuple):
         x, y = eventTuple
-        localValue = self.currentMask[x,y].copy()
-        print localValue
+        localValue = self.currentMask[x,y]
+        print 'x: ' + str(x) + ', y: ' + str(y) + ', mask val: ' + str(localValue) 
         sys.stdout.flush()
 
-        if localValue > 0 and localValue != self.currentMaskNumber:
-            print 'we are altering mask at at %d, %d' % (x, y)
-            
-            # copy the old mask
-            newMask = self.currentMask.copy()
 
-            #make a labeled image of the current mask
-            labeledCurrentMask = mahotas.label(newMask)[0]
-            roiNumber = labeledCurrentMask[x, y]
+        ########## NORMAL MODE 
+        if self.mode is None:
+            if localValue > 0 and localValue != self.currentMaskNumber:
+                print 'we are altering mask at at %d, %d' % (x, y)
             
-            # set that ROI to zero
-            newMask[labeledCurrentMask == roiNumber] = self.currentMaskNumber
+                # copy the old mask
+                newMask = self.currentMask.copy()
+
+                # make a labeled image of the current mask
+                labeledCurrentMask = mahotas.label(newMask)[0]
+                roiNumber = labeledCurrentMask[x, y]
             
+                # set that ROI to zero
+                newMask[labeledCurrentMask == roiNumber] = self.currentMaskNumber
+            
+                self.listOfMasks.append(newMask)
+                self.currentMask = self.listOfMasks[-1]
+            elif localValue == 0:
+                # build structuring elements
+                se = pymorph.sebox()
+                se2 = pymorph.sedisk(self.cellRadius, metric='city-block')
+
+
+                seJunk = pymorph.sedisk(max(np.floor(self.cellRadius/4.0), 1), metric='city-block')
+                seExpand = pymorph.sedisk(self.diskSize, metric='city-block')
+
+                # add a disk around selected point, non-overlapping with adjacent cells
+                dilatedOrignal = mahotas.dilate(self.currentMask.copy().astype(np.uint16), Bc=se)
+                safeUnselected = np.logical_not(dilatedOrignal)
+            
+                # tempMask is 
+                tempMask = np.zeros_like(self.currentMask.copy()).astype(np.uint16)
+                tempMask[x, y]= 1
+                tempMask = mahotas.dilate(tempMask, Bc=se2)
+                tempMask = np.logical_and(tempMask, safeUnselected)
+            
+                # calculate the area we should add to this disk based on % of a threshold
+                cellMean = self.data[tempMask == 1].mean()
+                allMeanBw = self.data >= (cellMean * float(self.contrastThreshold))
+     
+                tempLabel = mahotas.label(np.logical_and(allMeanBw, safeUnselected).astype(np.uint16))[0]
+                connMeanBw = tempLabel == tempLabel[x, y]
+            
+                connMeanBw = np.logical_and(np.logical_or(connMeanBw, tempMask), safeUnselected).astype(np.bool)
+
+                # erode and then dilate to remove sharp bits and edges
+            
+                erodedMean = mahotas.erode(connMeanBw, Bc=seJunk)
+                dilateMean = mahotas.dilate(erodedMean, Bc=seJunk)
+                dilateMean = mahotas.dilate(dilateMean, Bc=seExpand)
+            
+                newCell = np.logical_and(dilateMean, safeUnselected)
+                newMask = (newCell * self.currentMaskNumber) + self.currentMask
+
+                self.listOfMasks.append(newMask.copy())
+                self.currentMask = newMask.copy()
+
+        elif self.mode is 'square':
+            self.modeData.append((x, y))
+            if len(self.modeData) == 2:
+                square_mask = np.zeros_like(self.currentMask)
+                xstart = self.modeData[0][0]
+                ystart = self.modeData[0][1]
+
+                xend = self.modeData[1][0]
+                yend = self.modeData[1][1]
+
+                square_mask[xstart:xend, ystart:yend] = 1
+
+                # check if square_mask interfers with current mask, if so, abort
+                if np.any(np.logical_and(square_mask, self.currentMask)):
+                    return None
+
+                # add square_mask to mask
+                newMask = (square_mask * self.currentMaskNumber) + self.currentMask
+
+                self.listOfMasks.append(newMask)
+                self.currentMask = self.listOfMasks[-1]
+
+                # clear current mode data
+                self.clearModeData()
+
+        elif self.mode is 'circle':
+            # make a strel and move it in place to make circle_mask
+            if self.diskSize < 1:
+                return None
+
+            if self.diskSize is 1:
+                se = np.ones((1,1))
+            elif self.diskSize is 2:
+                se = pymorph.secross(r=1)
+            else:
+                se = pymorph.sedisk(r=(self.diskSize-1))
+
+            se_extent = int(se.shape[0]/2)
+            circle_mask = np.zeros_like(self.currentMask)
+            circle_mask[x-se_extent:x+se_extent+1, y-se_extent:y+se_extent+1] = se
+
+            # check if circle_mask interfers with current mask, if so, abort
+            if np.any(np.logical_and(circle_mask, self.currentMask)):
+                return None
+
+            # add circle_mask to mask
+            newMask = (circle_mask * self.currentMaskNumber) + self.currentMask
+
             self.listOfMasks.append(newMask)
             self.currentMask = self.listOfMasks[-1]
-        elif localValue == 0:
-            # build structuring elements
-            se = pymorph.sebox()
-            se2 = pymorph.sedisk(self.cellRadius, metric='city-block')
 
+        elif self.mode is 'poly':
+            self.modeData.append((x, y))
 
-            seJunk = pymorph.sedisk(max(np.floor(self.cellRadius/4.0), 1), metric='city-block')
-            seExpand = pymorph.sedisk(self.diskSize, metric='city-block')
-
-            # add a disk around selected point, non-overlapping with adjacent cells
-            dilatedOrignal = mahotas.dilate(self.currentMask.copy().astype(np.uint16), Bc=se)
-            safeUnselected = np.logical_not(dilatedOrignal)
-            
-            # tempMask is 
-            tempMask = np.zeros_like(self.currentMask.copy()).astype(np.uint16)
-            tempMask[x, y]= 1
-            tempMask = mahotas.dilate(tempMask, Bc=se2)
-            tempMask = np.logical_and(tempMask, safeUnselected)
-            
-            # calculate the area we should add to this disk based on % of a threshold
-            cellMean = self.data[tempMask == 1].mean()
-            allMeanBw = self.data >= (cellMean * float(self.contrastThreshold))
-     
-            tempLabel = mahotas.label(np.logical_and(allMeanBw, safeUnselected).astype(np.uint16))[0]
-            connMeanBw = tempLabel == tempLabel[x, y]
-            
-            connMeanBw = np.logical_and(np.logical_or(connMeanBw, tempMask), safeUnselected).astype(np.bool)
-
-            # erode and then dilate to remove sharp bits and edges
-            
-            erodedMean = mahotas.erode(connMeanBw, Bc=seJunk)
-            dilateMean = mahotas.dilate(erodedMean, Bc=seJunk)
-            dilateMean = mahotas.dilate(dilateMean, Bc=seExpand)
-            
-            newCell = np.logical_and(dilateMean, safeUnselected)
-            newMask = (newCell * self.currentMaskNumber) + self.currentMask
-
-            self.listOfMasks.append(newMask.copy())
-            self.currentMask = newMask.copy()
-            
         sys.stdout.flush()
         self.makeNewMaskAndBackgroundImage()
     
@@ -298,6 +452,14 @@ class CellPickerGUI(object):
     # update model
     @QtCore.Slot()
     def changeDiskSize(self):#,event):
+        self.diskSize = self.dilation_disk.value()
+
+    def decrementDiskSize(self):
+        self.dilation_disk.setValue(self.dilation_disk.value() - 1)
+        self.diskSize = self.dilation_disk.value()
+
+    def incrementDiskSize(self):
+        self.dilation_disk.setValue(self.dilation_disk.value() + 1)
         self.diskSize = self.dilation_disk.value()
         
     def decrementContrastThreshold(self):
