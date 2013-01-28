@@ -491,46 +491,75 @@ class CellPickerGUI(object):
 
                 self.listOfMasks.append(newMask)
                 self.currentMask = self.listOfMasks[-1]
+            elif localValue > 0 and self.series is not None:
+                # update info panel
+                labeledCurrentMask = mahotas.label(self.currentMask.copy())[0]
+                roiNumber = labeledCurrentMask[x, y]
+                self.updateInfoPanel(ROI_number=roiNumber)
+
             elif localValue == 0:
-                # build structuring elements
-                se = pymorph.sebox()
-                se2 = pymorph.sedisk(self.cellRadius, metric='city-block')
+                
+                xmin = int(x - self.diskSize)
+                xmax = int(x + self.diskSize)
+                ymin = int(y - self.diskSize)
+                ymax = int(y + self.diskSize)
 
+                sub_region_series = self.series[xmin:xmax, ymin:ymax, :].copy()
+                sub_region_image = self.data[xmin:xmax, ymin:ymax].copy()
+                threshold = mahotas.otsu(self.data[xmin:xmax, ymin:ymax].astype('uint16'))
 
-                seJunk = pymorph.sedisk(max(np.floor(self.cellRadius/4.0), 1), metric='city-block')
-                seExpand = pymorph.sedisk(self.diskSize, metric='city-block')
+                newCell = np.zeros_like(self.currentMask)
+                newCell[xmin:xmax, ymin:ymax] = mahotas.erode(np.logical_not(sub_region_image > threshold))
+                newCell = mahotas.dilate(newCell).astype(int)
+                
+                # remove all pixels in and near current mask
+                newCell[mahotas.dilate(self.currentMask>0)] = 0
 
-                # add a disk around selected point, non-overlapping with adjacent cells
-                dilatedOrignal = mahotas.dilate(self.currentMask.copy().astype(np.uint16), Bc=se)
-                safeUnselected = np.logical_not(dilatedOrignal)
-            
-                # tempMask is 
-                tempMask = np.zeros_like(self.currentMask.copy()).astype(np.uint16)
-                tempMask[x, y]= 1
-                tempMask = mahotas.dilate(tempMask, Bc=se2)
-                tempMask = np.logical_and(tempMask, safeUnselected)
-            
-                # calculate the area we should add to this disk based on % of a threshold
-                cellMean = self.data[tempMask == 1].mean()
-                allMeanBw = self.data >= (cellMean * float(self.contrastThreshold))
-     
-                tempLabel = mahotas.label(np.logical_and(allMeanBw, safeUnselected).astype(np.uint16))[0]
-                connMeanBw = tempLabel == tempLabel[x, y]
-            
-                connMeanBw = np.logical_and(np.logical_or(connMeanBw, tempMask), safeUnselected).astype(np.bool)
-
-                # erode and then dilate to remove sharp bits and edges
-            
-                erodedMean = mahotas.erode(connMeanBw, Bc=seJunk)
-                dilateMean = mahotas.dilate(erodedMean, Bc=seJunk)
-                dilateMean = mahotas.dilate(dilateMean, Bc=seExpand)
-            
-                newCell = np.logical_and(dilateMean, safeUnselected)
                 newMask = (newCell * self.currentMaskNumber) + self.currentMask
+                newMask = newMask.astype('uint16')
 
                 self.listOfMasks.append(newMask.copy())
                 self.currentMask = newMask.copy()
 
+        elif self.mode is 'OGB':
+            # build structuring elements
+            se = pymorph.sebox()
+            se2 = pymorph.sedisk(self.cellRadius, metric='city-block')
+            seJunk = pymorph.sedisk(max(np.floor(self.cellRadius/4.0), 1), metric='city-block')
+            seExpand = pymorph.sedisk(self.diskSize, metric='city-block')
+
+             # add a disk around selected point, non-overlapping with adjacent cells
+            dilatedOrignal = mahotas.dilate(self.currentMask.astype(bool), Bc=se)
+            safeUnselected = np.logical_not(dilatedOrignal)
+        
+            # tempMask is 
+            tempMask = np.zeros_like(self.currentMask, dtype=bool)
+            tempMask[x, y] = True
+            tempMask = mahotas.dilate(tempMask, Bc=se2)
+            tempMask = np.logical_and(tempMask, safeUnselected)
+        
+            # calculate the area we should add to this disk based on % of a threshold
+            cellMean = self.data[tempMask == 1.0].mean()
+            allMeanBw = self.data >= (cellMean * float(self.contrastThreshold))
+ 
+            tempLabel = mahotas.label(np.logical_and(allMeanBw, safeUnselected).astype(np.uint16))[0]
+            connMeanBw = tempLabel == tempLabel[x, y]
+        
+            connMeanBw = np.logical_and(np.logical_or(connMeanBw, tempMask), safeUnselected).astype(np.bool)
+            # erode and then dilate to remove sharp bits and edges
+        
+            erodedMean = mahotas.erode(connMeanBw, Bc=seJunk)
+            dilateMean = mahotas.dilate(erodedMean, Bc=seJunk)
+            dilateMean = mahotas.dilate(dilateMean, Bc=seExpand)
+        
+            newCell = np.logical_and(dilateMean, safeUnselected)
+            newMask = (newCell * self.currentMaskNumber) + self.currentMask
+            newMask = newMask.astype('uint16')
+
+            self.listOfMasks.append(newMask.copy())
+            self.currentMask = newMask.copy()
+
+        ########## SQUARE MODE 
         elif self.mode is 'square':
             self.modeData.append((x, y))
             if len(self.modeData) == 2:
