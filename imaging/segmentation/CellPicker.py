@@ -275,18 +275,18 @@ class CellPickerGUI(object):
     def updateInfoPanel(self, ROI_number=None):
         pass
 
-    def averageCorrCoefScore(series, mask):
+    def averageCorrCoefScore(self, series, mask):
         coef_matrix = np.corrcoef(series[mask, :])
         return coef_matrix[np.triu_indices(coef_matrix.shape[0],1)].mean()
 
-    def addRandomPixelsToEdge(mask):
+    def addRandomPixelsToEdge(self, mask):
         mask = mask.astype(bool)
         ring = mahotas.dilate(mask) - mask
         rand_ring = np.logical_and(ring, np.random.random((ring.shape[0], ring.shape[1]))>0.5)
 
         return rand_ring
 
-    def conditionallyDilateMask(mask, series, cutoff=0.5, num_guesses=750, topcut=50):
+    def conditionallyDilateMask(self, mask, series, cutoff=0.5, num_guesses=750, topcut=50):
         # assuming mask is a binary array of just one ROI
     
         # cut down the size of the array to a region just around the ROI-
@@ -306,8 +306,8 @@ class CellPickerGUI(object):
         masks = np.zeros((sub_series.shape[0], sub_series.shape[1], num_guesses))
         corrs = np.zeros(num_guesses)
         for i in range(num_guesses):
-            masks[:,:,i] = addRandomPixelsToEdge(sub_mask) + sub_mask>0
-            corrs[i] = averageCorrCoefScore(sub_series, masks[:,:,i]>0)
+            masks[:,:,i] = self.addRandomPixelsToEdge(sub_mask) + sub_mask>0
+            corrs[i] = self.averageCorrCoefScore(sub_series, masks[:,:,i]>0)
     
         # sort masks based on corr coef score
         # and return thresholded average of top 50
