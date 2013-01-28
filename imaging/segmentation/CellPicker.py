@@ -258,8 +258,11 @@ class CellPickerGUI(object):
         if np.any(np.logical_and(poly_mask, self.currentMask)):
             return None
 
+        self.currentMask = self.currentMask.astype('uint16')
+
         # add poly_mask to mask
         newMask = (poly_mask * self.currentMaskNumber) + self.currentMask
+        newMask = newMask.astype('uint16')
 
         self.listOfMasks.append(newMask)
         self.currentMask = self.listOfMasks[-1]
@@ -267,35 +270,17 @@ class CellPickerGUI(object):
         sys.stdout.flush()
         self.makeNewMaskAndBackgroundImage()
 
-    def clearModeData(self):
-        self.modeData = []
-
-    def correlateLastROI(self):
-        lastROI = np.logical_xor(listOfMasks[-1], listOfMasks[-2]) 
-
-        # build correlation matrix
-        
-
-        # set corr matrix to zero where other ROIs exist
-
-        # multiply with gaussian falloff
-
-        # use threshold t inc. pixels
-
-        # open and close to remove holes
-
-        # update mask and redisplay
-
-        pass
-
 
     @QtCore.Slot(tuple)
     def addCell(self, eventTuple):
         x, y = eventTuple
         localValue = self.currentMask[x,y]
-        print 'x: ' + str(x) + ', y: ' + str(y) + ', mask val: ' + str(localValue) 
-        sys.stdout.flush()
+        print str(self.mode) + ' ' + 'x: ' + str(x) + ', y: ' + str(y) + ', mask val: ' + str(localValue) 
+        
+        # ensure mask is uint16
+        self.currentMask = self.currentMask.astype('uint16')
 
+        sys.stdout.flush()
 
         ########## NORMAL MODE 
         if self.mode is None:
@@ -372,6 +357,7 @@ class CellPickerGUI(object):
 
                 # add square_mask to mask
                 newMask = (square_mask * self.currentMaskNumber) + self.currentMask
+                newMask = newMask.astype('uint16')
 
                 self.listOfMasks.append(newMask)
                 self.currentMask = self.listOfMasks[-1]
@@ -379,6 +365,7 @@ class CellPickerGUI(object):
                 # clear current mode data
                 self.clearModeData()
 
+        ########## CIRCLE MODE 
         elif self.mode is 'circle':
             # make a strel and move it in place to make circle_mask
             if self.diskSize < 1:
@@ -393,18 +380,21 @@ class CellPickerGUI(object):
 
             se_extent = int(se.shape[0]/2)
             circle_mask = np.zeros_like(self.currentMask)
-            circle_mask[x-se_extent:x+se_extent+1, y-se_extent:y+se_extent+1] = se
+            circle_mask[x-se_extent:x+se_extent+1, y-se_extent:y+se_extent+1] = se * 1.0
+            circle_mask = circle_mask.astype(bool)
 
             # check if circle_mask interfers with current mask, if so, abort
-            if np.any(np.logical_and(circle_mask, self.currentMask)):
+            if np.any(np.logical_and(circle_mask, mahotas.dilate(self.currentMask.astype(bool)))):
                 return None
 
             # add circle_mask to mask
             newMask = (circle_mask * self.currentMaskNumber) + self.currentMask
+            newMask = newMask.astype('uint16')
 
             self.listOfMasks.append(newMask)
             self.currentMask = self.listOfMasks[-1]
 
+        ########## POLY MODE 
         elif self.mode is 'poly':
             self.modeData.append((x, y))
 
