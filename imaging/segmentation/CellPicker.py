@@ -291,10 +291,10 @@ class CellPickerGUI(object):
     
         # cut down the size of the array to a region just around the ROI-
         # speeds up correlation calculation below
-        sub_xmin = np.where(bwOut)[0].min() - 2
-        sub_xmax = np.where(bwOut)[0].max() + 2 
-        sub_ymin = np.where(bwOut)[1].min() - 2
-        sub_ymax = np.where(bwOut)[1].max() + 2
+        sub_xmin = np.where(mask)[0].min() - 2
+        sub_xmax = np.where(mask)[0].max() + 2 
+        sub_ymin = np.where(mask)[1].min() - 2
+        sub_ymax = np.where(mask)[1].max() + 2
         sub_series = series[sub_xmin:sub_xmax, sub_ymin:sub_ymax, :]
         sub_mask = mask[sub_xmin:sub_xmax, sub_ymin:sub_ymax] > 0
 
@@ -404,7 +404,8 @@ class CellPickerGUI(object):
                 newCell = np.zeros_like(self.currentMask)
                 newCell[xmin:xmax, ymin:ymax] = mahotas.erode(np.logical_not(sub_region_image > threshold))
                 newCell = mahotas.dilate(newCell).astype(int)
-                
+                newCell = self.conditionallyDilateMask(newCell, self.series).astype(int)
+
                 # remove all pixels in and near current mask
                 newCell[mahotas.dilate(self.currentMask>0)] = 0
 
