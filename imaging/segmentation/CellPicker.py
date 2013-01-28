@@ -84,7 +84,7 @@ class MatplotlibWidget(FigureCanvas):
         event.accept()
     
 class CellPickerGUI(object):
-    def setupUi(self, MainWindow, cellImage, mask=None):
+    def setupUi(self, MainWindow, cellImage, mask, series):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(921, 802)
         self.MainWindow = MainWindow
@@ -144,10 +144,15 @@ class CellPickerGUI(object):
         
         self.data = cellImage
         if mask is None:
-            self.currentMask = np.zeros_like(cellImage)
+            self.currentMask = np.zeros_like(cellImage, dtype='uint16')
         else:
-            self.currentMask = mask.astype('float')
+            self.currentMask = mask.astype('uint16')
         
+        if series is None:
+            self.series = None
+        else:
+            self.series = series
+
         self.listOfMasks = []
         self.listOfMasks.append(self.currentMask)
         self.diskSize = 1
@@ -442,11 +447,12 @@ class CellPickerGUI(object):
         cmap = mpl.cm.jet
         converter = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
         if self.currentMask.any():
-            color_mask = converter.to_rgba(self.currentMask/self.currentMask.max())
+            color_mask = converter.to_rgba(self.currentMask.astype(float)/self.currentMask.max())
         else:
             color_mask = converter.to_rgba(self.currentMask)
         color_mask[:,:,3] = 0
         color_mask[:,:,3] = (color_mask[:,:,0:2].sum(axis=2) > 0).astype(float) * 0.5
+
         self.image_widget.updateImage(color_mask)
         
     # update model
@@ -475,7 +481,7 @@ class CellPickerGUI(object):
     def changeContrastThreshold(self, event):
         self.contrastThreshold = self.contrast_threshold.value()
         
-def pickCells(backgroundImage, mask=None):
+def pickCells(backgroundImage, mask=None, series=None):
     """This routine is for interactive picking of cells and editing
     a mask.  It takes two arguments- a numpy array for a background image.
     If backgroundImage is 2d, then that is the image used.  If it is
@@ -490,7 +496,7 @@ def pickCells(backgroundImage, mask=None):
 
     # need to be robust to passing in a stack or a single image
     if backgroundImage.ndim == 3:
-        backgroundImage.mean(axis=2)
+        backgroundImage = backgroundImage.mean(axis=2)
 
     global app
     try:
@@ -500,7 +506,7 @@ def pickCells(backgroundImage, mask=None):
 
     MainWindow = QtGui.QMainWindow()
     gui = CellPickerGUI()
-    gui.setupUi(MainWindow, backgroundImage, mask)
+    gui.setupUi(MainWindow, backgroundImage, mask, series)
     MainWindow.show()
     MainWindow.raise_()
     
