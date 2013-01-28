@@ -15,6 +15,11 @@ import mahotas
 
 import matplotlib.nxutils as nx
 
+from traces import smooth
+
+from sklearn import decomposition
+
+from scipy.stats import skew
 
 class Communicate(QtCore.QObject):
     keyPressed = QtCore.Signal(tuple)
