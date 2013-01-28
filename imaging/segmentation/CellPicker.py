@@ -180,7 +180,8 @@ class CellPickerGUI(object):
     def keyPress(self, keyPressed):
         
         if keyPressed == QtCore.Qt.Key_Return or keyPressed == QtCore.Qt.Key_Enter:
-            plt.close('all')
+            plt.close('trace')
+            plt.close('ROI')
             self.MainWindow.close()
             
         elif keyPressed >= QtCore.Qt.Key_1 and keyPressed <= QtCore.Qt.Key_8:
@@ -273,7 +274,16 @@ class CellPickerGUI(object):
 
 
     def updateInfoPanel(self, ROI_number=None):
-        pass
+        # we have two figures, a trace, and masks
+        ROI_mask = self.mask_from_ROI_number(ROI_number)
+
+        plt.figure('trace')
+        plt.cla()
+        plt.plot(self.timeCourseROI(ROI_mask))
+
+        plt.figure('ROI')
+        plt.cla()
+        plt.imshow(self.currentMask + ROI_mask)
 
     def averageCorrCoefScore(self, series, mask):
         coef_matrix = np.corrcoef(series[mask, :])
