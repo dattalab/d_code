@@ -487,7 +487,8 @@ class CellPickerGUI(object):
             
                 # set that ROI to zero
                 newMask[labeledCurrentMask == roiNumber] = self.currentMaskNumber
-            
+                newMask = newMask.astype('uint16')
+
                 self.listOfMasks.append(newMask)
                 self.currentMask = self.listOfMasks[-1]
             elif localValue == 0:
