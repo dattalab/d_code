@@ -275,6 +275,50 @@ class CellPickerGUI(object):
     def updateInfoPanel(self, ROI_number=None):
         pass
 
+    def averageCorrCoefScore(series, mask):
+        coef_matrix = np.corrcoef(series[mask, :])
+        return coef_matrix[np.triu_indices(coef_matrix.shape[0],1)].mean()
+
+    def addRandomPixelsToEdge(mask):
+        mask = mask.astype(bool)
+        ring = mahotas.dilate(mask) - mask
+        rand_ring = np.logical_and(ring, np.random.random((ring.shape[0], ring.shape[1]))>0.5)
+
+        return rand_ring
+
+    def conditionallyDilateMask(mask, series, cutoff=0.5, num_guesses=750, topcut=50):
+        # assuming mask is a binary array of just one ROI
+    
+        # cut down the size of the array to a region just around the ROI-
+        # speeds up correlation calculation below
+        sub_xmin = np.where(bwOut)[0].min() - 2
+        sub_xmax = np.where(bwOut)[0].max() + 2 
+        sub_ymin = np.where(bwOut)[1].min() - 2
+        sub_ymax = np.where(bwOut)[1].max() + 2
+        sub_series = series[sub_xmin:sub_xmax, sub_ymin:sub_ymax, :]
+        sub_mask = mask[sub_xmin:sub_xmax, sub_ymin:sub_ymax] > 0
+
+        core = np.corrcoef(sub_series[sub_mask>0,:])
+        print 'core corr coef: ' + str(np.mean(core[np.triu_indices(core.shape[0], 1)]))
+
+        # generate a population of possible masks and their average correlation coeffecients
+        num_guesses = num_guesses
+        masks = np.zeros((sub_series.shape[0], sub_series.shape[1], num_guesses))
+        corrs = np.zeros(num_guesses)
+        for i in range(num_guesses):
+            masks[:,:,i] = addRandomPixelsToEdge(sub_mask) + sub_mask>0
+            corrs[i] = averageCorrCoefScore(sub_series, masks[:,:,i]>0)
+    
+        # sort masks based on corr coef score
+        # and return thresholded average of top 50
+        top_population = masks[:,:,np.argsort(corrs)[-topcut:-1]].mean(axis=2)
+        top_population_thresh = top_population > cutoff
+
+        # place new mask in place
+        mask[sub_xmin:sub_xmax, sub_ymin:sub_ymax] = top_population_thresh
+
+        return mask > 0 
+
 
     def mask_from_points(self, vertex_list, size_x, size_y):
         #poly_verts = [(20,0), (50,50), (0,75)]
