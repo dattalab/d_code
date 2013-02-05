@@ -10,16 +10,12 @@ from matplotlib.figure import Figure
 
 import numpy as np
 
+import scipy.ndimage as nd
+
 import pymorph
 import mahotas
 
 import matplotlib.nxutils as nx
-
-from traces import smooth
-
-from sklearn import decomposition
-
-from scipy.stats import skew
 
 class Communicate(QtCore.QObject):
     keyPressed = QtCore.Signal(tuple)
@@ -64,17 +60,23 @@ class MatplotlibWidget(FigureCanvas):
     #signal
     def mousePressEvent(self, event):
         self.setFocus()
-        if self.height == self.width:
-            x = int(float(event.pos().y()) / self.height * self.image.shape[0])
-            y = int(float(event.pos().x()) / self.width * self.image.shape[1])
-        elif self.height < self.width:
-            y = int(float(event.pos().x()) / self.width * self.image.shape[1])
-            
-            x = 0
-        elif self.height > self.width:
-            x = int(float(event.pos().y()) / self.height * self.image.shape[0])
+        
+        # we need to map the clicked location into matrix coordinates
+        # this is complicated by two factors:  
+        # 1) x&y in event coords are switched relative to matrix coordinates
+        # 2) we have to account for non-square matrices.  this is done with the x_ and y_offsets
 
-            y = 0
+        x_offset = y_offset = 0
+        if self.image.shape[0] < self.image.shape[1]:
+            margin = (1 - (float(self.image.shape[0]) / float(self.image.shape[1])) ) / 2.0
+            x_offset = int(margin * 768)  # 0 if x = y
+        if self.image.shape[0] > self.image.shape[1]:
+            margin = (1 - (float(self.image.shape[1]) / float(self.image.shape[0])) ) / 2.0
+            y_offset = int(margin * 768)  # 0 if x = y
+
+        if self.height == self.width:
+            x = int( (float(event.pos().y()) - x_offset) / (self.height - 2 * x_offset) * self.image.shape[0])
+            y = int( (float(event.pos().x()) - y_offset) / (self.width - 2 * y_offset) * self.image.shape[1])
         
         #switch here for shift-click (emit different signal)
         if QtCore.Qt.Modifier.SHIFT and event.modifiers():
@@ -257,7 +259,7 @@ class CellPickerGUI(object):
         return lastROI
 
 
-    def mask_from_ROI_number(self, ROI_number=None):
+    def maskFromROINumber(self, ROI_number=None):
         if ROI_number is None:
             ROI_mask = self.lastROI()
         else:
@@ -275,7 +277,7 @@ class CellPickerGUI(object):
 
     def updateInfoPanel(self, ROI_number=None):
         # we have two figures, a trace, and masks
-        ROI_mask = self.mask_from_ROI_number(ROI_number)
+        ROI_mask = self.maskFromROINumber(ROI_number)
 
         plt.figure('trace')
         plt.cla()
@@ -330,7 +332,7 @@ class CellPickerGUI(object):
         return mask > 0 
 
 
-    def mask_from_points(self, vertex_list, size_x, size_y):
+    def maskFromPoints(self, vertex_list, size_x, size_y):
         #poly_verts = [(20,0), (50,50), (0,75)]
 
         # Create vertex coordinates for each grid cell...
@@ -347,7 +349,7 @@ class CellPickerGUI(object):
 
     def addPolyCell(self):
         # build poly_mask
-        poly_mask = self.mask_from_points(self.modeData, self.currentMask.shape[0], self.currentMask.shape[1])
+        poly_mask = self.maskFromPoints(self.modeData, self.currentMask.shape[0], self.currentMask.shape[1])
         # check if poly_mask interfers with current mask, if so, abort
         if np.any(np.logical_and(poly_mask, self.currentMask)):
             return None
@@ -407,14 +409,24 @@ class CellPickerGUI(object):
                 ymin = int(y - self.diskSize)
                 ymax = int(y + self.diskSize)
 
-                sub_region_series = self.series[xmin:xmax, ymin:ymax, :].copy()
+#                sub_region_series = self.series[xmin:xmax, ymin:ymax, :].copy()
                 sub_region_image = self.data[xmin:xmax, ymin:ymax].copy()
                 threshold = mahotas.otsu(self.data[xmin:xmax, ymin:ymax].astype('uint16'))
 
+                # do a gaussian_laplacian filter to find the edges and the center
+
+                g_l = nd.gaussian_laplace(sub_region_image, 1)  # second argument is a free parameter, std of gaussian
+                g_l = mahotas.dilate(mahotas.erode(g_l>=0))
+                g_l = mahotas.label(g_l)[0]
+                center = g_l == g_l[g_l.shape[0]/2, g_l.shape[0]/2]
+                edges = mahotas.dilate(mahotas.dilate(mahotas.dilate(center))) - center
+
                 newCell = np.zeros_like(self.currentMask)
-                newCell[xmin:xmax, ymin:ymax] = mahotas.erode(np.logical_not(sub_region_image > threshold))
-                newCell = mahotas.dilate(newCell).astype(int)
-                newCell = self.conditionallyDilateMask(newCell, self.series).astype(int)
+                newCell[xmin:xmax, ymin:ymax] = center
+
+#                newCell[xmin:xmax, ymin:ymax] = mahotas.erode(np.logical_not(sub_region_image > threshold))
+#                newCell = mahotas.dilate(newCell).astype(int)
+#                newCell = self.conditionallyDilateMask(newCell, self.series).astype(int)
 
                 # remove all pixels in and near current mask
                 newCell[mahotas.dilate(self.currentMask>0)] = 0

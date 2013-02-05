@@ -619,3 +619,61 @@ def specgram(signal, sampling_frequency, time_resolution,
 
     return Pxx, freqs, bins
 
+
+
+def mask_large_deviations(traces, std_cutoff=2.5, iterations=20):
+    temp_traces = traces.copy()
+
+    cutoffs = temp_traces.mean(axis=0) + temp_traces.std(axis=0)*std_cutoff
+    masked_traces = np.ma.masked_array(traces, traces>=cutoffs)
+
+    #all_cutoffs = cutoffs.copy()
+
+    # could go until some sort of convergence in STD
+    # but light empirical testing shows convergence after ~5 iterations
+    # going with 20 for the default for overkill (still is fast)
+    for i in range(iterations):   
+        cutoffs = masked_traces.mean(axis=0) + masked_traces.std(axis=0)*std_cutoff
+        masked_traces = np.ma.masked_array(masked_traces, traces>=cutoffs)
+        #all_cutoffs = np.vstack((all_cutoffs, cutoffs))
+
+    return masked_traces
+
+def fit_baselines_to_traces(traces, n_control_points):
+    # assuming x by traces
+    if traces.ndim is 1:
+        traces = np.atleast_2d(traces).T
+
+    num_points = traces.shape[0]
+    num_traces = traces.shape[1]
+    
+    fit_baselines = np.zeros_like(traces)
+    
+    masked_traces = mask_large_deviations(traces)
+    
+    for trace in range(num_traces):
+        num_segments = n_control_points - 2
+        trace_in_parts = np.array_split(masked_traces[:,trace], n_control_points-2)
+
+        means = [x.mean() for x in trace_in_parts] # could also consider the median point
+
+        segment_length = len(trace_in_parts[0])
+        center_of_first = segment_length / 2 
+        xs = [center_of_first+segment_length*i for i in range(num_segments)]
+        
+        # *** needs to be more general to drop any value in means that is false
+        
+        # add the average of the first ten and last ten points to the spline
+        if masked_traces[0:10,trace].mean(axis=0):
+            xs.insert(0,0)
+            means.insert(0, masked_traces[0:10,trace].mean(axis=0))
+        
+        if masked_traces[-10:-1,trace].mean(axis=0):
+            means.append(masked_traces[-10:-1,trace].mean(axis=0))
+            xs.append(num_points)
+        
+        # fit spline and generate a baseline
+        tck = interpolate.splrep(xs,means)#, w=weights)#,s=20)
+        xnew = np.arange(0,num_points)
+        fit_baselines[:,trace] = interpolate.splev(xnew,tck)
+    return fit_baselines
