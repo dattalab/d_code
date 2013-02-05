@@ -590,7 +590,7 @@ class CellPickerGUI(object):
         else:
             color_mask = converter.to_rgba(self.currentMask)
         color_mask[:,:,3] = 0
-        color_mask[:,:,3] = (color_mask[:,:,0:2].sum(axis=2) > 0).astype(float) * 0.5
+        color_mask[:,:,3] = (color_mask[:,:,0:2].sum(axis=2) > 0).astype(float) * 0.4 # alpha value of 0.4
 
         self.image_widget.updateImage(color_mask)
         
