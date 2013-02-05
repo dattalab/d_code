@@ -230,6 +230,13 @@ class CellPickerGUI(object):
             else:
                 self.clearModeData()
                 self.mode = 'circle'
+
+        elif keyPressed == QtCore.Qt.Key_O:
+            if self.mode is 'OGB':
+                self.mode = None
+            else:
+                self.clearModeData()
+                self.mode = 'OGB'
                 
         elif keyPressed == QtCore.Qt.Key_K:
             self.correlateLastROI()
