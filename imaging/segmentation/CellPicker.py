@@ -286,13 +286,16 @@ class CellPickerGUI(object):
         # we have two figures, a trace, and masks
         ROI_mask = self.maskFromROINumber(ROI_number)
 
-        plt.figure('trace')
-        plt.cla()
-        plt.plot(self.timeCourseROI(ROI_mask))
+        self.infofig = plt.figure('info')
+        
+        axes1 = fig.add_axes([0.1, 0.1, 0.8, 0.8]) # main axes
+        axes2 = fig.add_axes([0.6, 0.6, 0.8, 0.8]) # inset axes
 
-        plt.figure('ROI')
-        plt.cla()
-        plt.imshow(self.currentMask + ROI_mask)
+        axes1.cla()
+        axes1 = plt.plot(self.timeCourseROI(ROI_mask))
+        
+        axes2.cla()
+        axes2 = plt.imshow(self.currentMask + ROI_mask)
 
     def averageCorrCoefScore(self, series, mask):
         coef_matrix = np.corrcoef(series[mask, :])
