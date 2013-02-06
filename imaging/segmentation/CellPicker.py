@@ -120,7 +120,7 @@ class CellPickerGUI(object):
         self.label_2.setWordWrap(True)
         self.label_2.setObjectName("label_2")
         self.dilation_disk = QtGui.QSpinBox(self.splitter)
-        self.dilation_disk.setProperty("value", 1)
+        self.dilation_disk.setProperty("value", 3)
         self.dilation_disk.setObjectName("dilation_disk")
         self.splitter_2 = QtGui.QSplitter(self.centralwidget)
         self.splitter_2.setGeometry(QtCore.QRect(10, 420, 122, 41))
@@ -162,7 +162,7 @@ class CellPickerGUI(object):
 
         self.listOfMasks = []
         self.listOfMasks.append(self.currentMask)
-        self.diskSize = 1
+        self.diskSize = 3
         self.contrastThreshold = 0.95
         self.cellRadius = 3
         self.currentMaskNumber = 1
@@ -174,8 +174,8 @@ class CellPickerGUI(object):
         
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QtGui.QApplication.translate("MainWindow", "MainWindow", None, QtGui.QApplication.UnicodeUTF8))
-        self.label_2.setText(QtGui.QApplication.translate("MainWindow", "<html><head/><body><p>Disk Dilation Size</p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
-        self.label.setText(QtGui.QApplication.translate("MainWindow", "<html><head/><body><p>Contrast Threshold</p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_2.setText(QtGui.QApplication.translate("MainWindow", "<html><head/><body><p>Cell Radius Size</p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
+        self.label.setText(QtGui.QApplication.translate("MainWindow", "<html><head/><body><p>Threshold</p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
 
     # dispatcher method to handle all key presses
     @QtCore.Slot()
@@ -296,8 +296,15 @@ class CellPickerGUI(object):
         axes1 = self.infofig.add_axes([0.1, 0.1, 0.8, 0.8]) # main axes
         axes1.cla()
         trace = self.timeCourseROI(ROI_mask)
+
+        try:
+            self.max_of_trace = max(trace.max(), self.max_of_trace)
+        except:
+            self.max_of_trace = trace.max()
+
         axes1 = plt.plot(trace)
         axes1[0].get_axes().set_xlim(0, trace.shape[0])
+        axes1[0].get_axes().set_ylim(self.series.min()*0.9, self.max_of_trace*1.1)
 
         axes2 = self.infofig.add_axes([0.8, 0.75, 0.2, 0.2]) # inset axes
         axes2.cla()
@@ -305,7 +312,6 @@ class CellPickerGUI(object):
         axes2.get_axes().set_yticklabels([])
         axes2.get_axes().set_xticklabels([])
 
-        self.infofig.tight_layout()
         plt.draw()
         
 
