@@ -182,8 +182,7 @@ class CellPickerGUI(object):
     def keyPress(self, keyPressed):
         
         if keyPressed == QtCore.Qt.Key_Return or keyPressed == QtCore.Qt.Key_Enter:
-            plt.close('trace')
-            plt.close('ROI')
+            plt.close('info')
             self.MainWindow.close()
             
         elif keyPressed >= QtCore.Qt.Key_1 and keyPressed <= QtCore.Qt.Key_8:
@@ -283,19 +282,32 @@ class CellPickerGUI(object):
 
 
     def updateInfoPanel(self, ROI_number=None):
+
+        if self.series is None:
+            print 'No series information!'
+            sys.stdout.flush()
+            return None
+
         # we have two figures, a trace, and masks
         ROI_mask = self.maskFromROINumber(ROI_number)
 
         self.infofig = plt.figure('info')
         
-        axes1 = fig.add_axes([0.1, 0.1, 0.8, 0.8]) # main axes
-        axes2 = fig.add_axes([0.6, 0.6, 0.8, 0.8]) # inset axes
-
+        axes1 = self.infofig.add_axes([0.1, 0.1, 0.8, 0.8]) # main axes
         axes1.cla()
-        axes1 = plt.plot(self.timeCourseROI(ROI_mask))
-        
+        trace = self.timeCourseROI(ROI_mask)
+        axes1 = plt.plot(trace)
+        axes1[0].get_axes().set_xlim(0, trace.shape[0])
+
+        axes2 = self.infofig.add_axes([0.8, 0.75, 0.2, 0.2]) # inset axes
         axes2.cla()
         axes2 = plt.imshow(self.currentMask + ROI_mask)
+        axes2.get_axes().set_yticklabels([])
+        axes2.get_axes().set_xticklabels([])
+
+        self.infofig.tight_layout()
+        plt.draw()
+        
 
     def averageCorrCoefScore(self, series, mask):
         coef_matrix = np.corrcoef(series[mask, :])
