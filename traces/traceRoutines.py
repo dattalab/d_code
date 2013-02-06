@@ -16,8 +16,8 @@ __all__ = ['baseline', 'normalize', 'normalizeAndBaseline', 'findLevels', \
                'correctionMatrixSmoothed', 'boxcar', 'smooth', \
                'calcCorrectedSTDs', 'calcTracesOverThreshhold',  'calcPosTraces', 'partitionTracesBySTD', \
                'findLevels1d', 'findLevelsNd', \
-               'fir_filter', 'butter_bandpass_filter', 'psd', 'specgram']
-
+               'fir_filter', 'butter_bandpass_filter', 'psd', 'specgram',\
+               'mask_deviations', 'baseline_splines']
 
 def baseline(A, baseRange, baseAxis):
     """Baseline a numpy array using a given range over a specfied axis.
@@ -619,27 +619,61 @@ def specgram(signal, sampling_frequency, time_resolution,
 
     return Pxx, freqs, bins
 
+def mask_deviations(traces, std_cutoff=2.5, axis=0, iterations=20):
+    """This routine takes a 1 or 2d array and masks large positive deviations from the mean.
+    It works by calculating the mean and std of the trace in the given axis, then making a masked
+    numpy array where every value more than std_cutoff*std above the mean is masked.  It iterates
+    a set number of times, but could be altered to take
 
+    could be altered to mask both negative and postive deviations, and to go till convergence
+    with a tolerance, rather than a fixed number of iterations.
 
-def mask_large_deviations(traces, std_cutoff=2.5, iterations=20):
+    :param traces: a 1 or 2d numpy array (traces by time)
+    :param std_cutoff: optional floating point number, used for masking
+    :param axis: optional integer, axis over which to calculate mean and std
+    :param interations: times to repeat the masking process
+    :returns: 2d masked numpy array, same size as traces
+    """
+
     temp_traces = traces.copy()
 
-    cutoffs = temp_traces.mean(axis=0) + temp_traces.std(axis=0)*std_cutoff
+    cutoffs = temp_traces.mean(axis=axis) + temp_traces.std(axis=axis)*std_cutoff
     masked_traces = np.ma.masked_array(traces, traces>=cutoffs)
-
-    #all_cutoffs = cutoffs.copy()
 
     # could go until some sort of convergence in STD
     # but light empirical testing shows convergence after ~5 iterations
     # going with 20 for the default for overkill (still is fast)
     for i in range(iterations):   
-        cutoffs = masked_traces.mean(axis=0) + masked_traces.std(axis=0)*std_cutoff
+        cutoffs = masked_traces.mean(axis=axis) + masked_traces.std(axis=axis)*std_cutoff
         masked_traces = np.ma.masked_array(masked_traces, traces>=cutoffs)
-        #all_cutoffs = np.vstack((all_cutoffs, cutoffs))
 
     return masked_traces
 
-def fit_baselines_to_traces(traces, n_control_points):
+def baseline_splines(traces, n_control_points):
+    """This routine takes a 1 or 2d array and fits a spline to the baseline.
+    To pick points for the spline fit, the baseline is first calcuated by 
+    mask_deviations().  Then, the trace is split into n_control_points-2 
+    segments, and the centers of those segments and the local mean are used
+    for x and y values, respectively.  Additionally, the endpoints of the 
+    trace and the mean values of the last 10 points are used, as well.
+
+    This routine can fail if there are no valid points (i.e., if all points
+    in a segment are masked).  In light testing, the most common case of this
+    happening is on the ends, and this is checked for, but could be more adaptive.
+
+    The return value of this function is a numpy array the same size and shape
+    as traces, which contains spline approximated baselines.  Dividing the
+    original traces by the baseline splines will normalize the traces.
+
+    The spline is smoothed, but the number of control points will affect 
+    how 'responsive' the spline is to deviations.  A good starting point
+    is 5 control points or so.
+
+    :param traces: a 1 or 2d numpy array (traces by time)
+    :param n_control_points: integer for number of control points in spline.
+    :returns: 2d numpy array, same size as traces
+    """
+
     # assuming x by traces
     if traces.ndim is 1:
         traces = np.atleast_2d(traces).T
@@ -649,7 +683,7 @@ def fit_baselines_to_traces(traces, n_control_points):
     
     fit_baselines = np.zeros_like(traces)
     
-    masked_traces = mask_large_deviations(traces)
+    masked_traces = mask_deviations(traces)
     
     for trace in range(num_traces):
         num_segments = n_control_points - 2
