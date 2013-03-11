@@ -65,6 +65,10 @@ def parseXSG(filename):
 
     return xsgDict
 
+def parseXSGHeader(filename):
+    raw = scipy.io.loadmat(filename, squeeze_me=True)
+    return s2d(raw['header'])
+
 def s2d(s):
     d = {}
 
