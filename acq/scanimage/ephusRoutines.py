@@ -27,17 +27,17 @@ def parseXSG(filename):
         xsgDict[field] = {}
     xsgDict['stimulator'] = {}
 
+    header = s2d(header)
 
-    xsgDict['sampleRate'] = header['acquirer'][()]['acquirer'][()]['sampleRate'][()][()]
-    xsgDict['epoch'] = int(header['xsg'][()]['xsg'][()]['epoch'][()][()])
-    xsgDict['acquisitionNumber'] = header['xsg'][()]['xsg'][()]['acquisitionNumber'][()][()]
+    xsgDict['sampleRate'] = header['acquirer']['acquirer']['sampleRate']
+    xsgDict['epoch'] = int(header['xsg']['xsg']['epoch'])
+    xsgDict['acquisitionNumber'] = header['xsg']['xsg']['acquisitionNumber']
     xsgDict['xsgName'] = filename
-    xsgDict['xsgExperimentNumber'] = header['xsg'][()]['xsg'][()]['experimentNumber'][()][()]
-    xsgDict['date'] = header['xsgFileCreationTimestamp'][()][()]
+    xsgDict['xsgExperimentNumber'] = header['xsg']['xsg']['experimentNumber']
+    xsgDict['date'] = header['xsgFileCreationTimestamp']
     
 
     # import ephys traces if needed
-
     try:
         ephys_trace_fields = [i for i in data['ephys'][()].dtype.names if 'trace' in i]
         # loop over channels (should just be 'chan0' and 'chan1')
@@ -58,13 +58,35 @@ def parseXSG(filename):
         xsgDict['acquirer'] = None
 
     # rebuild stimulation pulses if needed
-    
-    if header['stimulator'][()]['stimulator'][()]['startButton'][()][()]: # stimulator was engaged
+    if header['stimulator']['stimulator']['startButton']: # stimulator was engaged
         pass
     else:
         xsgDict['stimulator'] = None
 
     return xsgDict
+
+def parseXSGHeader(filename):
+    raw = scipy.io.loadmat(filename, squeeze_me=True)
+    return s2d(raw['header'])
+
+def s2d(s):
+    d = {}
+
+    if s.dtype.names is None:
+        # if empty
+        if s.dtype.name == 'object' and s.ndim is 0:
+            return s2d(s[()])
+        elif s.ndim is not 0: # then we have a 1d string array or other list
+            return [s[i] for i in range(s.shape[0])]
+        else:
+            return s[()]
+
+    else:
+        fields = s.dtype.names
+        for field in s.dtype.names:
+            d[field] = s2d(s[field][()])
+    return d
+
 
 
 def parseAllXSGFiles(listOfFilenames, epoch=None):
