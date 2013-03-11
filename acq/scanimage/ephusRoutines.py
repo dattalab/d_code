@@ -25,31 +25,47 @@ def parseXSG(filename):
 
     for i, field in enumerate(acq_fields):
         xsgDict[field] = {}
+    xsgDict['stimulator'] = {}
+
 
     xsgDict['sampleRate'] = header['acquirer'][()]['acquirer'][()]['sampleRate'][()][()]
-    xsgDict['epoch'] = header['xsg'][()]['xsg'][()]['epoch'][()][()]
+    xsgDict['epoch'] = int(header['xsg'][()]['xsg'][()]['epoch'][()][()])
     xsgDict['acquisitionNumber'] = header['xsg'][()]['xsg'][()]['acquisitionNumber'][()][()]
+    xsgDict['xsgName'] = filename
+    xsgDict['xsgExperimentNumber'] = header['xsg'][()]['xsg'][()]['experimentNumber'][()][()]
+    xsgDict['date'] = header['xsgFileCreationTimestamp'][()][()]
+    
+
+    # import ephys traces if needed
 
     try:
         ephys_trace_fields = [i for i in data['ephys'][()].dtype.names if 'trace' in i]
+        # loop over channels (should just be 'chan0' and 'chan1')
+        for index, chan in enumerate(ephys_trace_fields):
+            xsgDict['ephys'][u'chan'+str(index)] = data['ephys'][()][chan][()]
     except TypeError: #no traces
-        print "No ephys traces?"
-        ephys_trace_fields = []
-    for chan in ephys_trace_fields:
-        xsgDict['ephys'][u'chan0'] = data['ephys'][()][chan][()]
-
+        xsgDict['ephys'] = None
+    
+    # import acquirer traces if needed    
     try:
         acq_trace_fields = [i for i in data['acquirer'][()].dtype.names if 'trace' in i]
+        # loop over channels
+        acq_channel_field_names = [i for i in data['acquirer'][()].dtype.names if 'channelName' in i]
+        acq_chan_names = [data['acquirer'][()][i][()][()] for i in acq_channel_field_names]
+        for chan, chanName in zip(acq_trace_fields, acq_chan_names):
+            xsgDict['acquirer'][chanName] = data['acquirer'][()][chan][()]
     except TypeError: #no traces
-        print "No acquirer traces?"
-        acq_trace_fields = []
+        xsgDict['acquirer'] = None
 
-    acq_channel_field_names = [i for i in data['acquirer'][()].dtype.names if 'channelName' in i]
-    acq_chan_names = [data['acquirer'][()][i][()][()] for i in acq_channel_field_names]
-    for chan, chanName in zip(acq_trace_fields, acq_chan_names):
-        xsgDict['acquirer'][chanName] = data['acquirer'][()][chan][()]
+    # rebuild stimulation pulses if needed
+    
+    if header['stimulator'][()]['stimulator'][()]['startButton'][()][()]: # stimulator was engaged
+        pass
+    else:
+        xsgDict['stimulator'] = None
 
     return xsgDict
+
 
 def parseAllXSGFiles(listOfFilenames, epoch=None):
     """Convienence function to parse multiple XSG files in one go.  Takes a list of
