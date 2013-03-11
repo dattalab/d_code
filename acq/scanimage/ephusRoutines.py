@@ -27,12 +27,14 @@ def parseXSG(filename):
         xsgDict[field] = {}
     xsgDict['stimulator'] = {}
 
-    xsgDict['sampleRate'] = header['acquirer'][()]['acquirer'][()]['sampleRate'][()][()]
-    xsgDict['epoch'] = int(header['xsg'][()]['xsg'][()]['epoch'][()][()])
-    xsgDict['acquisitionNumber'] = header['xsg'][()]['xsg'][()]['acquisitionNumber'][()][()]
+    header = s2d(header)
+
+    xsgDict['sampleRate'] = header['acquirer']['acquirer']['sampleRate']
+    xsgDict['epoch'] = int(header['xsg']['xsg']['epoch'])
+    xsgDict['acquisitionNumber'] = header['xsg']['xsg']['acquisitionNumber']
     xsgDict['xsgName'] = filename
-    xsgDict['xsgExperimentNumber'] = header['xsg'][()]['xsg'][()]['experimentNumber'][()][()]
-    xsgDict['date'] = header['xsgFileCreationTimestamp'][()][()]
+    xsgDict['xsgExperimentNumber'] = header['xsg']['xsg']['experimentNumber']
+    xsgDict['date'] = header['xsgFileCreationTimestamp']
     
 
     # import ephys traces if needed
@@ -56,7 +58,7 @@ def parseXSG(filename):
         xsgDict['acquirer'] = None
 
     # rebuild stimulation pulses if needed
-    if header['stimulator'][()]['stimulator'][()]['startButton'][()][()]: # stimulator was engaged
+    if header['stimulator']['stimulator']['startButton']: # stimulator was engaged
         pass
     else:
         xsgDict['stimulator'] = None
@@ -70,12 +72,7 @@ def s2d(s):
         # if empty
         if s.dtype.name == 'object' and s.ndim is 0:
             return s2d(s[()])
-        elif s.ndim is not 0: # then we have a 1d string array 
-            try:
-                print type(s[()][0])
-                print s
-            except IndexError:
-                return []
+        elif s.ndim is not 0: # then we have a 1d string array or other list
             return [s[i] for i in range(s.shape[0])]
         else:
             return s[()]
