@@ -2,7 +2,7 @@ import numpy as np
 import scipy
 import glob
 
-__all__ = ['parseXSG', 'parseAllXSGFiles']
+__all__ = ['parseXSG', 'parseAllXSGFiles', 'parseXSGHeader']
 
 def parseXSG(filename):
     """Function to parse the XSG file format.  Returns a dictionary with epoch string,
@@ -58,9 +58,67 @@ def parseXSG(filename):
         xsgDict['acquirer'] = None
 
     # rebuild stimulation pulses if needed
-    if header['stimulator']['stimulator']['startButton']: # stimulator was engaged
+    # need to do this in two phases
+    # 1) for the stimulator program
+    # 2) for the ephys program
+
+    # we'll put both in the 'stimulator' field.
+
+    # for the stimulator program
+    try:
+        if header['stimulator']['stimulator']['startButton']: # stimulator was engaged
+            sampleRate = int(header['stimulator']['stimulator']['sampleRate'])
+            traceLength = int(header['stimulator']['stimulator']['traceLength'])
+
+            delay = header['stimulator']['stimulator']['pulseParameters']['squarePulseTrainDelay'] * sampleRate
+            offset = header['stimulator']['stimulator']['pulseParameters']['offset'] * sampleRate
+            amp = header['stimulator']['stimulator']['pulseParameters']['amplitude']
+            ISI = header['stimulator']['stimulator']['pulseParameters']['squarePulseTrainISI'] * sampleRate
+            width = header['stimulator']['stimulator']['pulseParameters']['squarePulseTrainWidth'] * sampleRate
+            number_of_pulses = int(header['stimulator']['stimulator']['pulseParameters']['squarePulseTrainNumber'])
+
+            stim_array = np.zeros(sampleRate*traceLength) + offset
+
+            for pulse_number in range(number_of_pulses):
+                start = pulse_number * ISI + delay
+                end = start + width
+                stim_array[start:end] = amp
+            xsgDict['stimulator'][header['stimulator']['stimulator']['channels']['channelName']] = stim_array
+        else:
+            pass # stimulator was running but not engaged
+    except:
+        pass # stimulator wasn't even running
+
+    # stimulation in the ephys program (a command to the amp)
+    try:
+        if header['ephys']['ephys']['stimOnArray']:
+            sampleRate = int(header['ephys']['ephys']['sampleRate'])
+            traceLength = int(header['ephys']['ephys']['traceLength'])
+
+            delay = header['ephys']['ephys']['pulseParameters']['squarePulseTrainDelay'] * sampleRate
+            offset = header['ephys']['ephys']['pulseParameters']['offset'] * sampleRate
+            amp = header['ephys']['ephys']['pulseParameters']['amplitude']
+            ISI = header['ephys']['ephys']['pulseParameters']['squarePulseTrainISI'] * sampleRate
+            width = header['ephys']['ephys']['pulseParameters']['squarePulseTrainWidth'] * sampleRate
+            number_of_pulses = int(header['ephys']['ephys']['pulseParameters']['squarePulseTrainNumber'])
+
+            stim_array = np.zeros(sampleRate*traceLength) + offset
+
+            for pulse_number in range(number_of_pulses):
+                start = pulse_number * ISI + delay
+                end = start + width
+                stim_array[start:end] = amp
+            xsgDict['stimulator']['chan0'] = stim_array   # NOTE: hard coded for now for a single ephys channel
+            pass
+        else:
+            pass # no ephys stim was sent out
         pass
-    else:
+    except:
+        pass # ephys stim wasn't on. don't modify
+
+    # if there weren't any pulses sent out, then xsgDict['stimulator'] will be empty
+    # we then set the stim key to None
+    if xsgDict['stimulator'] == {}:
         xsgDict['stimulator'] = None
 
     return xsgDict
