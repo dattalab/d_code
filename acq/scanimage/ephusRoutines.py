@@ -1,6 +1,7 @@
 import numpy as np
 import scipy
 import glob
+import datetime
 
 __all__ = ['parseXSG', 'parseAllXSGFiles', 'parseXSGHeader']
 
@@ -34,8 +35,8 @@ def parseXSG(filename):
     xsgDict['acquisitionNumber'] = header['xsg']['xsg']['acquisitionNumber']
     xsgDict['xsgName'] = filename
     xsgDict['xsgExperimentNumber'] = header['xsg']['xsg']['experimentNumber']
-    xsgDict['date'] = header['xsgFileCreationTimestamp']
-    
+    xsgDict['date'] = matlabDateString2DateTime(header['xsgFileCreationTimestamp'])
+    xsgDict['dateString'] = header['xsgFileCreationTimestamp']
 
     # import ephys traces if needed
     try:
@@ -145,7 +146,33 @@ def s2d(s):
             d[field] = s2d(s[field][()])
     return d
 
+def matlabDateString2DateTime(dateString):
+    months = {
+        'Jan' : 1,
+        'Feb' : 2,
+        'Mar' : 3,
+        'Apr' : 4,
+        'May' : 5,
+        'Jun' : 6,
+        'Jul' : 7,
+        'Aug' : 8,
+        'Sep' : 9,
+        'Oct' : 10, 
+        'Nov' : 11,
+        'Dec' : 12
+        }
 
+    date = dateString.split(' ')[0].split('-')
+    time = dateString.split(' ')[1].split(':')
+
+    year =int(date[2])
+    month = months[date[1]]
+    day = int(date[0])
+    hour = int(time[0])
+    minute = int(time[1]) 
+    second = int(time[2])
+
+    return datetime.datetime(year, month, day, hour, minute, second)
 
 def parseAllXSGFiles(listOfFilenames, epoch=None):
     """Convienence function to parse multiple XSG files in one go.  Takes a list of
