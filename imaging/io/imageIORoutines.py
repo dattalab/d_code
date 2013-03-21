@@ -290,7 +290,7 @@ def downsample2d(inputArray, kernelSize):
     :param: inputArray: 2d numpy array
     :param: kernelSize: integer
     """
-    average_kernel = np.ones((kernelSize,kernelSize))
+    average_kernel = np.ones((kernelSize,kernelSize)) / (kernelSize*kernelSize)
 
     blurred_array = sig.convolve2d(inputArray, average_kernel, mode='same')
     downsampled_array = blurred_array[::kernelSize,::kernelSize]
