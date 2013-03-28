@@ -5,7 +5,7 @@ import scipy.stats as stats
 from mpl_toolkits.axes_grid1 import ImageGrid
 
 
-__all__ = ['plotSubsetOfTraceArray', 'plot_mean_and_sem', 'plot_array']
+__all__ = ['plotSubsetOfTraceArray', 'plot_mean_and_sem', 'plot_array', 'imshow_array']
 
 def plotSubsetOfTraceArray(npArray, subList):
     plt.figure()
