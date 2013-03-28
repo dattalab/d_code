@@ -1,44 +1,20 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy.stats as stats
 
-__all__ = ['plotSubsetOfTraceArray']
+__all__ = ['plotSubsetOfTraceArray', 'plot_mean_and_sem']
 
-def plotSubsetOfTraceArray(npArray, subList, avg=None):
+def plotSubsetOfTraceArray(npArray, subList):
     plt.figure()
     for i in subList:
-        if avg is not None:
-            plt.plot(npArray[:,i]-avg)
-        else:
-            plt.plot(npArray[:,i])
-    # display(plt.gcf())
-    # plt.close(plt.gcf())
+        plt.plot(npArray[:,i])
 
-# the following are convience functions for embedding figures inline
-# if you don't start ipython qtconsole mode with the --pylab=inline option
+def plot_mean_and_sem(array, axis=1):
+    mean = array.mean(axis=axis)
+    sem_plus = mean + stats.sem(array, axis=axis)
+    sem_minus = mean - stats.sem(array, axis=axis)
+    
+    plt.figure()
+    plt.fill_between(np.arange(mean.shape[0]), sem_plus, sem_minus, alpha=0.5)
+    plt.plot(mean)
 
-def imshow(matrix, **kwargs):
-    figure()
-    if kwargs is not None:
-        plt.imshow(matrix, **kwargs)
-    else:
-        plt.imshow(matrix)
-    display(gcf())
-    close()
-    
-def plot(array, **kwargs):
-    figure()
-    if kwargs is not None:
-        plt.plot(array, **kwargs)
-    else:
-        plt.plot(array)
-    display(gcf())
-    close()
-    
-def hist(array, **kwargs):
-    figure()
-    if kwargs is not None:
-        plt.hist(array, **kwargs)
-    else:
-        plt.hist(array)
-    display(gcf())
-    close()
