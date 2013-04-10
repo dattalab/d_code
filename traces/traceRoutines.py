@@ -1,6 +1,11 @@
 import numpy as np
 
+<<<<<<< Updated upstream
 from scipy.interpolate import interp1d, splrep
+=======
+import scipy.interpolate as interpolate
+from scipy.interpolate import interp1d
+>>>>>>> Stashed changes
 import scipy.ndimage as nd
 import scipy.stats
 import scipy
@@ -707,7 +712,11 @@ def baseline_splines(traces, n_control_points):
             xs.append(num_points)
         
         # fit spline and generate a baseline
+<<<<<<< Updated upstream
         tck = splrep(xs,means)#, w=weights)#,s=20)
+=======
+        tck = scipy.interpolate.splrep(xs,means)#, w=weights)#,s=20)
+>>>>>>> Stashed changes
         xnew = np.arange(0,num_points)
         fit_baselines[:,trace] = interpolate.splev(xnew,tck)
     return fit_baselines

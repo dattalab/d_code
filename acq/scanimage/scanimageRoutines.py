@@ -172,10 +172,11 @@ def importTrial(tif_filename, header_filename):
     epoch = tif_filename[0:-4].split('_')[1][1:]
     acqNum = tif_filename[0:-4].split('_')[2]
 
-    trial = [{} for odor in odor_list_indicies]
+    trial = {}
+    for odor_index in odor_list_indicies:
+        trial[odor_index] = {}
 
     for i, odor_index in enumerate(odor_list_indicies):
-        trial[odor_index] = {}
 
         # store meta data
         trial[odor_index]['allHeaderData'] = state
@@ -231,7 +232,7 @@ def importTrial(tif_filename, header_filename):
                 trial[odor_index]['images']['chan'+str(chanNum+1)] = raw_image_in_channels[chanNum][:,:,offset:offset+single_odor_frame_length].copy()
             else:
                 trial[odor_index]['images']['chan'+str(chanNum+1)] = np.array([])
-    return trial # a list of single trial odor exposure dictionaries
+    return trial.values() # a list of single trial odor exposure dictionaries
 
 
 #### extractions and calculations
