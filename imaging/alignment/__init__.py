@@ -8,3 +8,4 @@ Uses External Java - see imaging_analysis/external_java_scripts
 """
 
 from alignmentRoutines import *
+from image_registration import *
