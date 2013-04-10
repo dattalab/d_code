@@ -1,6 +1,6 @@
 import numpy as np
 
-from scipy.interpolate import interp1d, splrep
+from scipy.interpolate import interp1d, splrep, splev
 import scipy.ndimage as nd
 import scipy.stats
 import scipy
@@ -215,7 +215,7 @@ def correctionMatrixLinearFit(A):
                 print 'Start window STD still high, shift by two, and now: %f' % start_std
                 
         yRange = np.array([start, stop])
-        f = scipy.interpolate.interp1d(xRange, yRange)
+        f = interp1d(xRange, yRange)
         correctionMatrix[:,traceNum] = f(np.linspace(0,A.shape[0],A.shape[0]))
     return correctionMatrix
 
@@ -709,7 +709,7 @@ def baseline_splines(traces, n_control_points):
         # fit spline and generate a baseline
         tck = splrep(xs,means)#, w=weights)#,s=20)
         xnew = np.arange(0,num_points)
-        fit_baselines[:,trace] = interpolate.splev(xnew,tck)
+        fit_baselines[:,trace] = splev(xnew,tck)
     return fit_baselines
 
 
