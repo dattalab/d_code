@@ -1,6 +1,6 @@
 import numpy as np
 
-from scipy.interpolate import interp1d
+from scipy.interpolate import interp1d, splrep
 import scipy.ndimage as nd
 import scipy.stats
 import scipy
@@ -707,7 +707,11 @@ def baseline_splines(traces, n_control_points):
             xs.append(num_points)
         
         # fit spline and generate a baseline
-        tck = interpolate.splrep(xs,means)#, w=weights)#,s=20)
+        tck = splrep(xs,means)#, w=weights)#,s=20)
         xnew = np.arange(0,num_points)
         fit_baselines[:,trace] = interpolate.splev(xnew,tck)
     return fit_baselines
+
+
+
+
