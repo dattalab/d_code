@@ -40,7 +40,7 @@ def plot_array(npArray, axis=1, xlim=None, ylim=None):
     side = np.ceil(np.sqrt(num_plots))
     for current_plot in range(1, num_plots+1):
 
-        subplot(side, side, current_plot)
+        plt.subplot(side, side, current_plot)
     
         # need to make a tuple of Ellipses and an int that is the current plot number
         slice_obj = []
@@ -50,7 +50,7 @@ def plot_array(npArray, axis=1, xlim=None, ylim=None):
             else:
                 slice_obj.append(Ellipsis)
 
-        plot(npArray[tuple(slice_obj)])
+        plt.plot(npArray[tuple(slice_obj)])
 
         if xlim is not None:
             plt.xlim(xlim)
