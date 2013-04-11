@@ -208,6 +208,7 @@ def register_series_parallel(series, target=None, usfac=1, return_registered=Tru
 
     pool = mp.Pool(processes=nthreads)
     out = pool.map(aligner, list_of_target_and_frames) # returns image, x, y
+    pool.close()
 
     x_shifts = np.array([o[1] for o in out])
     y_shifts = np.array([o[2] for o in out])
