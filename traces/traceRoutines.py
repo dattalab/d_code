@@ -619,7 +619,7 @@ def specgram(signal, sampling_frequency, time_resolution,
 
     return Pxx, freqs, bins
 
-def mask_deviations(traces, std_cutoff=2.5, axis=0, iterations=20):
+def mask_deviations(traces, std_cutoff=2.25, axis=0, iterations=20):
     """This routine takes a 1 or 2d array and masks large positive deviations from the mean.
     It works by calculating the mean and std of the trace in the given axis, then making a masked
     numpy array where every value more than std_cutoff*std above the mean is masked.  It iterates
@@ -649,7 +649,7 @@ def mask_deviations(traces, std_cutoff=2.5, axis=0, iterations=20):
 
     return masked_traces
 
-def baseline_splines(traces, n_control_points):
+def baseline_splines(traces, n_control_points, std_cutoff=2.25):
     """This routine takes a 1 or 2d array and fits a spline to the baseline.
     To pick points for the spline fit, the baseline is first calcuated by 
     mask_deviations().  Then, the trace is split into n_control_points-2 
@@ -683,35 +683,47 @@ def baseline_splines(traces, n_control_points):
     
     fit_baselines = np.zeros_like(traces)
     
-    masked_traces = mask_deviations(traces)
+    masked_traces = mask_deviations(traces, std_cutoff=std_cutoff)
     
     for trace in range(num_traces):
         num_segments = n_control_points - 2
-        trace_in_parts = np.array_split(masked_traces[:,trace], n_control_points-2)
+        edge_size = int(ceil(masked_traces.shape[0] * 0.1))
+        if num_segments>0:
+            trace_in_parts = np.array_split(masked_traces[edge_size:-edge_size,trace], n_control_points-2)
 
-        means = [x.mean() for x in trace_in_parts] # could also consider the median point
+            means = [x.mean() for x in trace_in_parts] # could also consider the median point
 
-        segment_length = len(trace_in_parts[0])
-        center_of_first = segment_length / 2 
-        xs = [center_of_first+segment_length*i for i in range(num_segments)]
+            segment_length = len(trace_in_parts[0])
+            center_of_first = segment_length / 2 
+            xs = [center_of_first+segment_length*i for i in range(num_segments)]
+        else: # only using endpoints
+            means = []
+            xs = []
         
         # *** needs to be more general to drop any value in means that is false
         
         # add the average of the first ten and last ten points to the spline
-        if masked_traces[0:10,trace].mean(axis=0):
-            xs.insert(0,0)
-            means.insert(0, masked_traces[0:10,trace].mean(axis=0))
-        
-        if masked_traces[-10:-1,trace].mean(axis=0):
-            means.append(masked_traces[-10:-1,trace].mean(axis=0))
-            xs.append(num_points)
-        
+        if masked_traces[0:edge_size,trace].mean(axis=0):
+            means.insert(0, masked_traces[0:edge_size,trace].mean(axis=0))
+        else:
+            print 'first control point undefined (masked away everything?)'
+            means.append(means[0])
+        xs.insert(0,0)
+   
+        if masked_traces[-edge_size:,trace].mean(axis=0):
+            means.append(masked_traces[-edge_size:,trace].mean(axis=0))
+        else:
+            print 'last control point undefined (masked away everything?)'
+            means.append(means[-1])
+        xs.append(num_points)
+
         # fit spline and generate a baseline
-        tck = splrep(xs,means)#, w=weights)#,s=20)
+        if n_control_points<=3:
+            k=1
+        else:
+            k=3
+        tck = splrep(xs,means,k=k)#, w=weights)#,s=20)
         xnew = np.arange(0,num_points)
         fit_baselines[:,trace] = splev(xnew,tck)
     return fit_baselines
-
-
-
 
