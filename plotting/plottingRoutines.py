@@ -79,7 +79,7 @@ def imshow_array(npArray, axis=2, vmax=None, vmin=None):
 
         if vmax is None:
             vmax = npArray.max()*1.1
-        if vmin is None
+        if vmin is None:
            vmine = npArray.min()*0.9
 
         imshow(npArray[tuple(slice_obj)], vmax=vmax, vmin=vmin)
