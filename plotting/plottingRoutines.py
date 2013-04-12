@@ -57,7 +57,9 @@ def plot_array(npArray, axis=1, xlim=None, ylim=None):
         if ylim is not None:
             plt.ylim(ylim)
         else:
-            plt.ylim([npArray.min()*0.9,npArray.max()*1.1])
+            plot_min = np.min(npArray[np.logical_not(np.isnan(npArray))]) * 0.9
+            plot_max = np.max(npArray[np.logical_not(np.isnan(npArray))]) * 1.1
+            plt.ylim([plot_min,plot_max])
 
 def imshow_array(npArray, axis=2, vmax=None, vmin=None):
 
@@ -78,9 +80,9 @@ def imshow_array(npArray, axis=2, vmax=None, vmin=None):
                 slice_obj.append(Ellipsis)
 
         if vmax is None:
-            vmax = npArray.max()*1.1
+            vmax = np.max(npArray[np.logical_not(np.isnan(npArray) * 1.1
         if vmin is None:
-           vmine = npArray.min()*0.9
+           vmine = np.max(npArray[np.logical_not(np.isnan(npArray) * 0.9
 
         imshow(npArray[tuple(slice_obj)], vmax=vmax, vmin=vmin)
 
