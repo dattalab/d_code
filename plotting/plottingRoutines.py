@@ -56,6 +56,8 @@ def plot_array(npArray, axis=1, xlim=None, ylim=None):
             plt.xlim(xlim)
         if ylim is not None:
             plt.ylim(ylim)
+        else:
+            plt.ylim([npArray.min()*0.9,npArray.max()*1.1])
 
 def imshow_array(npArray, axis=2, vmax=None, vmin=None):
 
@@ -75,10 +77,15 @@ def imshow_array(npArray, axis=2, vmax=None, vmin=None):
             else:
                 slice_obj.append(Ellipsis)
 
+        if vmax is None:
+            vmax = npArray.max()*1.1
+        if vmin is None
+           vmine = npArray.min()*0.9
+
         imshow(npArray[tuple(slice_obj)], vmax=vmax, vmin=vmin)
 
 
 def plot_avg_and_comps(npArray, axis=1):
     plt.figure()
-    plt.plot(npArray, alpha=0.25, lw=1, color='black')
+    plt.plot(npArray, alpha=0.25, lw=1)
     plt.plot(npArray.mean(axis=axis), lw=2, color='black')
