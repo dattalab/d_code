@@ -619,7 +619,7 @@ def specgram(signal, sampling_frequency, time_resolution,
 
     return Pxx, freqs, bins
 
-def mask_deviations(traces, std_cutoff=2.25, axis=0, iterations=20):
+def mask_deviations(traces, std_cutoff=2.25, axis=0, iterations=40):
     """This routine takes a 1 or 2d array and masks large positive deviations from the mean.
     It works by calculating the mean and std of the trace in the given axis, then making a masked
     numpy array where every value more than std_cutoff*std above the mean is masked.  It iterates
