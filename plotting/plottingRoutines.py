@@ -80,9 +80,9 @@ def imshow_array(npArray, axis=2, vmax=None, vmin=None):
                 slice_obj.append(Ellipsis)
 
         if vmax is None:
-            vmax = np.max(npArray[np.logical_not(np.isnan(npArray) * 1.1
+            vmax = np.max(npArray[np.logical_not(np.isnan(npArray))]) * 1.1
         if vmin is None:
-           vmine = np.max(npArray[np.logical_not(np.isnan(npArray) * 0.9
+           vmine = np.max(npArray[np.logical_not(np.isnan(npArray))]) * 0.9
 
         imshow(npArray[tuple(slice_obj)], vmax=vmax, vmin=vmin)
 
