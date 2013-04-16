@@ -706,22 +706,15 @@ def baseline_splines(traces, n_control_points, std_cutoff=2.25):
                 means = []
                 xs = []
 
-            # *** needs to be more general to drop any value in means that is false
-
             # add the average of the first ten and last ten points to the spline
-            if masked_traces[0:edge_size,trace].mean(axis=0):
-                means.insert(0, masked_traces[0:edge_size,trace].mean(axis=0))
-            else:
-                print 'first control point undefined (masked away everything?)'
-                means.append(means[0])
+            means.insert(0, masked_traces[0:edge_size,trace].mean(axis=0))
             xs.insert(0,0)
-
-            if masked_traces[-edge_size:,trace].mean(axis=0):
-                means.append(masked_traces[-edge_size:,trace].mean(axis=0))
-            else:
-                print 'last control point undefined (masked away everything?)'
-                means.append(means[-1])
+            means.append(masked_traces[-edge_size:,trace].mean(axis=0))
             xs.append(num_points)
+
+            # replace all nans with the average of the rest of the control point locations.
+            means = np.array(means)
+            means[np.isnan(means)] = means[np.logical_not(np.isnan(means))].mean()
 
             # fit spline and generate a baseline
             if n_control_points<=3:
