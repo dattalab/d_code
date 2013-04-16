@@ -622,7 +622,7 @@ def specgram(signal, sampling_frequency, time_resolution,
     return Pxx, freqs, bins
 
 def mask_deviations(traces, std_cutoff=2.25, axis=0, iterations=40):
-    """This routine takes a 1 or 2d array and masks large positive deviations from the mean.
+    """This routine takes a 1, 2, or 3d array and masks large positive deviations from the mean.
     It works by calculating the mean and std of the trace in the given axis, then making a masked
     numpy array where every value more than std_cutoff*std above the mean is masked.  It iterates
     a set number of times, but could be altered to take
@@ -630,7 +630,7 @@ def mask_deviations(traces, std_cutoff=2.25, axis=0, iterations=40):
     could be altered to mask both negative and postive deviations, and to go till convergence
     with a tolerance, rather than a fixed number of iterations.
 
-    :param traces: a 1 or 2d numpy array (traces by time)
+    :param traces: a 1, 2 or 3d numpy array (traces by time by trial)
     :param std_cutoff: optional floating point number, used for masking
     :param axis: optional integer, axis over which to calculate mean and std
     :param interations: times to repeat the masking process
@@ -644,7 +644,7 @@ def mask_deviations(traces, std_cutoff=2.25, axis=0, iterations=40):
 
     # could go until some sort of convergence in STD
     # but light empirical testing shows convergence after ~5 iterations
-    # going with 20 for the default for overkill (still is fast)
+    # going with 40 for the default for overkill (still is fast)
     for i in range(iterations):   
         cutoffs = masked_traces.mean(axis=axis) + masked_traces.std(axis=axis)*std_cutoff
         masked_traces = np.ma.masked_array(masked_traces, traces>=cutoffs)
