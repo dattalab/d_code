@@ -61,7 +61,7 @@ def plot_array(npArray, axis=1, xlim=None, ylim=None):
             plot_max = np.max(npArray[np.logical_not(np.isnan(npArray))]) * 1.1
             plt.ylim([plot_min,plot_max])
 
-def imshow_array(npArray, axis=2, vmax=None, vmin=None):
+def imshow_array(npArray, axis=2, vmax=None, vmin=None, transpose=False):
 
     plt.figure()
 
@@ -82,9 +82,12 @@ def imshow_array(npArray, axis=2, vmax=None, vmin=None):
         if vmax is None:
             vmax = np.max(npArray[np.logical_not(np.isnan(npArray))]) * 1.1
         if vmin is None:
-           vmine = np.max(npArray[np.logical_not(np.isnan(npArray))]) * 0.9
+           vmin = np.min(npArray[np.logical_not(np.isnan(npArray))]) * 0.9
 
-        plt.imshow(npArray[tuple(slice_obj)], vmax=vmax, vmin=vmin)
+        if transpose:
+            plt.imshow(npArray[tuple(slice_obj)].T, vmax=vmax, vmin=vmin)
+        else:
+            plt.imshow(npArray[tuple(slice_obj)], vmax=vmax, vmin=vmin)
 
 
 def plot_avg_and_comps(npArray, axis=1):
