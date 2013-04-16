@@ -69,7 +69,7 @@ def imshow_array(npArray, axis=2, vmax=None, vmin=None):
     side = np.ceil(np.sqrt(num_plots))
     for current_plot in range(1, num_plots+1):
 
-        subplot(side, side, current_plot)
+        plt.subplot(side, side, current_plot)
     
         # need to make a tuple of Ellipses and an int that is the current plot number
         slice_obj = []
@@ -84,7 +84,7 @@ def imshow_array(npArray, axis=2, vmax=None, vmin=None):
         if vmin is None:
            vmine = np.max(npArray[np.logical_not(np.isnan(npArray))]) * 0.9
 
-        imshow(npArray[tuple(slice_obj)], vmax=vmax, vmin=vmin)
+        plt.imshow(npArray[tuple(slice_obj)], vmax=vmax, vmin=vmin)
 
 
 def plot_avg_and_comps(npArray, axis=1):
