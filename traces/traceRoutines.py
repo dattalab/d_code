@@ -687,7 +687,7 @@ def baseline_splines(traces, n_control_points, std_cutoff=2.25):
     
     for trace in range(num_traces):
         num_segments = n_control_points - 2
-        edge_size = int(ceil(masked_traces.shape[0] * 0.1))
+        edge_size = int(np.ceil(masked_traces.shape[0] * 0.1))
         if num_segments>0:
             trace_in_parts = np.array_split(masked_traces[edge_size:-edge_size,trace], n_control_points-2)
 
