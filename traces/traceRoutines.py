@@ -676,58 +676,62 @@ def baseline_splines(traces, n_control_points, std_cutoff=2.25):
     :returns: 2d numpy array, same size as traces
     """
 
-    # assuming x by traces
+    # assuming time by traces x trials
     if traces.ndim is 1:
         traces = np.atleast_2d(traces).T
-
+    if traces.ndim is 2:
+        traces = np.atleast_3d(traces)
+    
     num_points = traces.shape[0]
     num_traces = traces.shape[1]
-    
+    num_trials = traces.shape[2]
+
     fit_baselines = np.zeros_like(traces)
     
-    masked_traces = mask_deviations(traces, std_cutoff=std_cutoff)
-    
-    for trace in range(num_traces):
-        num_segments = n_control_points - 2
-        edge_size = int(ceil(masked_traces.shape[0] * 0.1))
-        if num_segments>0:
-            trace_in_parts = np.array_split(masked_traces[edge_size:-edge_size,trace], n_control_points-2)
+    for trial in range(num_trials):
+        masked_traces = mask_deviations(traces[:,:,trial], std_cutoff=std_cutoff)
 
-            means = [x.mean() for x in trace_in_parts] # could also consider the median point
+        for trace in range(num_traces):
+            num_segments = n_control_points - 2
+            edge_size = int(np.ceil(masked_traces.shape[0] * 0.1))
+            if num_segments>0:
+                trace_in_parts = np.array_split(masked_traces[edge_size:-edge_size,trace], n_control_points-2)
 
-            segment_length = len(trace_in_parts[0])
-            center_of_first = segment_length / 2 
-            xs = [center_of_first+segment_length*i for i in range(num_segments)]
-        else: # only using endpoints
-            means = []
-            xs = []
-        
-        # *** needs to be more general to drop any value in means that is false
-        
-        # add the average of the first ten and last ten points to the spline
-        if masked_traces[0:edge_size,trace].mean(axis=0):
-            means.insert(0, masked_traces[0:edge_size,trace].mean(axis=0))
-        else:
-            print 'first control point undefined (masked away everything?)'
-            means.append(means[0])
-        xs.insert(0,0)
-   
-        if masked_traces[-edge_size:,trace].mean(axis=0):
-            means.append(masked_traces[-edge_size:,trace].mean(axis=0))
-        else:
-            print 'last control point undefined (masked away everything?)'
-            means.append(means[-1])
-        xs.append(num_points)
+                means = [x.mean() for x in trace_in_parts] # could also consider the median point
 
-        # fit spline and generate a baseline
-        tck = splrep(xs,means)#, w=weights)#,s=20)
+                segment_length = len(trace_in_parts[0])
+                center_of_first = segment_length / 2 
+                xs = [center_of_first+segment_length*i for i in range(num_segments)]
+            else: # only using endpoints
+                means = []
+                xs = []
 
-        if n_control_points<=3:
-            k=1
-        else:
-            k=3
-        tck = splrep(xs,means,k=k)#, w=weights)#,s=20)
-        xnew = np.arange(0,num_points)
-        fit_baselines[:,trace] = splev(xnew,tck)
-    return fit_baselines
+            # *** needs to be more general to drop any value in means that is false
+
+            # add the average of the first ten and last ten points to the spline
+            if masked_traces[0:edge_size,trace].mean(axis=0):
+                means.insert(0, masked_traces[0:edge_size,trace].mean(axis=0))
+            else:
+                print 'first control point undefined (masked away everything?)'
+                means.append(means[0])
+            xs.insert(0,0)
+
+            if masked_traces[-edge_size:,trace].mean(axis=0):
+                means.append(masked_traces[-edge_size:,trace].mean(axis=0))
+            else:
+                print 'last control point undefined (masked away everything?)'
+                means.append(means[-1])
+            xs.append(num_points)
+
+            # fit spline and generate a baseline
+            if n_control_points<=3:
+                k=1
+            else:
+                k=3
+            tck = splrep(xs,means,k=k)#, w=weights)#,s=20)
+            xnew = np.arange(0,num_points)
+
+            fit_baselines[:,trace,trial] = splev(xnew,tck)
+
+    return np.squeeze(fit_baselines)
 
