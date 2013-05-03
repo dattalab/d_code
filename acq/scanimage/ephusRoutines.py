@@ -66,8 +66,10 @@ def parseXSG(filename):
     # we'll put both in the 'stimulator' field.
 
     # for the stimulator program
-    try:
-        if header['stimulator']['stimulator']['startButton']: # stimulator was engaged
+    if header['stimulator']['stimulator']['startButton']: # stimulator was engaged
+
+        # put all the square pulse stims in 
+        try: 
             sampleRate = int(header['stimulator']['stimulator']['sampleRate'])
             traceLength = int(header['stimulator']['stimulator']['traceLength'])
 
@@ -85,10 +87,16 @@ def parseXSG(filename):
                 end = start + width
                 stim_array[start:end] = amp
             xsgDict['stimulator'][header['stimulator']['stimulator']['channels']['channelName']] = stim_array
-        else:
-            pass # stimulator was running but not engaged
-    except:
-        pass # stimulator wasn't even running
+        except:
+            print 'no standard pulses?'
+
+        # put all the literal pulses in
+        try:
+            for i, pulseName in enumerate(header['stimulator']['stimulator']['pulseNameArray']):
+                if header['stimulator']['stimulator']['pulseParameters'][i]['type'][()][()] == 'Literal':
+                    xsgDict['stimulator'][pulseName[()]] = header['stimulator']['stimulator']['pulseParameters'][i]['signal'][()][()]
+        except:
+            print 'no literal pulses?'
 
     # stimulation in the ephys program (a command to the amp)
     try:
