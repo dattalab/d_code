@@ -126,7 +126,7 @@ def imsave(npArray, filename):
         tifffile.imsave(filename, npArray)
 
 
-def play(npArray, frameRate = 6):
+def play(npArray, frameRate = 6, std_cutoff=None):
     """IPython Notebook based interface for playing a 3d numpy array using HTML5 and the Ipython HTML() function
     
     Requires ffmpeg to be installed.
@@ -134,6 +134,13 @@ def play(npArray, frameRate = 6):
     :param npArray: 3d numpy array
     :param frameRate: integer framerate value, defaults to 6
     """
+
+    if std_cutoff is not None:
+        npArray = npArray.copy()
+        array_mean = np.mean(npArray.flatten())
+        array_std = np.std(npArray.flatten())
+        npArray[npArray>array_mean+ std_cutoff * array_std] = array_mean + std_cutoff * array_std
+
     # ffmpeg is fussy- images must be in the right format to encode right
     uint8_array = np.uint8(npArray.astype('float').copy() / float(npArray.max()) * 2**8-1)
     
