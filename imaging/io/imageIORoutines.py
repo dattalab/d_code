@@ -75,7 +75,10 @@ def imread(filename, usePIL=False):
     :returns:  array OR image.  array is a numpy array representation of file.  image is a PIL Image instance.
     """
 
-    filetype = subprocess.Popen("/usr/bin/file -I %s" % filename, shell=True, stdout=subprocess.PIPE).communicate()[0]
+    if filename.tolower().endswith('.tif') or filename.tolower().endswith('.tiff'):
+        filetype = 'image/tiff'
+    else:
+        filetype = subprocess.Popen("/usr/bin/file -I %s" % filename, shell=True, stdout=subprocess.PIPE).communicate()[0]
     
     if (filetype.find('image/tiff') is not -1) and (not usePIL): # this is a tiff file?  if so, use tifffile
         array=tifffile.imread(filename)
