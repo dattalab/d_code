@@ -110,7 +110,7 @@ def addLineToStateVar(keyList,value,state):
     else:
         state[top]=value
 
-    return DotDict(state)
+    return state
 
 
 def importTrial(tif_filename, header_filename):
@@ -321,7 +321,7 @@ def buildCellDataFromEpoch(epoch,baselineFrames=[1,15], odorFrames=[29,30], subA
     epoch['normalizedCells'] = averageCellData(epoch['normalizedCells'])
     epoch['normalizedCells'] = calculateCellDataAmplitudes(epoch['normalizedCells'], baselineFrames, odorFrames)
 
-    return DotDict(epoch)
+    return epoch
 
 def calculateCellDataAmplitudes(cellData, baselineFrames, stimFrames, fieldOfViewPositionOffset=[0,0,0], stdThreshold=2):
     nCells,nTimePoints,nTrials = cellData['allTraces'].shape
