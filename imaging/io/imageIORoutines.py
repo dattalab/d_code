@@ -19,6 +19,8 @@ try:
 except ImportError:
     import Image
 
+import cPickle as pickle
+
 __all__ = ['play', 'embed', 'save3dNPArrayAsMovie', 'writeMultiImageStack', 'imread', 'imreadStack', 'imsave', 'imview', 'splitAndResaveChannels', 'readMultiImageTifStack', 'readImagesFromList', 'downsample2d', 'downsample3d', 'load', 'save']
 
 
@@ -343,7 +345,7 @@ def save(obj, filename):
 
     """
     with open(filename, 'wb') as f:
-        pickle.dump(obj, filename)
+        pickle.dump(obj, f)
 
 def load(filename):
     """Simple wrapper load a pickled an object from disk
@@ -352,4 +354,4 @@ def load(filename):
     :returns: the object saved in the file
     """
     with open(filename) as f:
-        return pickle.load(filename)
+        return pickle.load(f)
