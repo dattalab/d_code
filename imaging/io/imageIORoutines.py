@@ -19,7 +19,7 @@ try:
 except ImportError:
     import Image
 
-__all__ = ['play', 'embed', 'save3dNPArrayAsMovie', 'writeMultiImageStack', 'imread', 'imreadStack', 'imsave', 'imview', 'splitAndResaveChannels', 'readMultiImageTifStack', 'readImagesFromList', 'downsample2d', 'downsample3d']
+__all__ = ['play', 'embed', 'save3dNPArrayAsMovie', 'writeMultiImageStack', 'imread', 'imreadStack', 'imsave', 'imview', 'splitAndResaveChannels', 'readMultiImageTifStack', 'readImagesFromList', 'downsample2d', 'downsample3d', 'load', 'save']
 
 
 def save3dNPArrayAsMovie(fileName, npArray, frameRate=6):
@@ -335,3 +335,21 @@ def downsample3d(inputArray, kernelSize):
         smaller[:,:,i] = downsample2d(inputArray[:,:,i], kernelSize)
     return smaller
 
+def save(obj, filename):
+    """Simple wrapper to pickle an object on disk
+    
+    :param: obj, any pickable object
+    :param: filename, string representation of the file to save to
+
+    """
+    with open(filename, 'wb') as f:
+        pickle.dump(obj, filename)
+
+def load(filename):
+    """Simple wrapper load a pickled an object from disk
+    
+    :param: filename, string representation of the file to load from
+    :returns: the object saved in the file
+    """
+    with open(filename) as f:
+        return pickle.load(filename)
