@@ -99,7 +99,7 @@ def plot_array_xy(npArray_x, npArray_y, axis=1, xlim=None, ylim=None):
             plt.ylim([plot_min,plot_max])
 
 
-def imshow_array(npArray, axis=2, vmax=None, vmin=None, transpose=False):
+def imshow_array(npArray, axis=2, vmax=None, vmin=None, transpose=False, tight_axis=True):
 
     plt.figure()
 
@@ -126,6 +126,8 @@ def imshow_array(npArray, axis=2, vmax=None, vmin=None, transpose=False):
             plt.imshow(npArray[tuple(slice_obj)].T, vmax=vmax, vmin=vmin)
         else:
             plt.imshow(npArray[tuple(slice_obj)], vmax=vmax, vmin=vmin)
+        if tight_axis is True:
+            plt.axis('tight')
 
 
 def plot_avg_and_comps(npArray, axis=1):
