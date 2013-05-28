@@ -3,6 +3,8 @@ import scipy
 import glob
 import datetime
 
+import scipy.io
+
 __all__ = ['parseXSG', 'parseAllXSGFiles', 'parseXSGHeader']
 
 def parseXSG(filename):
