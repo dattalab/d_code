@@ -4,29 +4,17 @@ import glob
 import sys
 import os
 import numpy as np
-import matplotlib.pyplot as plt
 
-import pdb
+import copy
+
 
 import scipy.ndimage
-import scipy.stats
-import scipy.io
-
-import pymongo
-import pickle
-import pymorph
-
 import imaging.io
-import imaging.alignment
-import imaging.segmentation
-import traces
-from DotDict import DotDict
+
+from ephusRoutines import parseXSG
 
 
-__all__ = ['readRawSIImages', 'parseSIHeaderFile', 'importTrial',
-       'calculateEpochAverages', 'buildCellDataFromEpoch', 'calculateCellDataAmplitudes', 'calculateResponderMasks',
-       'baselineCellData', 'normalizeCellData', 'averageCellData', 'plotNormCells', 'plotMeanCells',
-       'plotRespondersAndNonResponders', 'plotMeanRespondersAndNonResponders', 'parseXSG']
+__all__ = ['readRawSIImages', 'parseSIHeaderFile', 'importTrial']
 
 #### SI specific file i/o
 
@@ -138,6 +126,8 @@ def importTrial(tif_filename, header_filename):
     single_odor_frame_length = np.sum(frames[0:3])
     single_odor_frame_length_with_blank = np.sum(frames[0:4])
 
+    single_odor_time_length_with_blank_in_seconds = single_odor_frame_length_with_blank * 1.0 / float(state['acq']['frameRate'])
+
     # make a list of imaging channels acquired
 
     activeChannels = map(int, [state['acq']['savingChannel1'],
@@ -157,6 +147,17 @@ def importTrial(tif_filename, header_filename):
         else:
             raw_image_in_channels[chanNum] = np.array([])
     
+    # read in the xsg file
+    xsg_sub_dir_name = state['xsgFilename'].split('\\')[-2]
+    xsg_filename = state['xsgFilename'].split('\\')[-1]
+    if len(xsg_filename) > 0:
+        try:
+            xsg_file = parseXSG(os.path.join(xsg_sub_dir_name, xsg_filename))
+        except:
+            print 'Error reading ' + os.path.join(xsg_sub_dir_name, xsg_filename) + ', doesn\'t exist?'
+            xsg_file = None
+    else:
+        xsg_file = None
 
     # get list of odors
 
@@ -218,228 +219,23 @@ def importTrial(tif_filename, header_filename):
         # extract and store image data
         
         trial[odor_index]['images'] = {}
-#         trial[odor_index]['images']['chan1'] = np.array([])
-#         trial[odor_index]['images']['chan2'] = np.array([])
-#         trial[odor_index]['images']['chan3'] = np.array([])
-#         trial[odor_index]['images']['chan4'] = np.array([])
-        
         for chanNum in range(4):
             if activeChannels[chanNum]:
-#                offset = odor_index * single_odor_frame_length_with_blank
                 offset = i * single_odor_frame_length_with_blank
 
-#                print trial[odor_index]['odor1Name'], odor_index, offset, offset+single_odor_frame_length
                 trial[odor_index]['images']['chan'+str(chanNum+1)] = raw_image_in_channels[chanNum][:,:,offset:offset+single_odor_frame_length].copy()
             else:
                 trial[odor_index]['images']['chan'+str(chanNum+1)] = np.array([])
+
+        # extract and store xsg info
+        trial[odor_index]['xsg'] = copy.deepcopy(xsg_file)
+        if trial[odor_index]['xsg'] is not None:
+            for prog in ['ephys', 'acquirer', 'stimulator']:
+                if xsg_file[prog] is not None:
+                    single_odor_samples = int(single_odor_time_length_with_blank_in_seconds * 10000)
+                    offset = i * single_odor_samples
+                    for channel in xsg_file[prog].keys():
+                        trial[odor_index]['xsg'][prog][channel] = trial[odor_index]['xsg'][prog][channel][offset:offset+single_odor_samples] 
+
     return trial.values() # a list of single trial odor exposure dictionaries
 
-
-#### extractions and calculations
-
-def calculateEpochAverages(epoch,averageImagesFlag,averageADFlag):
-    """
-
-    Arguments:
-    - `epoch`: epoch dict structure
-    - `averageImagesFlag`: True/False
-    - `averageADFlag`: True/False
-    """
-
-    if averageImagesFlag:
-        for j in range(len(epoch['activeChannels'])):
-            if epoch['activeChannels'][j]:
-                try:
-                    epoch['averageTrials']['chan'+str(j+1)]=np.average(epoch['images']['chan'+str(j+1)][:,:,:,epoch['trialsInAverage']],axis=3).astype('uint16');
-                except ValueError:
-                    print "Error in calcuating average image in channel %d, possible inconsistancies across trials" % j+1
-                except IndexError:
-                    print 'Error in calculateTrialAverages: Index error: only one trial?'
-                    epoch['averageTrials']['chan'+str(j+1)]=epoch['images']['chan'+str(j+1)][:,:,:,0].astype('uint16')
-
-    if averageADFlag:
-        for currentAD in epoch['AD_list']:
-            epoch['AD'][currentAD]['meanTrace'] = np.average(epoch['AD'][currentAD]['allTraces'][:,epoch['trialsInAverage']], axis=1);
-
-    return epoch
-
-
-
-def buildCellDataFromEpoch(epoch,baselineFrames=[1,15], odorFrames=[29,30], subAverage=False):
-    epoch['cells'] = {}
-    epoch['cells']['allTraces'] = imaging.segmentation.extractTimeCoursesFromStack(epoch['images']['chan1'], epoch['segmentationMask'])
-    epoch['cells'] = averageCellData(epoch['cells'])
-
-    # calcuate baselined dF/F
-    epoch['normalizedCells'] = {}
-    epoch['normalizedCells']['allTraces'] = epoch['cells']['allTraces'].copy()
-
-    if subAverage:
-        #        averageSignal = np.expand_dims(epoch['normalizedCells']['allTraces'][:,0,:].copy(), 1)
-        #        epoch['normalizedCells']['allTraces'] -= averageSignal
-
-        # calculate local average for subtraction
-        for ROI in range(1, epoch['normalizedCells']['allTraces'].shape[1]):
-            mask_dilated = epoch['segmentationMask'] == ROI
-            for i in range(3):
-                mask_dilated = pymorph.dilate(mask_dilated)
-
-            mask_dilated = np.logical_and(mask_dilated, np.logical_not(pymorph.dilate(epoch['segmentationMask']==ROI)))
-            
-            local_neuropil_mask = np.logical_and(mask_dilated, epoch['segmentationMask'] == 0)
-            local_neuropil_signals = imaging.segmentation.avgFromROIInStack(epoch['images']['chan1'], local_neuropil_mask)
-            local_neuropil_signals = local_neuropil_signals.astype(float) - np.atleast_2d(np.mean(local_neuropil_signals[baselineFrames[0]:baselineFrames[1], :], axis=0))
-
-            for trial in range(epoch['nTrials']):
-                local_neuropil_signals[:, trial] = traces.boxcar(local_neuropil_signals[:,trial])
-                #            plt.matshow(local_neuropil_signals)
-
-            epoch['normalizedCells']['allTraces'][:,ROI,:] -= local_neuropil_signals
-
-    epoch['normalizedCells'] = normalizeCellData(epoch['normalizedCells'],baselineFrames)
-    epoch['normalizedCells'] = baselineCellData(epoch['normalizedCells'],baselineFrames)
-
-    # if subAverage:
-    #     #        averageSignal = np.expand_dims(epoch['normalizedCells']['allTraces'][:,0,:].copy(), 1)
-    #     #        epoch['normalizedCells']['allTraces'] -= averageSignal
-
-    #     # calculate local average for subtraction
-    #     for ROI in range(1, epoch['normalizedCells']['allTraces'].shape[1]):
-    #         mask_dilated = epoch['segmentationMask'] == ROI
-    #         for i in range(5):
-    #             mask_dilated = pymorph.dilate(mask_dilated)
-    #         local_neuropil_mask = np.logical_and(mask_dilated, epoch['segmentationMask'] == 0)
-    #         local_neuropil_signals = imaging.segmentation.avgFromROIInStack(epoch['images']['chan1'], local_neuropil_mask)
-
-    #         local_neuropil_signals = local_neuropil_signals.astype(float) / np.atleast_2d(np.mean(local_neuropil_signals[baselineFrames[0]:baselineFrames[1], :], axis=0))
-    #         local_neuropil_signals -= 1.0
-    #         for trial in range(epoch['nTrials']):
-    #             local_neuropil_signals[:, trial] = traces.boxcar(local_neuropil_signals[:,trial])
-
-    #         epoch['normalizedCells']['allTraces'][:,ROI,:] -= local_neuropil_signals
-
-    epoch['normalizedCells'] = averageCellData(epoch['normalizedCells'])
-    epoch['normalizedCells'] = calculateCellDataAmplitudes(epoch['normalizedCells'], baselineFrames, odorFrames)
-
-    return epoch
-
-def calculateCellDataAmplitudes(cellData, baselineFrames, stimFrames, fieldOfViewPositionOffset=[0,0,0], stdThreshold=2):
-    nCells,nTimePoints,nTrials = cellData['allTraces'].shape
-
-    cellData['baselineAverage'] = np.mean(cellData['allTraces'][baselineFrames[0]:baselineFrames[1],:,:],axis=0)
-    cellData['baselineSTD'] = scipy.std(cellData['allTraces'][baselineFrames[0]:baselineFrames[1],:,:],axis=0)
-
-    cellData['stimAverage'] = np.mean(cellData['allTraces'][stimFrames[0]:stimFrames[1],:,:],axis=0)
-    cellData['deltaValues'] = np.squeeze(np.array([t[1]-t[0] for t in zip(cellData['baselineAverage'],cellData['stimAverage'])]))
-
-    # note this works because the deltas are post-baselining
-    cellData['responders']= cellData['deltaValues'] > stdThreshold * cellData['baselineSTD'] # list of True for each cell by default
-
-    cellData['position']=[fieldOfViewPositionOffset for i in range(cellData['allTraces'].shape[0])] # list of 0,0,0 for each cell by default
-
-    cellData['meanDelta'] = np.mean(cellData['deltaValues'],axis=1)
-    cellData['meanBaseline'] = np.mean(cellData['baselineValues'],axis=1)
-    cellData['meanResponders'] = np.mean(cellData['responders'],axis=1)>=0.25
-    cellData['meanResponders'][0] = 0
-    return cellData
-
-def calculateResponderMasks(epoch):
-    objectLabels = [i for i in set(epoch['segmentationMask'].ravel()) if i>0]
-    nTrials = epoch['normalizedCells']['allTraces'].shape[2]
-    epoch['responderMasks']=np.zeros((epoch['segmentationMask'].shape[0], epoch['segmentationMask'].shape[1], nTrials))
-    epoch['meanResponderMask']=np.zeros((epoch['segmentationMask'].shape[0], epoch['segmentationMask'].shape[1]))
-
-    for trial in range(nTrials):
-        epoch['responderMasks'][:,:,trial] = epoch['segmentationMask'].copy(order='A')
-
-        for cellIndex, cell in enumerate(objectLabels):
-            index = epoch['segmentationMask'] == cell
-            epoch['responderMasks'][:,:,trial][index] = epoch['normalizedCells']['responders'][cellIndex,trial]
-
-    epoch['meanResponderMask'] = epoch['segmentationMask'].copy(order='A')
-    for cellIndex, cell in enumerate(objectLabels):
-        index = epoch['segmentationMask'] == cell
-        epoch['meanResponderMask'][index] = epoch['normalizedCells']['meanResponders'][cellIndex]
-    return epoch
-
-def baselineCellData(cellData, baselineFrames):
-    cellData['baselineValues'] = np.expand_dims(np.mean(cellData['allTraces'][baselineFrames[0]:baselineFrames[1],:,:],axis=0),0)
-    cellData['allTraces'] = cellData['allTraces'] - cellData['baselineValues']
-    return cellData
-
-def normalizeCellData(cellData, normFrames):
-    cellData['normValues'] = np.expand_dims(np.mean(cellData['allTraces'][normFrames[0]:normFrames[1],:,:],axis=0),0)
-    cellData['allTraces'] = cellData['allTraces'].astype('float') / cellData['normValues']
-    return cellData
-
-def averageCellData(cellData):
-    # allTraces is time x cell x trial
-    cellData['meanTraces'] = np.mean(cellData['allTraces'], axis=2) 
-    cellData['sem'] = scipy.stats.sem(cellData['allTraces'], axis=2)
-    return cellData
-
-#### plotting
-
-def plotNormCells(epoch):
-    f=plt.figure(num=epoch.odor1Name+r'_'+str(np.random.randint(1000000)))
-    a=f.add_subplot(111)
-    for index in range(epoch.normalizedCells.allTraces.shape[0]):
-        a.plot(epoch.normalizedCells.allTraces[index,:,:])
-
-def plotMeanCells(epoch):
-    f=plt.figure(num=epoch.odor1Name+'_'+str(np.random.randint(1000000)))
-    a=f.add_subplot(111)
-    for index in range(epoch.normalizedCells.meanTraces.shape[0]):
-        a.plot(epoch.normalizedCells.meanTraces[index,:])
-        plt.ylim(-.05,.15)
-
-def plotRespondersAndNonResponders(epoch):
-    f=plt.figure(num=epoch.odor1Name+'_'+str(np.random.randint(1000000)))
-    a=f.add_subplot(211)
-    b=f.add_subplot(212)
-    for cell in range(epoch.normalizedCells.allTraces.shape[0]):
-        for trial in range(epoch.normalizedCells.allTraces.shape[2]):
-            if epoch.normalizedCells.responders[cell,trial]:
-                a.plot(epoch.normalizedCells.allTraces[cell,:,trial])
-            else:
-                b.plot(epoch.normalizedCells.allTraces[cell,:,trial])
-
-    # plt.subplot(211)
-    # plt.ylim(-.1,.25)
-    # plt.subplot(212)
-    # plt.ylim(-.1,.25)
-
-def plotMeanRespondersAndNonResponders(epoch):
-    f=plt.figure(num=epoch.odor1Name+'_means'+'_'+str(np.random.randint(1000000)))
-    a=f.add_subplot(211)
-    b=f.add_subplot(212)
-    for cell in range(epoch.normalizedCells.allTraces.shape[0]):
-        if epoch.normalizedCells.meanResponders[cell]:
-            a.plot(epoch.normalizedCells.meanTraces[cell,:])
-        else:
-            b.plot(epoch.normalizedCells.meanTraces[cell,:])
-
-    # plt.subplot(211)
-    # plt.ylim(-.1,.12)
-    # plt.subplot(212)
-    # plt.ylim(-.1,.12)
-
-
-def parseXSG(filename):
-    xsg = scipy.io.matlab.loadmat(filename)
-
-    # fucking absurd nested datafile
-    # default sample rate is 10kHz
-
-    # need to actually loop over the number of channels...
-    
-    # for a single channel:
-    # actual array
-
-    d={}
-    chanName = xsg['data'][0][0][1][0][0][2][0]
-    
-    d[chanName]['data']       = np.squeeze(xsg['data'][0][0][1][0][0][0])
-    d[chanName]['sampleRate'] = 10000
-
-    return d
