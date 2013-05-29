@@ -32,7 +32,7 @@ def parseXSG(filename):
 
     header = s2d(header)
 
-    xsgDict['sampleRate'] = header['acquirer']['acquirer']['sampleRate']
+    xsgDict['sampleRate'] = int(header['acquirer']['acquirer']['sampleRate'])
     xsgDict['epoch'] = int(header['xsg']['xsg']['epoch'])
     xsgDict['acquisitionNumber'] = header['xsg']['xsg']['acquisitionNumber']
     xsgDict['xsgName'] = filename
