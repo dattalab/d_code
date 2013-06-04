@@ -148,15 +148,12 @@ def importTrial(tif_filename, header_filename):
             raw_image_in_channels[chanNum] = np.array([])
     
     # read in the xsg file
-    xsg_sub_dir_name = state['xsgFilename'].split('\\')[-2]
-    xsg_filename = state['xsgFilename'].split('\\')[-1]
-    if len(xsg_filename) > 0:
-        try:
-            xsg_file = parseXSG(os.path.join(xsg_sub_dir_name, xsg_filename))
-        except:
-            print 'Error reading ' + os.path.join(xsg_sub_dir_name, xsg_filename) + ', doesn\'t exist?'
-            xsg_file = None
-    else:
+    try:
+        xsg_sub_dir_name = state['xsgFilename'].split('\\')[-2]
+        xsg_filename = state['xsgFilename'].split('\\')[-1]
+        xsg_file = parseXSG(os.path.join(xsg_sub_dir_name, xsg_filename))
+    except:
+        print 'Error reading ' + os.path.join(xsg_sub_dir_name, xsg_filename) + ', doesn\'t exist?'
         xsg_file = None
 
     # get list of odors
