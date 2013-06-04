@@ -152,9 +152,13 @@ def importTrial(tif_filename, header_filename):
         xsg_sub_dir_name = state['xsgFilename'].split('\\')[-2]
         xsg_filename = state['xsgFilename'].split('\\')[-1]
         xsg_file = parseXSG(os.path.join(xsg_sub_dir_name, xsg_filename))
-    except:
-        print 'Error reading ' + os.path.join(xsg_sub_dir_name, xsg_filename) + ', doesn\'t exist?'
+    except IOError:
+        print 'Error reading associated xsg, ' + os.path.join(xsg_sub_dir_name, xsg_filename) + ', doesn\'t exist?'
         xsg_file = None
+    except:
+        print 'No associated xsg file in header file'
+        xsg_file = None
+
 
     # get list of odors
 
