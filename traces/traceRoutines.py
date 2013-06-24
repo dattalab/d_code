@@ -114,9 +114,8 @@ def findLevels(A, level, mode='rising', boxWidth=0, rangeSubset=None):
         all_crossing_points = np.where(np.abs(crossings) > 0)
         return all_crossing_points, len(all_crossing_points)
 
-
 def findLevels1d(A, level, mode='rising', boxWidth=0):
-    return findLevelsNd(A, level, mode='rising', axis=0, boxWidth=0)
+    return findLevelsNd(A, level, mode=mode, axis=0, boxWidth=boxWidth)
 
 def findLevelsNd(A, level, mode='rising', axis=0, boxWidth=0):
     """Function to find level crossings in an Nd numpy array. 
