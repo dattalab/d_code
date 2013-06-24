@@ -35,27 +35,43 @@ def findEventsAtThreshold(traces, stds, rising_threshold, falling_threshold, fir
 
     :returns: 3d array same size as traces, labeled with event number
     """
-
+    time, cells, trials = traces.shape
     # normally tm.findLevels works with a single number, but if the shapes are right then it will broadcast correctly with a larger array
     first_crossings = tm.findLevelsNd(traces, np.array(stds)*rising_threshold, mode=first_mode, axis=0, boxWidth=boxWidth)
     second_crossings = tm.findLevelsNd(traces, np.array(stds)*falling_threshold, mode=second_mode, axis=0, boxWidth=boxWidth)
     
     events = np.zeros_like(traces)
-    for i, (time, cell, trial) in enumerate(zip(*np.where(first_crossings))):
-        falling_event_locations = np.where(second_crossings[:,cell,trial])[0]
-        next_falling_event_loc = np.searchsorted(falling_event_locations, time)
+    i=1
+    for cell in range(cells):
+        for trial in range(trials):
+            rising_event_locations = np.where(first_crossings[:,cell,trial])[0] # peel off the tuple
+            falling_event_locations = np.where(second_crossings[:,cell,trial])[0] # peel off the tuple
+        
+            possible_pairs = []
+            for r in rising_event_locations:
+                if possible_pairs:
+                    prev_rising = zip(*possible_pairs)[0]
+                    prev_falling = zip(*possible_pairs)[1] 
+                    
+                    if r <= prev_falling[-1]:
+                        continue
+                
+                try:
+                    f = falling_event_locations[np.searchsorted(falling_event_locations, r)]
+                    possible_pairs.append([r,f])
+                except IndexError:
+                    possible_pairs.append([r,time])
 
-        try:
-            if falling_event_locations[next_falling_event_loc] - time <= distance_cutoff:
-                pass
-            else:
-                events[time:falling_event_locations[next_falling_event_loc], cell, trial] = i+1
-        except IndexError: # rising event after all falling events, set to end of array
-            events[time:, cell, trial] = i+1
+            #if cell == 1 and trial == 0:
+            #    1/0
+                    
+            for pair in possible_pairs:
+                if pair[1]-pair[0] > distance_cutoff:
+                    events[pair[0]:pair[1], cell, trial] = i
+                    i = i+1
     return events
 
-
-def findEvents(traces, stds, false_positive_rate=0.05, lower_sigma=1, upper_sigma=5):
+def findEvents(traces, stds, false_positive_rate=0.05, lower_sigma=1, upper_sigma=5, boxWidth=3, distance_cutoff=2):
     """This routine uses findEventsAtThreshold() at a range of thresholds to
     detect both postive and going events, and calculates a false positive
     rate based on the percentage of total negative events 
@@ -70,14 +86,16 @@ def findEvents(traces, stds, false_positive_rate=0.05, lower_sigma=1, upper_sigm
     :param: false_positive_rate - float value of desired false positive rate (0.05 = 5%)
     :param: lower_sigma - starting point for scan
     :param: upper_sigma - stopping point for scan
+    :param: boxWidth - window size for pre-smoothing
+    :param: distance_cutoff - minimum length of event
 
     :returns: events array for traces at desired false positive rate
     """
     all_events = []
     
     for sigma in np.arange(lower_sigma, upper_sigma, 0.125):
-        pos_events = findEventsAtThreshold(traces, stds, sigma, 0.75, first_mode='rising',  second_mode='falling', distance_cutoff=2)
-        neg_events = findEventsAtThreshold(traces, stds, -sigma, -0.75, first_mode='falling',  second_mode='rising', distance_cutoff=2)
+        pos_events = findEventsAtThreshold(traces, stds, sigma, 0.75, first_mode='rising',  second_mode='falling', boxWidth=boxWidth, distance_cutoff=distance_cutoff)
+        neg_events = findEventsAtThreshold(traces, stds, -sigma, -0.75, first_mode='falling',  second_mode='rising', boxWidth=boxWidth, distance_cutoff=distance_cutoff)
 
         temp_false_positive_rate = neg_events.max() / (pos_events.max() + neg_events.max())
 
@@ -116,8 +134,10 @@ def getStartsAndStops(event_array):
         for j, label in enumerate(label_values):
             starts[i, j] = np.argwhere(cell == label).min()
             stops[i, j] = np.argwhere(cell == label).max()
-            
-    return np.ma.masked_array(starts, np.isnan(starts)), np.ma.masked_array(stops, np.isnan(stops))
+     
+    starts = np.sort(np.ma.masked_array(starts, np.isnan(starts)))
+    stops = np.sort(np.ma.masked_array(stops, np.isnan(stops)))
+    return starts, stops
 
 
 def getCounts(event_array, time_range=None):
@@ -145,7 +165,7 @@ def getDurations(event_array, time_range=None):
     :param: event_array - 2d numpy event array (time x cells)
     :param: time_range - optional list of 2 numbers limiting the time range to count events
     :returns: 2d masked numpy array of event durations. size is cells x largest number of events.
-              masked entries are account for variable number of events
+              masked entries are to account for variable number of events
     """
     starts, stops = getStartsAndStops(event_array)
     
