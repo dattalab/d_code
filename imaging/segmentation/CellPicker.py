@@ -106,6 +106,7 @@ class CellPickerGUI(object):
         sizePolicy.setHorizontalStretch(1)
         sizePolicy.setVerticalStretch(1)
         sizePolicy.setHeightForWidth(self.image_widget.sizePolicy().hasHeightForWidth())
+        
         self.image_widget.setSizePolicy(sizePolicy)
         self.image_widget.setMinimumSize(QtCore.QSize(512, 512))
         self.image_widget.setObjectName("image_widget")
@@ -115,25 +116,31 @@ class CellPickerGUI(object):
         self.splitter.setGeometry(QtCore.QRect(10, 480, 111, 41))
         self.splitter.setOrientation(QtCore.Qt.Vertical)
         self.splitter.setObjectName("splitter")
+        
         self.label_2 = QtGui.QLabel(self.splitter)
         self.label_2.setAlignment(QtCore.Qt.AlignCenter)
         self.label_2.setWordWrap(True)
         self.label_2.setObjectName("label_2")
+        
         self.dilation_disk = QtGui.QSpinBox(self.splitter)
         self.dilation_disk.setProperty("value", 3)
         self.dilation_disk.setObjectName("dilation_disk")
+        
         self.splitter_2 = QtGui.QSplitter(self.centralwidget)
         self.splitter_2.setGeometry(QtCore.QRect(10, 420, 122, 41))
         self.splitter_2.setOrientation(QtCore.Qt.Vertical)
         self.splitter_2.setObjectName("splitter_2")
+        
         self.label = QtGui.QLabel(self.splitter_2)
         self.label.setAlignment(QtCore.Qt.AlignCenter)
         self.label.setWordWrap(True)
         self.label.setObjectName("label")
+        
         self.contrast_threshold = QtGui.QDoubleSpinBox(self.splitter_2)
         self.contrast_threshold.setSingleStep(0.01)
         self.contrast_threshold.setProperty("value", 0.95)
         self.contrast_threshold.setObjectName("contrast_threshold")
+       
         MainWindow.setCentralWidget(self.centralwidget)
         self.statusbar = QtGui.QStatusBar(MainWindow)
         self.statusbar.setObjectName("statusbar")
