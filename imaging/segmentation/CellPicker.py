@@ -44,8 +44,8 @@ class MatplotlibWidget(FigureCanvas):
         self.setFocus()
 
     @QtCore.Slot()
-    def updateImage(self, image=None):
-        self.mask = image
+    def updateImage(self, mask=None):
+        self.mask = mask
         self.axes.clear()
         self.axes.imshow(self.image, cmap=mpl.cm.gray)
         self.axes.imshow(self.mask, cmap=mpl.cm.jet)
@@ -150,15 +150,17 @@ class CellPickerGUI(object):
         self.image_widget.c.mouseSingleShiftClicked.connect(self.deleteCell)
         
         self.data = cellImage
+        
         if mask is None:
             self.currentMask = np.zeros_like(cellImage, dtype='uint16')
         else:
             self.currentMask = mask.astype('uint16')
         
-        if series is None:
-            self.series = None
-        else:
-            self.series = series
+        self.series = series
+        #if series is None:
+        #    self.series = None
+        #else:
+        #    self.series = series
 
         self.listOfMasks = []
         self.listOfMasks.append(self.currentMask)
@@ -658,11 +660,10 @@ def pickCells(backgroundImage, mask=None, series=None):
     if backgroundImage.ndim == 3:
         backgroundImage = backgroundImage.mean(axis=2)
 
-    global app
     try:
         app = QtGui.QApplication(sys.argv)
     except RuntimeError:
-        pass
+        app = QtCore.QCoreApplication.instance()
 
     MainWindow = QtGui.QMainWindow()
     gui = CellPickerGUI()
