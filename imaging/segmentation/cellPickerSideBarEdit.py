@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'cellPickerSideBarEdit.ui'
 #
-# Created: Wed Jul 10 17:04:50 2013
+# Created: Thu Jul 11 11:22:55 2013
 #      by: pyside-uic 0.2.13 running on PySide 1.1.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -12,7 +12,7 @@ from PySide import QtCore, QtGui
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1004, 852)
+        MainWindow.resize(930, 704)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -65,18 +65,6 @@ class Ui_MainWindow(object):
         self.image_widget.setSizePolicy(sizePolicy)
         self.image_widget.setMinimumSize(QtCore.QSize(512, 512))
         self.image_widget.setObjectName("image_widget")
-        self.splitter_3 = QtGui.QSplitter(self.centralwidget)
-        self.splitter_3.setGeometry(QtCore.QRect(10, 260, 141, 111))
-        self.splitter_3.setOrientation(QtCore.Qt.Vertical)
-        self.splitter_3.setObjectName("splitter_3")
-        self.checkBox_2 = QtGui.QCheckBox(self.splitter_3)
-        self.checkBox_2.setObjectName("checkBox_2")
-        self.checkBox_3 = QtGui.QCheckBox(self.splitter_3)
-        self.checkBox_3.setObjectName("checkBox_3")
-        self.checkBox = QtGui.QCheckBox(self.splitter_3)
-        self.checkBox.setObjectName("checkBox")
-        self.checkBox_4 = QtGui.QCheckBox(self.splitter_3)
-        self.checkBox_4.setObjectName("checkBox_4")
         self.splitter_4 = QtGui.QSplitter(self.centralwidget)
         self.splitter_4.setGeometry(QtCore.QRect(10, 10, 141, 241))
         self.splitter_4.setOrientation(QtCore.Qt.Vertical)
@@ -95,6 +83,18 @@ class Ui_MainWindow(object):
         self.label_6.setObjectName("label_6")
         self.label_4 = QtGui.QLabel(self.splitter_4)
         self.label_4.setObjectName("label_4")
+        self.splitter_3 = QtGui.QSplitter(self.centralwidget)
+        self.splitter_3.setGeometry(QtCore.QRect(10, 260, 141, 111))
+        self.splitter_3.setOrientation(QtCore.Qt.Vertical)
+        self.splitter_3.setObjectName("splitter_3")
+        self.radioButton_3 = QtGui.QRadioButton(self.splitter_3)
+        self.radioButton_3.setObjectName("radioButton_3")
+        self.radioButton = QtGui.QRadioButton(self.splitter_3)
+        self.radioButton.setObjectName("radioButton")
+        self.radioButton_4 = QtGui.QRadioButton(self.splitter_3)
+        self.radioButton_4.setObjectName("radioButton_4")
+        self.radioButton_2 = QtGui.QRadioButton(self.splitter_3)
+        self.radioButton_2.setObjectName("radioButton_2")
         MainWindow.setCentralWidget(self.centralwidget)
         self.statusbar = QtGui.QStatusBar(MainWindow)
         self.statusbar.setObjectName("statusbar")
@@ -107,10 +107,6 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(QtGui.QApplication.translate("MainWindow", "MainWindow", None, QtGui.QApplication.UnicodeUTF8))
         self.label_2.setText(QtGui.QApplication.translate("MainWindow", "<html><head/><body><p>Disk Dilation Size</p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
         self.label.setText(QtGui.QApplication.translate("MainWindow", "<html><head/><body><p>Contrast Threshold</p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
-        self.checkBox_2.setText(QtGui.QApplication.translate("MainWindow", "Polygon Mode: (p)", None, QtGui.QApplication.UnicodeUTF8))
-        self.checkBox_3.setText(QtGui.QApplication.translate("MainWindow", "Square Mode: (s)", None, QtGui.QApplication.UnicodeUTF8))
-        self.checkBox.setText(QtGui.QApplication.translate("MainWindow", "Circle Mode: (c)", None, QtGui.QApplication.UnicodeUTF8))
-        self.checkBox_4.setText(QtGui.QApplication.translate("MainWindow", "OGB Mode: (o)", None, QtGui.QApplication.UnicodeUTF8))
         self.label_10.setText(QtGui.QApplication.translate("MainWindow", "HOT KEYS:", None, QtGui.QApplication.UnicodeUTF8))
         self.label_8.setText(QtGui.QApplication.translate("MainWindow", "Polygon Mode: (p)", None, QtGui.QApplication.UnicodeUTF8))
         self.label_9.setText(QtGui.QApplication.translate("MainWindow", "Terminate Poly.: (t)", None, QtGui.QApplication.UnicodeUTF8))
@@ -118,4 +114,8 @@ class Ui_MainWindow(object):
         self.label_5.setText(QtGui.QApplication.translate("MainWindow", "Circle: (c)", None, QtGui.QApplication.UnicodeUTF8))
         self.label_6.setText(QtGui.QApplication.translate("MainWindow", "OGB: (o)", None, QtGui.QApplication.UnicodeUTF8))
         self.label_4.setText(QtGui.QApplication.translate("MainWindow", "Clear: (x)", None, QtGui.QApplication.UnicodeUTF8))
+        self.radioButton_3.setText(QtGui.QApplication.translate("MainWindow", "RadioButton", None, QtGui.QApplication.UnicodeUTF8))
+        self.radioButton.setText(QtGui.QApplication.translate("MainWindow", "RadioButton", None, QtGui.QApplication.UnicodeUTF8))
+        self.radioButton_4.setText(QtGui.QApplication.translate("MainWindow", "RadioButton", None, QtGui.QApplication.UnicodeUTF8))
+        self.radioButton_2.setText(QtGui.QApplication.translate("MainWindow", "RadioButton", None, QtGui.QApplication.UnicodeUTF8))
 

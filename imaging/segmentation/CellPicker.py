@@ -154,22 +154,23 @@ class CellPickerGUI(object):
         
         #check boxes to switch modes
         
+        
         #polygon
-        self.checkBox_2 = QtGui.QCheckBox(self.splitter_3)
-        self.checkBox_2.setObjectName("checkBox_2")
-        self.checkBox_2.setText('Polygon Mode: (p)')        
+        self.radioButton_3 = QtGui.QRadioButton(self.splitter_3)
+        self.radioButton_3.setObjectName("radioButton_3")
+        self.radioButton_3.setText('Polygon Mode: (p)')        
         #square
-        self.checkBox_3 = QtGui.QCheckBox(self.splitter_3)
-        self.checkBox_3.setObjectName("checkBox_3")
-        self.checkBox_3.setText('Square Mode: (s)')        
+        self.radioButton = QtGui.QRadioButton(self.splitter_3)
+        self.radioButton.setObjectName("radioButton")
+        self.radioButton.setText('Square Mode: (s)')        
         #circle
-        self.checkBox = QtGui.QCheckBox(self.splitter_3)
-        self.checkBox.setObjectName("checkBox")
-        self.checkBox.setText('Circel Mode: (c)')        
+        self.radioButton_4 = QtGui.QRadioButton(self.splitter_3)
+        self.radioButton_4.setObjectName("radioButton_4")
+        self.radioButton_4.setText('Circel Mode: (c)')        
         #OGB
-        self.checkBox_4 = QtGui.QCheckBox(self.splitter_3)
-        self.checkBox_4.setObjectName("checkBox_4")
-        self.checkBox_4.setText('OGB Mode: (o)')
+        self.radioButton_2 = QtGui.QRadioButton(self.splitter_3)
+        self.radioButton_2.setObjectName("radioButton_2")
+        self.radioButton_2.setText('OGB Mode: (o)')
         
         
         #Hot Key Legend

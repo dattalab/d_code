@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1004</width>
-    <height>852</height>
+    <width>930</width>
+    <height>704</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -124,39 +124,6 @@
      </size>
     </property>
    </widget>
-   <widget class="QSplitter" name="splitter_3">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>260</y>
-      <width>141</width>
-      <height>111</height>
-     </rect>
-    </property>
-    <property name="orientation">
-     <enum>Qt::Vertical</enum>
-    </property>
-    <widget class="QCheckBox" name="checkBox_2">
-     <property name="text">
-      <string>Polygon Mode: (p)</string>
-     </property>
-    </widget>
-    <widget class="QCheckBox" name="checkBox_3">
-     <property name="text">
-      <string>Square Mode: (s)</string>
-     </property>
-    </widget>
-    <widget class="QCheckBox" name="checkBox">
-     <property name="text">
-      <string>Circle Mode: (c)</string>
-     </property>
-    </widget>
-    <widget class="QCheckBox" name="checkBox_4">
-     <property name="text">
-      <string>OGB Mode: (o)</string>
-     </property>
-    </widget>
-   </widget>
    <widget class="QSplitter" name="splitter_4">
     <property name="geometry">
      <rect>
@@ -202,6 +169,39 @@
     <widget class="QLabel" name="label_4">
      <property name="text">
       <string>Clear: (x)</string>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QSplitter" name="splitter_3">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>260</y>
+      <width>141</width>
+      <height>111</height>
+     </rect>
+    </property>
+    <property name="orientation">
+     <enum>Qt::Vertical</enum>
+    </property>
+    <widget class="QRadioButton" name="radioButton_3">
+     <property name="text">
+      <string>RadioButton</string>
+     </property>
+    </widget>
+    <widget class="QRadioButton" name="radioButton">
+     <property name="text">
+      <string>RadioButton</string>
+     </property>
+    </widget>
+    <widget class="QRadioButton" name="radioButton_4">
+     <property name="text">
+      <string>RadioButton</string>
+     </property>
+    </widget>
+    <widget class="QRadioButton" name="radioButton_2">
+     <property name="text">
+      <string>RadioButton</string>
      </property>
     </widget>
    </widget>
