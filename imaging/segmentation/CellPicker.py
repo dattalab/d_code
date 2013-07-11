@@ -217,7 +217,7 @@ class CellPickerGUI(object):
         self.label_6.setText('OGB: (o)')        
         self.label_4 = QtGui.QLabel(self.splitter_4)
         self.label_4.setObjectName("label_4")
-        self.label_4.setText('Clear: (x)')
+        self.label_4.setText('Standard: (x)')
         
         
         MainWindow.setCentralWidget(self.centralwidget)
@@ -310,9 +310,11 @@ class CellPickerGUI(object):
         elif keyPressed == QtCore.Qt.Key_P:
             if self.mode is 'poly':
                 self.mode = None
+                self.radioButton_5.setChecked(True)
             else:
                 self.clearModeData()
                 self.mode = 'poly'
+                self.radioButton_3.setChecked(True)
 
         elif keyPressed == QtCore.Qt.Key_T:
             if self.mode is 'poly':
@@ -322,23 +324,29 @@ class CellPickerGUI(object):
         elif keyPressed == QtCore.Qt.Key_S:
             if self.mode is 'square':
                 self.mode = None
+                self.radioButton_5.setChecked(True)
             else:
                 self.clearModeData()
                 self.mode = 'square'
+                self.radioButton.setChecked(True)
 
         elif keyPressed == QtCore.Qt.Key_C:
             if self.mode is 'circle':
                 self.mode = None
+                self.radioButton_5.setChecked(True)
             else:
                 self.clearModeData()
                 self.mode = 'circle'
+                self.radioButton_4.setChecked(True)
 
         elif keyPressed == QtCore.Qt.Key_O:
             if self.mode is 'OGB':
                 self.mode = None
+                self.radioButton_5.setChecked(True)
             else:
                 self.clearModeData()
                 self.mode = 'OGB'
+                self.radioButton_2.setChecked(True)
                 
         elif keyPressed == QtCore.Qt.Key_K:
             self.correlateLastROI()
@@ -349,6 +357,7 @@ class CellPickerGUI(object):
         elif keyPressed == QtCore.Qt.Key_X:
             self.clearModeData()
             self.mode = None
+            self.radioButton_5.setChecked(True)
         else:
             pass
 
