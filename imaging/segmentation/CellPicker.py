@@ -24,19 +24,24 @@ class Communicate(QtCore.QObject):
     mouseDoubleClicked = QtCore.Signal(tuple)
 
 class MatplotlibWidget(FigureCanvas):
-    def __init__(self, cellImage, parent=None):
+    """Custom Matplotlib Widget"""
+    def __init__(self, data, parent=None):
         super(MatplotlibWidget, self).__init__(Figure())
 
         self.c = Communicate()
-        self.image = cellImage
-        
+        if data.ndim == 2:
+            self.image = data
+        elif data.ndim == 3:
+            self.image = data.mean(axis=2)
+            
         self.setParent(parent)
         self.figure = Figure()
         self.canvas = FigureCanvas(self.figure)
         self.axes = self.figure.add_subplot(111)
         self.figure.subplots_adjust(left=0, right=1, top=1, bottom=0)
-        self.axes.imshow(self.image, cmap=mpl.cm.gray)
         
+        self.axes.imshow(self.image, cmap=mpl.cm.gray)
+            
         self.setGeometry(QtCore.QRect(150, 10, 768, 768))
         self.width = self.geometry().width()
         self.height = self.geometry().height()
@@ -44,7 +49,9 @@ class MatplotlibWidget(FigureCanvas):
         self.setFocus()
 
     @QtCore.Slot()
-    def updateImage(self, mask=None):
+    def updateImage(self, image, mask=None):
+        """image is a 2d image, mask is a 2d RGBA image"""
+        self.image = image
         self.mask = mask
         self.axes.clear()
         self.axes.imshow(self.image, cmap=mpl.cm.gray)
@@ -91,14 +98,14 @@ class MatplotlibWidget(FigureCanvas):
         event.accept()
     
 class CellPickerGUI(object):
-    def setupUi(self, MainWindow, cellImage, mask, series):
+    def setupUi(self, MainWindow, data, mask, series):        
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(1000, 900)
         self.MainWindow = MainWindow
         self.centralwidget = QtGui.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         
-        self.image_widget = MatplotlibWidget(cellImage, parent=self.centralwidget)
+        self.image_widget = MatplotlibWidget(data, parent=self.centralwidget)
         # note that the widget size is hardcoded in the class (not the best, but at least it's all
         # in the constructor
         
@@ -227,6 +234,14 @@ class CellPickerGUI(object):
         self.label_4.setObjectName("label_4")
         self.label_4.setText('Standard: (x)')
         
+        self.data = data
+        if self.data.ndim == 2:
+            self.currentBackgroundImage = self.data
+            self.frame = 1
+        elif self.data.ndim ==3:
+            self.currentBackgroundImage = self.data.mean(axis=2)
+            self.frame = self.data.shape[2]
+        
         #ave/vid slider gui
         
         #slidder label
@@ -236,23 +251,28 @@ class CellPickerGUI(object):
         self.label_3.setText('Slide to Frame in Video')
         #jumper label
         self.label_11 = QtGui.QLabel(self.centralwidget)
-        self.label_11.setGeometry(QtCore.QRect(600, 780, 150, 16))
+        self.label_11.setGeometry(QtCore.QRect(10, 780, 150, 16))
         self.label_11.setObjectName("label_11")
-        self.label_11.setText('Jump to Frame in Video')
+        self.label_11.setText('Jump to Frame')
         #ave/vid toggel button
         self.checkBox = QtGui.QCheckBox(self.centralwidget)
-        self.checkBox.setGeometry(QtCore.QRect(800, 800, 150, 20))
+        self.checkBox.setGeometry(QtCore.QRect(10, 600, 200, 20))
         self.checkBox.setObjectName("checkBox")
-        self.checkBox.setText('Video(On)/Ave(Off)')
+        self.checkBox.setText('Ave(On)/Vid(Off)')
         #video frame slidder
         self.horizontalSlider = QtGui.QSlider(self.centralwidget)
-        self.horizontalSlider.setGeometry(QtCore.QRect(160, 800, 400, 22))
+        self.horizontalSlider.setGeometry(QtCore.QRect(160, 800, 750, 22))
         self.horizontalSlider.setOrientation(QtCore.Qt.Horizontal)
         self.horizontalSlider.setObjectName("horizontalSlider")
+        self.horizontalSlider.setMaximum(self.frame)
         #jump to video frame
         self.lineEdit = QtGui.QLineEdit(self.centralwidget)
-        self.lineEdit.setGeometry(QtCore.QRect(600, 800, 113, 21))
+        self.lineEdit.setGeometry(QtCore.QRect(10, 800, 113, 21))
         self.lineEdit.setObjectName("lineEdit")
+        
+        #connect value in box and slider
+        self.horizontalSlider.valueChanged.connect(self.comScroleToLine)
+        self.lineEdit.textChanged.connect(self.comLineToScrole)
         
         MainWindow.setCentralWidget(self.centralwidget)
         self.statusbar = QtGui.QStatusBar(MainWindow)
@@ -269,10 +289,8 @@ class CellPickerGUI(object):
         self.image_widget.c.mouseSingleClicked.connect(self.addCell)
         self.image_widget.c.mouseSingleShiftClicked.connect(self.deleteCell)
         
-        self.data = cellImage
-        
         if mask is None:
-            self.currentMask = np.zeros_like(cellImage, dtype='uint16')
+            self.currentMask = np.zeros_like(self.currentBackgroundImage, dtype='uint16')
         else:
             self.currentMask = mask.astype('uint16')
         
@@ -307,7 +325,12 @@ class CellPickerGUI(object):
             self.mode = 'OGB'
         elif state == 5:
             self.mode = None
-             
+    
+    #connect the box and slidder
+    def comLineToScrole(self):
+        self.horizontalSlider.setValue(int(self.lineEdit.text()))
+    def comScroleToLine(self):
+        self.lineEdit.setText(str(self.horizontalSlider.value()))
                 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QtGui.QApplication.translate("MainWindow", "MainWindow", None, QtGui.QApplication.UnicodeUTF8))
@@ -759,7 +782,7 @@ class CellPickerGUI(object):
         color_mask[:,:,3] = 0
         color_mask[:,:,3] = (color_mask[:,:,0:2].sum(axis=2) > 0).astype(float) * 0.4 # alpha value of 0.4
 
-        self.image_widget.updateImage(color_mask)
+        self.image_widget.updateImage(self.currentBackgroundImage, color_mask)
         
     # update model
     @QtCore.Slot()
