@@ -93,7 +93,7 @@ class MatplotlibWidget(FigureCanvas):
 class CellPickerGUI(object):
     def setupUi(self, MainWindow, cellImage, mask, series):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(921, 802)
+        MainWindow.resize(1000, 900)
         self.MainWindow = MainWindow
         self.centralwidget = QtGui.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
@@ -107,25 +107,29 @@ class CellPickerGUI(object):
         sizePolicy.setVerticalStretch(1)
         sizePolicy.setHeightForWidth(self.image_widget.sizePolicy().hasHeightForWidth())
         
+        #custom image
         self.image_widget.setSizePolicy(sizePolicy)
         self.image_widget.setMinimumSize(QtCore.QSize(512, 512))
         self.image_widget.setObjectName("image_widget")
         self.image_widget.setFocus()
 
+        #splitter for radius selector (organizational)
         self.splitter = QtGui.QSplitter(self.centralwidget)
         self.splitter.setGeometry(QtCore.QRect(10, 460, 111, 51))
         self.splitter.setOrientation(QtCore.Qt.Vertical)
         self.splitter.setObjectName("splitter")
-        
+        self.splitter.setChildrenCollapsible(False)
+        #label for radius selector
         self.label_2 = QtGui.QLabel(self.splitter)
         self.label_2.setAlignment(QtCore.Qt.AlignCenter)
         self.label_2.setWordWrap(True)
         self.label_2.setObjectName("label_2")
-        
+        #radius selector
         self.dilation_disk = QtGui.QSpinBox(self.splitter)
         self.dilation_disk.setProperty("value", 3)
         self.dilation_disk.setObjectName("dilation_disk")
         
+        #splitter for threshold
         self.splitter_2 = QtGui.QSplitter(self.centralwidget)
         self.splitter_2.setGeometry(QtCore.QRect(10, 400, 122, 51))
         self.splitter_2.setFrameShape(QtGui.QFrame.NoFrame)
@@ -133,28 +137,25 @@ class CellPickerGUI(object):
         self.splitter_2.setOpaqueResize(False)
         self.splitter_2.setChildrenCollapsible(False)
         self.splitter_2.setObjectName("splitter_2")
-        
+        self.splitter_2.setChildrenCollapsible(False)
+        #threshold label
         self.label = QtGui.QLabel(self.splitter_2)
         self.label.setAlignment(QtCore.Qt.AlignCenter)
         self.label.setWordWrap(True)
         self.label.setObjectName("label")
-        
+        #threshold selector
         self.contrast_threshold = QtGui.QDoubleSpinBox(self.splitter_2)
         self.contrast_threshold.setSingleStep(0.01)
         self.contrast_threshold.setProperty("value", 0.95)
         self.contrast_threshold.setObjectName("contrast_threshold")
         
-        # below from side bar edit 
-        
+        #check boxes to switch modes
+        #splitter for mode buttons
         self.splitter_3 = QtGui.QSplitter(self.centralwidget)
         self.splitter_3.setGeometry(QtCore.QRect(10, 260, 141, 131))
         self.splitter_3.setOrientation(QtCore.Qt.Vertical)
         self.splitter_3.setObjectName("splitter_3")
-        
-        
-        #check boxes to switch modes
-        
-        
+        self.splitter_3.setChildrenCollapsible(False)
         #polygon
         self.radioButton_3 = QtGui.QRadioButton(self.splitter_3)
         self.radioButton_3.setObjectName("radioButton_3")
@@ -176,7 +177,6 @@ class CellPickerGUI(object):
         self.radioButton_5.setObjectName("radioButton_5")
         self.radioButton_5.setText('Standard Mode: (x)')
         self.radioButton_5.setChecked(True)
-        
         #button group for mode radio buttons
         self.buttonGroup = QtGui.QButtonGroup()
         self.buttonGroup.addButton(self.radioButton_3, 1)  #Polygon
@@ -184,7 +184,6 @@ class CellPickerGUI(object):
         self.buttonGroup.addButton(self.radioButton_4, 3)  #Circle
         self.buttonGroup.addButton(self.radioButton_2, 4)  #OGB
         self.buttonGroup.addButton(self.radioButton_5, 5)  #Standard
-        
         #mode switch radio button conecctor
         self.radioButton_3.toggled.connect(self.changeMode)
         self.radioButton.toggled.connect(self.changeMode)
@@ -193,32 +192,67 @@ class CellPickerGUI(object):
         self.radioButton_5.toggled.connect(self.changeMode)
         
         #Hot Key Legend
+        #splitter for key legend
         self.splitter_4 = QtGui.QSplitter(self.centralwidget)
         self.splitter_4.setGeometry(QtCore.QRect(10, 10, 141, 241))
         self.splitter_4.setOrientation(QtCore.Qt.Vertical)
-        self.splitter_4.setObjectName("splitter_4")        
+        self.splitter_4.setObjectName("splitter_4")
+        self.splitter_4.setChildrenCollapsible(False)        
+        #titel
         self.label_10 = QtGui.QLabel(self.splitter_4)
         self.label_10.setObjectName("label_10")
         self.label_10.setText('HOT KEYS:')        
+        #P
         self.label_8 = QtGui.QLabel(self.splitter_4)
         self.label_8.setObjectName("label_8")
         self.label_8.setText('Polygon Mode: (p)')       
+        #T
         self.label_9 = QtGui.QLabel(self.splitter_4)
         self.label_9.setObjectName("label_9")
         self.label_9.setText('Terminate Poly.: (t)')       
+        #S
         self.label_7 = QtGui.QLabel(self.splitter_4)
         self.label_7.setObjectName("label_7")
         self.label_7.setText('Squar: (s)')
+        #C
         self.label_5 = QtGui.QLabel(self.splitter_4)
         self.label_5.setObjectName("label_5")
         self.label_5.setText('Circle: (c)')        
+        #O
         self.label_6 = QtGui.QLabel(self.splitter_4)
         self.label_6.setObjectName("label_6")
         self.label_6.setText('OGB: (o)')        
+        #standard (X)
         self.label_4 = QtGui.QLabel(self.splitter_4)
         self.label_4.setObjectName("label_4")
         self.label_4.setText('Standard: (x)')
         
+        #ave/vid slider gui
+        
+        #slidder label
+        self.label_3 = QtGui.QLabel(self.centralwidget)
+        self.label_3.setGeometry(QtCore.QRect(160, 780, 150, 16))
+        self.label_3.setObjectName("label_3")
+        self.label_3.setText('Slide to Frame in Video')
+        #jumper label
+        self.label_11 = QtGui.QLabel(self.centralwidget)
+        self.label_11.setGeometry(QtCore.QRect(600, 780, 150, 16))
+        self.label_11.setObjectName("label_11")
+        self.label_11.setText('Jump to Frame in Video')
+        #ave/vid toggel button
+        self.checkBox = QtGui.QCheckBox(self.centralwidget)
+        self.checkBox.setGeometry(QtCore.QRect(800, 800, 150, 20))
+        self.checkBox.setObjectName("checkBox")
+        self.checkBox.setText('Video(On)/Ave(Off)')
+        #video frame slidder
+        self.horizontalSlider = QtGui.QSlider(self.centralwidget)
+        self.horizontalSlider.setGeometry(QtCore.QRect(160, 800, 400, 22))
+        self.horizontalSlider.setOrientation(QtCore.Qt.Horizontal)
+        self.horizontalSlider.setObjectName("horizontalSlider")
+        #jump to video frame
+        self.lineEdit = QtGui.QLineEdit(self.centralwidget)
+        self.lineEdit.setGeometry(QtCore.QRect(600, 800, 113, 21))
+        self.lineEdit.setObjectName("lineEdit")
         
         MainWindow.setCentralWidget(self.centralwidget)
         self.statusbar = QtGui.QStatusBar(MainWindow)

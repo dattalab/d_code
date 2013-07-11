@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'cellPickerSideBarEdit.ui'
 #
-# Created: Thu Jul 11 12:52:25 2013
+# Created: Thu Jul 11 14:09:12 2013
 #      by: pyside-uic 0.2.13 running on PySide 1.1.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -12,7 +12,7 @@ from PySide import QtCore, QtGui
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(930, 704)
+        MainWindow.resize(1088, 852)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -65,6 +65,19 @@ class Ui_MainWindow(object):
         self.image_widget.setSizePolicy(sizePolicy)
         self.image_widget.setMinimumSize(QtCore.QSize(512, 512))
         self.image_widget.setObjectName("image_widget")
+        self.label_3 = QtGui.QLabel(self.centralwidget)
+        self.label_3.setGeometry(QtCore.QRect(40, 540, 62, 16))
+        self.label_3.setObjectName("label_3")
+        self.checkBox = QtGui.QCheckBox(self.centralwidget)
+        self.checkBox.setGeometry(QtCore.QRect(60, 590, 87, 20))
+        self.checkBox.setObjectName("checkBox")
+        self.horizontalSlider = QtGui.QSlider(self.centralwidget)
+        self.horizontalSlider.setGeometry(QtCore.QRect(20, 650, 160, 22))
+        self.horizontalSlider.setOrientation(QtCore.Qt.Horizontal)
+        self.horizontalSlider.setObjectName("horizontalSlider")
+        self.lineEdit = QtGui.QLineEdit(self.centralwidget)
+        self.lineEdit.setGeometry(QtCore.QRect(70, 720, 113, 21))
+        self.lineEdit.setObjectName("lineEdit")
         self.splitter_4 = QtGui.QSplitter(self.centralwidget)
         self.splitter_4.setGeometry(QtCore.QRect(10, 10, 141, 241))
         self.splitter_4.setOrientation(QtCore.Qt.Vertical)
@@ -109,6 +122,8 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(QtGui.QApplication.translate("MainWindow", "MainWindow", None, QtGui.QApplication.UnicodeUTF8))
         self.label_2.setText(QtGui.QApplication.translate("MainWindow", "<html><head/><body><p>Disk Dilation Size</p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
         self.label.setText(QtGui.QApplication.translate("MainWindow", "<html><head/><body><p>Contrast Threshold</p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_3.setText(QtGui.QApplication.translate("MainWindow", "TextLabel", None, QtGui.QApplication.UnicodeUTF8))
+        self.checkBox.setText(QtGui.QApplication.translate("MainWindow", "CheckBox", None, QtGui.QApplication.UnicodeUTF8))
         self.label_10.setText(QtGui.QApplication.translate("MainWindow", "HOT KEYS:", None, QtGui.QApplication.UnicodeUTF8))
         self.label_8.setText(QtGui.QApplication.translate("MainWindow", "Polygon Mode: (p)", None, QtGui.QApplication.UnicodeUTF8))
         self.label_9.setText(QtGui.QApplication.translate("MainWindow", "Terminate Poly.: (t)", None, QtGui.QApplication.UnicodeUTF8))
