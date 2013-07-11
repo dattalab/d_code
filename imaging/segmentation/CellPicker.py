@@ -113,7 +113,7 @@ class CellPickerGUI(object):
         self.image_widget.setFocus()
 
         self.splitter = QtGui.QSplitter(self.centralwidget)
-        self.splitter.setGeometry(QtCore.QRect(10, 480, 111, 41))
+        self.splitter.setGeometry(QtCore.QRect(10, 440, 111, 51))
         self.splitter.setOrientation(QtCore.Qt.Vertical)
         self.splitter.setObjectName("splitter")
         
@@ -127,8 +127,11 @@ class CellPickerGUI(object):
         self.dilation_disk.setObjectName("dilation_disk")
         
         self.splitter_2 = QtGui.QSplitter(self.centralwidget)
-        self.splitter_2.setGeometry(QtCore.QRect(10, 420, 122, 41))
+        self.splitter_2.setGeometry(QtCore.QRect(10, 380, 122, 51))
+        self.splitter_2.setFrameShape(QtGui.QFrame.NoFrame)
         self.splitter_2.setOrientation(QtCore.Qt.Vertical)
+        self.splitter_2.setOpaqueResize(False)
+        self.splitter_2.setChildrenCollapsible(False)
         self.splitter_2.setObjectName("splitter_2")
         
         self.label = QtGui.QLabel(self.splitter_2)
@@ -140,7 +143,63 @@ class CellPickerGUI(object):
         self.contrast_threshold.setSingleStep(0.01)
         self.contrast_threshold.setProperty("value", 0.95)
         self.contrast_threshold.setObjectName("contrast_threshold")
-       
+        
+        # below from side bar edit 
+        
+        self.splitter_3 = QtGui.QSplitter(self.centralwidget)
+        self.splitter_3.setGeometry(QtCore.QRect(10, 260, 141, 111))
+        self.splitter_3.setOrientation(QtCore.Qt.Vertical)
+        self.splitter_3.setObjectName("splitter_3")
+        
+        
+        #check boxes to switch modes
+        
+        #polygon
+        self.checkBox_2 = QtGui.QCheckBox(self.splitter_3)
+        self.checkBox_2.setObjectName("checkBox_2")
+        self.checkBox_2.setText('Polygon Mode: (p)')        
+        #square
+        self.checkBox_3 = QtGui.QCheckBox(self.splitter_3)
+        self.checkBox_3.setObjectName("checkBox_3")
+        self.checkBox_3.setText('Square Mode: (s)')        
+        #circle
+        self.checkBox = QtGui.QCheckBox(self.splitter_3)
+        self.checkBox.setObjectName("checkBox")
+        self.checkBox.setText('Circel Mode: (c)')        
+        #OGB
+        self.checkBox_4 = QtGui.QCheckBox(self.splitter_3)
+        self.checkBox_4.setObjectName("checkBox_4")
+        self.checkBox_4.setText('OGB Mode: (o)')
+        
+        
+        #Hot Key Legend
+        self.splitter_4 = QtGui.QSplitter(self.centralwidget)
+        self.splitter_4.setGeometry(QtCore.QRect(10, 10, 141, 241))
+        self.splitter_4.setOrientation(QtCore.Qt.Vertical)
+        self.splitter_4.setObjectName("splitter_4")        
+        self.label_10 = QtGui.QLabel(self.splitter_4)
+        self.label_10.setObjectName("label_10")
+        self.label_10.setText('HOT KEYS:')        
+        self.label_8 = QtGui.QLabel(self.splitter_4)
+        self.label_8.setObjectName("label_8")
+        self.label_8.setText('Polygon Mode: (p)')       
+        self.label_9 = QtGui.QLabel(self.splitter_4)
+        self.label_9.setObjectName("label_9")
+        self.label_9.setText('Terminate Poly.: (t)')       
+        self.label_7 = QtGui.QLabel(self.splitter_4)
+        self.label_7.setObjectName("label_7")
+        self.label_7.setText('Squar: (s)')
+        self.label_5 = QtGui.QLabel(self.splitter_4)
+        self.label_5.setObjectName("label_5")
+        self.label_5.setText('Circle: (c)')        
+        self.label_6 = QtGui.QLabel(self.splitter_4)
+        self.label_6.setObjectName("label_6")
+        self.label_6.setText('OGB: (o)')        
+        self.label_4 = QtGui.QLabel(self.splitter_4)
+        self.label_4.setObjectName("label_4")
+        self.label_4.setText('Clear: (x)')
+        
+        
         MainWindow.setCentralWidget(self.centralwidget)
         self.statusbar = QtGui.QStatusBar(MainWindow)
         self.statusbar.setObjectName("statusbar")
