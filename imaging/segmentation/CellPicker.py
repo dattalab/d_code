@@ -113,7 +113,7 @@ class CellPickerGUI(object):
         self.image_widget.setFocus()
 
         self.splitter = QtGui.QSplitter(self.centralwidget)
-        self.splitter.setGeometry(QtCore.QRect(10, 440, 111, 51))
+        self.splitter.setGeometry(QtCore.QRect(10, 460, 111, 51))
         self.splitter.setOrientation(QtCore.Qt.Vertical)
         self.splitter.setObjectName("splitter")
         
@@ -127,7 +127,7 @@ class CellPickerGUI(object):
         self.dilation_disk.setObjectName("dilation_disk")
         
         self.splitter_2 = QtGui.QSplitter(self.centralwidget)
-        self.splitter_2.setGeometry(QtCore.QRect(10, 380, 122, 51))
+        self.splitter_2.setGeometry(QtCore.QRect(10, 400, 122, 51))
         self.splitter_2.setFrameShape(QtGui.QFrame.NoFrame)
         self.splitter_2.setOrientation(QtCore.Qt.Vertical)
         self.splitter_2.setOpaqueResize(False)
@@ -147,7 +147,7 @@ class CellPickerGUI(object):
         # below from side bar edit 
         
         self.splitter_3 = QtGui.QSplitter(self.centralwidget)
-        self.splitter_3.setGeometry(QtCore.QRect(10, 260, 141, 111))
+        self.splitter_3.setGeometry(QtCore.QRect(10, 260, 141, 131))
         self.splitter_3.setOrientation(QtCore.Qt.Vertical)
         self.splitter_3.setObjectName("splitter_3")
         
@@ -171,7 +171,26 @@ class CellPickerGUI(object):
         self.radioButton_2 = QtGui.QRadioButton(self.splitter_3)
         self.radioButton_2.setObjectName("radioButton_2")
         self.radioButton_2.setText('OGB Mode: (o)')
+        #standard
+        self.radioButton_5 = QtGui.QRadioButton(self.splitter_3)
+        self.radioButton_5.setObjectName("radioButton_5")
+        self.radioButton_5.setText('Standard Mode: (x)')
+        self.radioButton_5.setChecked(True)
         
+        #button group for mode radio buttons
+        self.buttonGroup = QtGui.QButtonGroup()
+        self.buttonGroup.addButton(self.radioButton_3, 1)  #Polygon
+        self.buttonGroup.addButton(self.radioButton, 2)    #Square
+        self.buttonGroup.addButton(self.radioButton_4, 3)  #Circle
+        self.buttonGroup.addButton(self.radioButton_2, 4)  #OGB
+        self.buttonGroup.addButton(self.radioButton_5, 5)  #Standard
+        
+        #mode switch radio button conecctor
+        self.radioButton_3.toggled.connect(self.changeMode)
+        self.radioButton.toggled.connect(self.changeMode)
+        self.radioButton_4.toggled.connect(self.changeMode)
+        self.radioButton_2.toggled.connect(self.changeMode)
+        self.radioButton_5.toggled.connect(self.changeMode)
         
         #Hot Key Legend
         self.splitter_4 = QtGui.QSplitter(self.centralwidget)
@@ -240,7 +259,22 @@ class CellPickerGUI(object):
         self.modeData = None # or a list of point tuples
 
         self.makeNewMaskAndBackgroundImage()
-        
+    
+    #changes the mode from radio buttons
+    def changeMode(self):
+        state = self.buttonGroup.checkedId()
+        if state == 1:
+            self.mode = 'poly'
+        elif state == 2:
+            self.mode = 'square'
+        elif state == 3:
+            self.mode = 'circle'
+        elif state == 4:
+            self.mode = 'OGB'
+        elif state == 5:
+            self.mode = None
+             
+                
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QtGui.QApplication.translate("MainWindow", "MainWindow", None, QtGui.QApplication.UnicodeUTF8))
         self.label_2.setText(QtGui.QApplication.translate("MainWindow", "<html><head/><body><p>Cell Radius Size</p></body></html>", None, QtGui.QApplication.UnicodeUTF8))

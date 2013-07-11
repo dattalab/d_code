@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'cellPickerSideBarEdit.ui'
 #
-# Created: Thu Jul 11 11:22:55 2013
+# Created: Thu Jul 11 12:52:25 2013
 #      by: pyside-uic 0.2.13 running on PySide 1.1.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -26,7 +26,7 @@ class Ui_MainWindow(object):
         self.centralwidget.setSizePolicy(sizePolicy)
         self.centralwidget.setObjectName("centralwidget")
         self.splitter = QtGui.QSplitter(self.centralwidget)
-        self.splitter.setGeometry(QtCore.QRect(10, 440, 111, 51))
+        self.splitter.setGeometry(QtCore.QRect(10, 460, 111, 51))
         self.splitter.setOrientation(QtCore.Qt.Vertical)
         self.splitter.setObjectName("splitter")
         self.label_2 = QtGui.QLabel(self.splitter)
@@ -37,7 +37,7 @@ class Ui_MainWindow(object):
         self.dilation_disk.setProperty("value", 3)
         self.dilation_disk.setObjectName("dilation_disk")
         self.splitter_2 = QtGui.QSplitter(self.centralwidget)
-        self.splitter_2.setGeometry(QtCore.QRect(10, 380, 122, 51))
+        self.splitter_2.setGeometry(QtCore.QRect(10, 400, 122, 51))
         self.splitter_2.setFrameShape(QtGui.QFrame.NoFrame)
         self.splitter_2.setOrientation(QtCore.Qt.Vertical)
         self.splitter_2.setOpaqueResize(False)
@@ -84,7 +84,7 @@ class Ui_MainWindow(object):
         self.label_4 = QtGui.QLabel(self.splitter_4)
         self.label_4.setObjectName("label_4")
         self.splitter_3 = QtGui.QSplitter(self.centralwidget)
-        self.splitter_3.setGeometry(QtCore.QRect(10, 260, 141, 111))
+        self.splitter_3.setGeometry(QtCore.QRect(10, 260, 141, 131))
         self.splitter_3.setOrientation(QtCore.Qt.Vertical)
         self.splitter_3.setObjectName("splitter_3")
         self.radioButton_3 = QtGui.QRadioButton(self.splitter_3)
@@ -95,6 +95,8 @@ class Ui_MainWindow(object):
         self.radioButton_4.setObjectName("radioButton_4")
         self.radioButton_2 = QtGui.QRadioButton(self.splitter_3)
         self.radioButton_2.setObjectName("radioButton_2")
+        self.radioButton_5 = QtGui.QRadioButton(self.splitter_3)
+        self.radioButton_5.setObjectName("radioButton_5")
         MainWindow.setCentralWidget(self.centralwidget)
         self.statusbar = QtGui.QStatusBar(MainWindow)
         self.statusbar.setObjectName("statusbar")
@@ -118,4 +120,5 @@ class Ui_MainWindow(object):
         self.radioButton.setText(QtGui.QApplication.translate("MainWindow", "RadioButton", None, QtGui.QApplication.UnicodeUTF8))
         self.radioButton_4.setText(QtGui.QApplication.translate("MainWindow", "RadioButton", None, QtGui.QApplication.UnicodeUTF8))
         self.radioButton_2.setText(QtGui.QApplication.translate("MainWindow", "RadioButton", None, QtGui.QApplication.UnicodeUTF8))
+        self.radioButton_5.setText(QtGui.QApplication.translate("MainWindow", "RadioButton", None, QtGui.QApplication.UnicodeUTF8))
 
