@@ -249,26 +249,34 @@ class CellPickerGUI(object):
         self.label_3.setGeometry(QtCore.QRect(160, 780, 150, 16))
         self.label_3.setObjectName("label_3")
         self.label_3.setText('Slide to Frame in Video')
+        self.label_3.setVisible(False)
         #jumper label
         self.label_11 = QtGui.QLabel(self.centralwidget)
         self.label_11.setGeometry(QtCore.QRect(10, 780, 150, 16))
         self.label_11.setObjectName("label_11")
         self.label_11.setText('Jump to Frame')
+        self.label_11.setVisible(False)
         #ave/vid toggel button
         self.checkBox = QtGui.QCheckBox(self.centralwidget)
         self.checkBox.setGeometry(QtCore.QRect(10, 600, 200, 20))
         self.checkBox.setObjectName("checkBox")
         self.checkBox.setText('Ave(On)/Vid(Off)')
+        self.checkBox.setChecked(True)
         #video frame slidder
         self.horizontalSlider = QtGui.QSlider(self.centralwidget)
         self.horizontalSlider.setGeometry(QtCore.QRect(160, 800, 750, 22))
         self.horizontalSlider.setOrientation(QtCore.Qt.Horizontal)
         self.horizontalSlider.setObjectName("horizontalSlider")
+        self.horizontalSlider.setVisible(False)
         self.horizontalSlider.setMaximum(self.frame)
         #jump to video frame
         self.lineEdit = QtGui.QLineEdit(self.centralwidget)
         self.lineEdit.setGeometry(QtCore.QRect(10, 800, 113, 21))
         self.lineEdit.setObjectName("lineEdit")
+        self.lineEdit.setVisible(False)
+        
+        #ave/vid checkbox connector
+        self.checkBox.stateChanged.connect(self.boxClicked)
         
         #connect value in box and slider
         self.horizontalSlider.valueChanged.connect(self.comScroleToLine)
@@ -311,6 +319,22 @@ class CellPickerGUI(object):
         self.modeData = None # or a list of point tuples
 
         self.makeNewMaskAndBackgroundImage()
+    
+    #ave/vid is clicked
+    def boxClicked(self, state):
+        if state == QtCore.Qt.Checked:
+            self.fade(state)
+        else:
+            self.fade(state)
+    
+    def fade(self, state):
+        if state == 0:
+            self.horizontalSlider.setVisible(True)
+            self.lineEdit.setVisible(True)
+        else:
+            self.horizontalSlider.setVisible(False)
+            self.lineEdit.setVisible(False)
+        
     
     #changes the mode from radio buttons
     def changeMode(self):
