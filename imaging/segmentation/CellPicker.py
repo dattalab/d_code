@@ -25,7 +25,7 @@ class Communicate(QtCore.QObject):
 
 class MatplotlibWidget(FigureCanvas):
     """Custom Matplotlib Widget"""
-    def __init__(self, data, parent=None):
+    def __init__(self, data, parent, cutoff):
         super(MatplotlibWidget, self).__init__(Figure())
 
         self.c = Communicate()
@@ -42,7 +42,7 @@ class MatplotlibWidget(FigureCanvas):
         
         self.maxAverageImageVal = self.image.max()
 
-        self.image_ax = self.axes.imshow(self.image, cmap=mpl.cm.gray, vmax=self.maxAverageImageVal)
+        self.image_ax = self.axes.imshow(self.image, cmap=mpl.cm.gray, vmax=self.maxAverageImageVal*cutoff)
         self.mask = np.zeros((self.image.shape[0], self.image.shape[1],4))
         self.mask_ax = self.axes.imshow(self.mask, cmap=mpl.cm.jet)
         
@@ -101,14 +101,14 @@ class MatplotlibWidget(FigureCanvas):
         event.accept()
     
 class CellPickerGUI(object):
-    def setupUi(self, MainWindow, data, mask):        
+    def setupUi(self, MainWindow, data, mask, cutoff):        
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(1000, 900)
         self.MainWindow = MainWindow
         self.centralwidget = QtGui.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         
-        self.image_widget = MatplotlibWidget(data, parent=self.centralwidget)
+        self.image_widget = MatplotlibWidget(data, parent=self.centralwidget, cutoff=cutoff)
         # note that the widget size is hardcoded in the class (not the best, but at least it's all
         # in the constructor
         
@@ -861,7 +861,7 @@ class CellPickerGUI(object):
     def changeContrastThreshold(self, event):
         self.contrastThreshold = self.contrast_threshold.value()
         
-def pickCells(backgroundImage, mask=None):
+def pickCells(backgroundImage, mask=None, cutoff=0.8):
     """This routine is for interactive picking of cells and editing
     a mask.  It takes two arguments- a numpy array for a background image.
     If backgroundImage is 2d, then that is the image used.  If it is
@@ -869,6 +869,13 @@ def pickCells(backgroundImage, mask=None):
     dimension.  We can then toggle between the frames of the movie and the
     average image for the background.  The average image is always used for
     calculations, though.
+
+    Optionally, you can pass in a previous mask (a uint16 image, 0 in the
+    background and 1+ for any ROIs).
+
+    Finally, you can pass in a floating point number that is a % of the max
+    value in the image--- good for when a stray pixel is very bright and
+    destroys the dynamic range of the image.
 
     Returns a mask array.  The mask can have values ranging from 1-8,
     each indicating a different feature.  Use mahotas.label(mask==#) to 
@@ -883,7 +890,7 @@ def pickCells(backgroundImage, mask=None):
 
     MainWindow = QtGui.QMainWindow()
     gui = CellPickerGUI()
-    gui.setupUi(MainWindow, backgroundImage, mask)
+    gui.setupUi(MainWindow, backgroundImage, mask, cutoff)
     MainWindow.show()
     MainWindow.raise_()
     
