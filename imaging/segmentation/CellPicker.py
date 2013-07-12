@@ -40,8 +40,11 @@ class MatplotlibWidget(FigureCanvas):
         self.axes = self.figure.add_subplot(111)
         self.figure.subplots_adjust(left=0, right=1, top=1, bottom=0)
         
-        self.axes.imshow(self.image, cmap=mpl.cm.gray)
         self.maxAverageImageVal = self.image.max()
+
+        self.image_ax = self.axes.imshow(self.image, cmap=mpl.cm.gray, vmax=self.maxAverageImageVal)
+        self.mask = np.zeros((self.image.shape[0], self.image.shape[1],4))
+        self.mask_ax = self.axes.imshow(self.mask, cmap=mpl.cm.jet)
         
         self.setGeometry(QtCore.QRect(150, 10, 768, 768))
         self.width = self.geometry().width()
@@ -54,9 +57,11 @@ class MatplotlibWidget(FigureCanvas):
         """image is a 2d image, mask is a 2d RGBA image"""
         self.image = image
         self.mask = mask
-        self.axes.clear()
-        self.axes.imshow(self.image, cmap=mpl.cm.gray, vmax=self.maxAverageImageVal)
-        self.axes.imshow(self.mask, cmap=mpl.cm.jet)
+        #self.axes.clear()
+        #self.axes.imshow(self.image, cmap=mpl.cm.gray, vmax=self.maxAverageImageVal)
+        self.image_ax.set_data(image)
+        self.mask_ax.set_data(mask)
+        #self.axes.imshow(self.mask, cmap=mpl.cm.jet)
         self.draw()    
     
     #signal
@@ -305,11 +310,6 @@ class CellPickerGUI(object):
         else:
             self.currentMask = mask.astype('uint16')
         
-        #self.series = series
-        #if series is None:
-        #    self.series = None
-        #else:
-        #    self.series = series
 
         self.listOfMasks = []
         self.listOfMasks.append(self.currentMask)
@@ -448,7 +448,21 @@ class CellPickerGUI(object):
                 self.clearModeData()
                 self.mode = 'OGB'
                 self.radioButton_2.setChecked(True)
-                
+        
+        elif keyPressed == QtCore.Qt.Key_A:
+            if self.checkBox.isChecked == QtCore.Qt.Checked:
+                self.currentBackgroundImage = self.data.mean(axis=2)
+                self.makeNewMaskAndBackgroundImage()
+                self.horizontalSlider.setVisible(False)
+                self.lineEdit.setVisible(False)
+                self.checkBox.toggle()
+            elif self.checkBox.isChecked != QtCore.Qt.Checked:
+                self.currentBackgroundImage = self.data[:,:,self.currentFrame]
+                self.makeNewMaskAndBackgroundImage()
+                self.horizontalSlider.setVisible(True)
+                self.lineEdit.setVisible(True)
+                self.checkBox.toggle()
+                                
         elif keyPressed == QtCore.Qt.Key_K:
             self.correlateLastROI()
 
@@ -489,14 +503,14 @@ class CellPickerGUI(object):
 
 
     def timeCourseROI(self, ROI_mask):
-        if self.series is not None:
+        if self.data.ndim ==3:
             nPixels=np.sum(ROI_mask)
-            return np.sum(self.series[ROI_mask,:],axis=0)/nPixels
+            return np.sum(self.data[ROI_mask,:],axis=0)/nPixels
 
 
     def updateInfoPanel(self, ROI_number=None):
 
-        if self.series is None:
+        if self.data.ndim == 2:
             print 'No series information!'
             sys.stdout.flush()
             return None
@@ -517,7 +531,7 @@ class CellPickerGUI(object):
 
         axes1 = plt.plot(trace)
         axes1[0].get_axes().set_xlim(0, trace.shape[0])
-        axes1[0].get_axes().set_ylim(self.series.min()*0.9, self.max_of_trace*1.1)
+        axes1[0].get_axes().set_ylim(self.data.min()*0.9, self.max_of_trace*1.1)
 
         axes2 = self.infofig.add_axes([0.8, 0.75, 0.2, 0.2]) # inset axes
         axes2.cla()
@@ -607,9 +621,17 @@ class CellPickerGUI(object):
         sys.stdout.flush()
         self.makeNewMaskAndBackgroundImage()
 
+    
+    
 
     @QtCore.Slot(tuple)
     def addCell(self, eventTuple):
+        
+        if self.data.ndim == 2:
+            self.aveData = self.data.copy()
+        else:
+            self.aveData = self.data.mean(axis = 2)
+        
         x, y = eventTuple
         localValue = self.currentMask[x,y]
         print str(self.mode) + ' ' + 'x: ' + str(x) + ', y: ' + str(y) + ', mask val: ' + str(localValue) 
@@ -637,7 +659,7 @@ class CellPickerGUI(object):
 
                 self.listOfMasks.append(newMask)
                 self.currentMask = self.listOfMasks[-1]
-            elif localValue > 0 and self.series is not None:
+            elif localValue > 0 and self.data.ndim ==3:
                 # update info panel
                 labeledCurrentMask = mahotas.label(self.currentMask.copy())[0]
                 roiNumber = labeledCurrentMask[x, y]
@@ -651,8 +673,8 @@ class CellPickerGUI(object):
                 ymax = int(y + self.diskSize)
 
 #                sub_region_series = self.series[xmin:xmax, ymin:ymax, :].copy()
-                sub_region_image = self.data[xmin:xmax, ymin:ymax].copy()
-                threshold = mahotas.otsu(self.data[xmin:xmax, ymin:ymax].astype('uint16'))
+                sub_region_image = self.aveData[xmin:xmax, ymin:ymax].copy()
+                #threshold = mahotas.otsu(self.data[xmin:xmax, ymin:ymax].astype('uint16'))
 
                 # do a gaussian_laplacian filter to find the edges and the center
 
@@ -660,7 +682,7 @@ class CellPickerGUI(object):
                 g_l = mahotas.dilate(mahotas.erode(g_l>=0))
                 g_l = mahotas.label(g_l)[0]
                 center = g_l == g_l[g_l.shape[0]/2, g_l.shape[0]/2]
-                edges = mahotas.dilate(mahotas.dilate(mahotas.dilate(center))) - center
+                #edges = mahotas.dilate(mahotas.dilate(mahotas.dilate(center))) - center
 
                 newCell = np.zeros_like(self.currentMask)
                 newCell[xmin:xmax, ymin:ymax] = center
@@ -696,8 +718,8 @@ class CellPickerGUI(object):
             tempMask = np.logical_and(tempMask, safeUnselected)
         
             # calculate the area we should add to this disk based on % of a threshold
-            cellMean = self.data[tempMask == 1.0].mean()
-            allMeanBw = self.data >= (cellMean * float(self.contrastThreshold))
+            cellMean = self.aveData[tempMask == 1.0].mean()
+            allMeanBw = self.aveData >= (cellMean * float(self.contrastThreshold))
  
             tempLabel = mahotas.label(np.logical_and(allMeanBw, safeUnselected).astype(np.uint16))[0]
             connMeanBw = tempLabel == tempLabel[x, y]
