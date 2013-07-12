@@ -41,7 +41,8 @@ class MatplotlibWidget(FigureCanvas):
         self.figure.subplots_adjust(left=0, right=1, top=1, bottom=0)
         
         self.axes.imshow(self.image, cmap=mpl.cm.gray)
-            
+        self.maxAverageImageVal = self.image.max()
+        
         self.setGeometry(QtCore.QRect(150, 10, 768, 768))
         self.width = self.geometry().width()
         self.height = self.geometry().height()
@@ -54,7 +55,7 @@ class MatplotlibWidget(FigureCanvas):
         self.image = image
         self.mask = mask
         self.axes.clear()
-        self.axes.imshow(self.image, cmap=mpl.cm.gray)
+        self.axes.imshow(self.image, cmap=mpl.cm.gray, vmax=self.maxAverageImageVal)
         self.axes.imshow(self.mask, cmap=mpl.cm.jet)
         self.draw()    
     
@@ -98,7 +99,7 @@ class MatplotlibWidget(FigureCanvas):
         event.accept()
     
 class CellPickerGUI(object):
-    def setupUi(self, MainWindow, data, mask, series):        
+    def setupUi(self, MainWindow, data, mask):        
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(1000, 900)
         self.MainWindow = MainWindow
@@ -268,7 +269,9 @@ class CellPickerGUI(object):
         self.horizontalSlider.setOrientation(QtCore.Qt.Horizontal)
         self.horizontalSlider.setObjectName("horizontalSlider")
         self.horizontalSlider.setVisible(False)
-        self.horizontalSlider.setMaximum(self.frame)
+        self.horizontalSlider.setMaximum(self.frame-1)
+        self.currentFrame = self.horizontalSlider.value()
+        
         #jump to video frame
         self.lineEdit = QtGui.QLineEdit(self.centralwidget)
         self.lineEdit.setGeometry(QtCore.QRect(10, 800, 113, 21))
@@ -302,7 +305,7 @@ class CellPickerGUI(object):
         else:
             self.currentMask = mask.astype('uint16')
         
-        self.series = series
+        #self.series = series
         #if series is None:
         #    self.series = None
         #else:
@@ -323,18 +326,28 @@ class CellPickerGUI(object):
     #ave/vid is clicked
     def boxClicked(self, state):
         if state == QtCore.Qt.Checked:
-            self.fade(state)
-        else:
-            self.fade(state)
-    
-    def fade(self, state):
-        if state == 0:
-            self.horizontalSlider.setVisible(True)
-            self.lineEdit.setVisible(True)
-        else:
+            #self.fade(state)
+            self.currentBackgroundImage = self.data.mean(axis=2)
+            self.makeNewMaskAndBackgroundImage()
             self.horizontalSlider.setVisible(False)
             self.lineEdit.setVisible(False)
-        
+            
+        else:
+            #self.fade(state)
+            print self.data.shape
+            self.currentBackgroundImage = self.data[:,:,self.currentFrame]
+            self.makeNewMaskAndBackgroundImage()
+            self.horizontalSlider.setVisible(True)
+            self.lineEdit.setVisible(True)
+            
+    #fades vid controles
+    #def fade(self, state):
+    #    if state == 0:
+    #        self.horizontalSlider.setVisible(True)
+    #        self.lineEdit.setVisible(True)
+    #    else:
+    #        self.horizontalSlider.setVisible(False)
+    #        self.lineEdit.setVisible(False)
     
     #changes the mode from radio buttons
     def changeMode(self):
@@ -352,9 +365,16 @@ class CellPickerGUI(object):
     
     #connect the box and slidder
     def comLineToScrole(self):
-        self.horizontalSlider.setValue(int(self.lineEdit.text()))
+        self.currentFrame = int(self.lineEdit.text())
+        self.horizontalSlider.setValue(self.currentFrame)
+        self.currentBackgroundImage = self.data[:,:,self.currentFrame]
+        self.makeNewMaskAndBackgroundImage()
     def comScroleToLine(self):
-        self.lineEdit.setText(str(self.horizontalSlider.value()))
+        self.currentFrame = self.horizontalSlider.value()
+        self.lineEdit.setText(str(self.currentFrame))
+        self.currentBackgroundImage = self.data[:,:,self.currentFrame]
+        self.makeNewMaskAndBackgroundImage()
+
                 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QtGui.QApplication.translate("MainWindow", "MainWindow", None, QtGui.QApplication.UnicodeUTF8))
@@ -834,7 +854,7 @@ class CellPickerGUI(object):
     def changeContrastThreshold(self, event):
         self.contrastThreshold = self.contrast_threshold.value()
         
-def pickCells(backgroundImage, mask=None, series=None):
+def pickCells(backgroundImage, mask=None):
     """This routine is for interactive picking of cells and editing
     a mask.  It takes two arguments- a numpy array for a background image.
     If backgroundImage is 2d, then that is the image used.  If it is
@@ -848,8 +868,8 @@ def pickCells(backgroundImage, mask=None, series=None):
     """
 
     # need to be robust to passing in a stack or a single image
-    if backgroundImage.ndim == 3:
-        backgroundImage = backgroundImage.mean(axis=2)
+    #if backgroundImage.ndim == 3:
+    #    backgroundImage = backgroundImage.mean(axis=2)
 
     try:
         app = QtGui.QApplication(sys.argv)
@@ -858,7 +878,7 @@ def pickCells(backgroundImage, mask=None, series=None):
 
     MainWindow = QtGui.QMainWindow()
     gui = CellPickerGUI()
-    gui.setupUi(MainWindow, backgroundImage, mask, series)
+    gui.setupUi(MainWindow, backgroundImage, mask)
     MainWindow.show()
     MainWindow.raise_()
     
