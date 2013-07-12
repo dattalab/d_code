@@ -57,11 +57,8 @@ class MatplotlibWidget(FigureCanvas):
         """image is a 2d image, mask is a 2d RGBA image"""
         self.image = image
         self.mask = mask
-        #self.axes.clear()
-        #self.axes.imshow(self.image, cmap=mpl.cm.gray, vmax=self.maxAverageImageVal)
         self.image_ax.set_data(image)
         self.mask_ax.set_data(mask)
-        #self.axes.imshow(self.mask, cmap=mpl.cm.jet)
         self.draw()    
     
     #signal
@@ -211,7 +208,7 @@ class CellPickerGUI(object):
         self.splitter_4.setOrientation(QtCore.Qt.Vertical)
         self.splitter_4.setObjectName("splitter_4")
         self.splitter_4.setChildrenCollapsible(False)        
-        #titel
+        #title
         self.label_10 = QtGui.QLabel(self.splitter_4)
         self.label_10.setObjectName("label_10")
         self.label_10.setText('HOT KEYS:')        
@@ -226,7 +223,7 @@ class CellPickerGUI(object):
         #S
         self.label_7 = QtGui.QLabel(self.splitter_4)
         self.label_7.setObjectName("label_7")
-        self.label_7.setText('Squar: (s)')
+        self.label_7.setText('Square: (s)')
         #C
         self.label_5 = QtGui.QLabel(self.splitter_4)
         self.label_5.setObjectName("label_5")
@@ -326,29 +323,18 @@ class CellPickerGUI(object):
     #ave/vid is clicked
     def boxClicked(self, state):
         if state == QtCore.Qt.Checked:
-            #self.fade(state)
             self.currentBackgroundImage = self.data.mean(axis=2)
             self.makeNewMaskAndBackgroundImage()
             self.horizontalSlider.setVisible(False)
             self.lineEdit.setVisible(False)
             
         else:
-            #self.fade(state)
             print self.data.shape
             self.currentBackgroundImage = self.data[:,:,self.currentFrame]
             self.makeNewMaskAndBackgroundImage()
             self.horizontalSlider.setVisible(True)
             self.lineEdit.setVisible(True)
             
-    #fades vid controles
-    #def fade(self, state):
-    #    if state == 0:
-    #        self.horizontalSlider.setVisible(True)
-    #        self.lineEdit.setVisible(True)
-    #    else:
-    #        self.horizontalSlider.setVisible(False)
-    #        self.lineEdit.setVisible(False)
-    
     #changes the mode from radio buttons
     def changeMode(self):
         state = self.buttonGroup.checkedId()
@@ -672,7 +658,6 @@ class CellPickerGUI(object):
                 ymin = int(y - self.diskSize)
                 ymax = int(y + self.diskSize)
 
-#                sub_region_series = self.series[xmin:xmax, ymin:ymax, :].copy()
                 sub_region_image = self.aveData[xmin:xmax, ymin:ymax].copy()
                 #threshold = mahotas.otsu(self.data[xmin:xmax, ymin:ymax].astype('uint16'))
 
@@ -881,17 +866,15 @@ def pickCells(backgroundImage, mask=None):
     a mask.  It takes two arguments- a numpy array for a background image.
     If backgroundImage is 2d, then that is the image used.  If it is
     3D then we assume it is an image series and average over the 3rd
-    dimension.
+    dimension.  We can then toggle between the frames of the movie and the
+    average image for the background.  The average image is always used for
+    calculations, though.
 
     Returns a mask array.  The mask can have values ranging from 1-8,
     each indicating a different feature.  Use mahotas.label(mask==#) to 
     make a labeled mask for each sub-mask.
 
     """
-
-    # need to be robust to passing in a stack or a single image
-    #if backgroundImage.ndim == 3:
-    #    backgroundImage = backgroundImage.mean(axis=2)
 
     try:
         app = QtGui.QApplication(sys.argv)
