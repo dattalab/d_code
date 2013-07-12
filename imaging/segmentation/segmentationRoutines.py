@@ -1,7 +1,7 @@
 # segmentation and ROI extraction code
 import numpy as np
 import os
-import h5py
+#import h5py
 import subprocess
 import pymorph
 import mahotas
