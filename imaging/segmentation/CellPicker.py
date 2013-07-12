@@ -288,7 +288,7 @@ class CellPickerGUI(object):
         
         #connect value in box and slider
         self.horizontalSlider.valueChanged.connect(self.comScroleToLine)
-        self.lineEdit.textChanged.connect(self.comLineToScrole)
+        self.lineEdit.returnPressed.connect(self.comLineToScrole)
         
         MainWindow.setCentralWidget(self.centralwidget)
         self.statusbar = QtGui.QStatusBar(MainWindow)
