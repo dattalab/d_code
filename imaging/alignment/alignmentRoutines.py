@@ -3,7 +3,7 @@
 # the code we rely on is based on the imagej turboreg plugin
 import numpy as np
 import os
-import h5py
+#import h5py
 import subprocess
 
 __all__ = ['alignSeries','alignStack']
