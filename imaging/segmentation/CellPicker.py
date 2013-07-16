@@ -11,11 +11,14 @@ from matplotlib.figure import Figure
 import numpy as np
 
 import scipy.ndimage as nd
+import scipy
 
 import pymorph
 import mahotas
 
 import matplotlib.nxutils as nx
+
+from sklearn.decomposition import NMF
 
 class Communicate(QtCore.QObject):
     keyPressed = QtCore.Signal(tuple)
@@ -496,6 +499,8 @@ class CellPickerGUI(object):
 
     def updateInfoPanel(self, ROI_number=None):
 
+        box_size = 3*self.dilation_disk.value()
+
         if self.data.ndim == 2:
             print 'No series information!'
             sys.stdout.flush()
@@ -506,7 +511,8 @@ class CellPickerGUI(object):
 
         self.infofig = plt.figure('info')
         
-        axes1 = self.infofig.add_axes([0.1, 0.1, 0.8, 0.8]) # main axes
+        #activity plot
+        axes1 = self.infofig.add_axes([0.04, 0.6, 0.92, 0.35]) # main axes
         axes1.cla()
         trace = self.timeCourseROI(ROI_mask)
 
@@ -518,16 +524,142 @@ class CellPickerGUI(object):
         axes1 = plt.plot(trace)
         axes1[0].get_axes().set_xlim(0, trace.shape[0])
         axes1[0].get_axes().set_ylim(self.data.min()*0.9, self.max_of_trace*1.1)
+        axes1[0].get_axes().set_title('Activity Plot')
 
-        axes2 = self.infofig.add_axes([0.8, 0.75, 0.2, 0.2]) # inset axes
+        #Mask display
+        axes2 = self.infofig.add_axes([0.04, 0.325, 0.2, 0.2]) # inset axes
         axes2.cla()
         axes2 = plt.imshow(self.currentMask + ROI_mask)
         axes2.get_axes().set_yticklabels([])
         axes2.get_axes().set_xticklabels([])
+        axes2.get_axes().set_title('Mask')
+
+        #ROI corralation
+        axes3 = self.infofig.add_axes([0.28, 0.325, 0.2, 0.2])
+        axes3.cla()
+        
+        resp_mask = (ROI_mask == 1)
+        xvals, yvals = zip(*np.argwhere(resp_mask))
+        xmin = min(xvals)
+        xmax = max(xvals)
+        ymin = min(yvals)
+        ymax = max(yvals)
+
+        xcenter = (xmax - xmin) / 2 + xmin
+        ycenter = (ymax - ymin) / 2 + ymin
+        
+        local_data = self.data[xcenter-box_size:xcenter+box_size, ycenter-box_size:ycenter+box_size, :]
+        x,y,frame = local_data.shape
+        
+        x,y,frame = local_data.shape
+        
+        corr_map = np.empty((x,y))
+        for xv in range(x):
+            for yv in range(y):
+                corr_map[xv,yv] = np.correlate(local_data[xv,yv,:]-local_data[xv,yv,:].mean(), trace-trace.mean())
+       
+        print corr_map.shape 
+        corr_map[np.isnan(corr_map)] = 0
+        corr_map = corr_map/corr_map.max()
+        
+        axes3.imshow(corr_map, vmax=1)
+        
+        rgba_mask = np.zeros((box_size*2,box_size*2,4))
+        rgba_mask[:,:,0] = resp_mask[xcenter-box_size:xcenter+box_size,ycenter-box_size:ycenter+box_size]
+        rgba_mask[:,:,1] = resp_mask[xcenter-box_size:xcenter+box_size,ycenter-box_size:ycenter+box_size]
+        rgba_mask[:,:,2] = resp_mask[xcenter-box_size:xcenter+box_size,ycenter-box_size:ycenter+box_size]
+        rgba_mask[:,:,3] = (resp_mask[xcenter-box_size:xcenter+box_size,ycenter-box_size:ycenter+box_size]>0).astype(int) * .8
+        axes3 = plt.imshow(rgba_mask, cmap=mpl.cm.gist_yarg)
+        
+        axes3.get_axes().set_yticklabels([])
+        axes3.get_axes().set_xticklabels([])
+        axes3.get_axes().set_title('ROI Corralation')
+
+        #Histagram
+        
+        axes4 = self.infofig.add_axes([0.52, 0.325, 0.2, 0.2])
+        axes4.cla()
+        locs, labels = plt.xticks()
+        plt.setp(labels, rotation=45)
+        axes4.get_axes().set_title('Corralation Histagram')
+        axes4 = plt.hist(corr_map.flatten(), range=(0,1), bins=20)
+
+        axes5 = self.infofig.add_axes([0.76, 0.325, 0.2, 0.2])
+        axes5.cla()
+        axes5.get_axes().set_yticklabels([])
+        axes5.get_axes().set_xticklabels([])       
+        print local_data.shape
+        axes5.imshow(local_data.mean(axis=2), cmap=mpl.cm.gray)
+        
+        axes6 = self.infofig.add_axes([0.04, 0.025, 0.2, 0.2])
+        axes6.cla()
+        axes6.get_axes().set_yticklabels([])
+        axes6.get_axes().set_xticklabels([])
+                
+        axes7 = self.infofig.add_axes([0.28, 0.025, 0.2, 0.2])
+        axes7.cla()
+        axes7.get_axes().set_yticklabels([])
+        axes7.get_axes().set_xticklabels([])
+        
+        axes8 = self.infofig.add_axes([0.52, 0.025, 0.2, 0.2])
+        axes8.cla()
+        axes8.get_axes().set_yticklabels([])
+        axes8.get_axes().set_xticklabels([])
+        
+        axes9 = self.infofig.add_axes([0.76, 0.025, 0.2, 0.2])
+        axes9.cla()
+        axes9.get_axes().set_yticklabels([])
+        axes9.get_axes().set_xticklabels([])
+        
+        # do NMF decomposition
+        n_comp = 4
+        n = NMF(n_components=n_comp, tol=1e-1)
+        reshaped_data = local_data.reshape(box_size*2 * box_size*2 ,504)
+        n.fit(reshaped_data)
+        transformed_local_data = n.transform(reshaped_data)
+        modes = transformed_local_data.reshape(box_size*2,box_size*2,n_comp).copy()
+       
+        for mode, ax in zip(np.rollaxis(modes,2,0), [axes6, axes7, axes8, axes9]):
+            fit_parameters = self.fitgaussian(mode) 
+            fit_gaussian = self.gaussian(*fit_parameters)
+            xcoords = np.mgrid[0:box_size*2,0:box_size*2][0]
+            ycoords = np.mgrid[0:box_size*2,0:box_size*2][1]
+            fit_data = fit_gaussian(xcoords, ycoords)
+
+            ax.imshow(mode)
+            ax.contour(fit_data, cmap=mpl.cm.Pastel1)
 
         plt.draw()
-        
+    
+    def gaussian(self, height, center_x, center_y, width_x, width_y):
+        """Returns a gaussian function with the given parameters"""
+        width_x = float(width_x)
+        width_y = float(width_y)
+        return lambda x,y: height*np.exp(-(((center_x-x)/width_x)**2+((center_y-y)/width_y)**2)/2)
 
+    def moments(self, data):
+        """Returns (height, x, y, width_x, width_y)
+        the gaussian parameters of a 2D distribution by calculating its
+        moments """
+        total = data.sum()
+        X, Y = np.indices(data.shape)
+        x = (X*data).sum()/total
+        y = (Y*data).sum()/total
+        col = data[:, int(y)]
+        width_x = np.sqrt(abs((np.arange(col.size)-y)**2*col).sum()/col.sum())
+        row = data[int(x), :]
+        width_y = np.sqrt(abs((np.arange(row.size)-x)**2*row).sum()/row.sum())
+        height = data.max()
+        return height, x, y, width_x, width_y
+    
+    def fitgaussian(self, data):
+        """Returns (height, x, y, width_x, width_y)
+        the gaussian parameters of a 2D distribution found by a fit"""
+        params = self.moments(data)
+        errorfunction = lambda p: np.ravel(self.gaussian(*p)(*np.indices(data.shape)) - data)
+        p, success = scipy.optimize.leastsq(errorfunction, params)
+        return p
+            
     def averageCorrCoefScore(self, series, mask):
         coef_matrix = np.corrcoef(series[mask, :])
         return coef_matrix[np.triu_indices(coef_matrix.shape[0],1)].mean()
