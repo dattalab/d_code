@@ -626,7 +626,7 @@ class CellPickerGUI(object):
         # do NMF decomposition
         n_comp = 4
         n = NMF(n_components=n_comp, tol=1e-1)
-        reshaped_data = local_data.reshape(box_size*2 * box_size*2 ,504)
+        reshaped_data = local_data.reshape(box_size*2 * box_size*2 ,local_data.shape[2])
         n.fit(reshaped_data)
         transformed_local_data = n.transform(reshaped_data)
         modes = transformed_local_data.reshape(box_size*2,box_size*2,n_comp).copy()
