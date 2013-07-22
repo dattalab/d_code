@@ -824,6 +824,34 @@ class CellPickerGUI(object):
                     # remove all pixels in and near current mask
                     newCell[mahotas.dilate(self.currentMask>0)] = 0
 
+                    # do NMF decomposition
+                    n_comp = 4
+                    n = NMF(n_components=n_comp, tol=1e-1)
+
+                    xmin_nmf = int(x - self.diskSize*2)
+                    xmax_nmf = int(x + self.diskSize*2)
+                    ymin_nmf = int(y - self.diskSize*2)
+                    ymax_nmf = int(y + self.diskSize*2)
+
+                    reshaped_sub_region_data = self.data[xmin_nmf:xmax_nmf, ymin_nmf:ymax_nmf, :].reshape(xmax_nmf-xmin_nmf * ymax_nmf-ymin_nmf, self.data.shape[2])
+                    n.fit(reshaped_sub_region_data)
+                    transformed_sub_region_data = n.transform(reshaped_sub_region_data)
+                    modes = transformed_sub_region_data.reshape(xmax_nmf-xmin_nmf, ymax_nmf-ymin_nmf, n_comp).copy()
+
+                    plt.figure('blah')
+                    for i, mode in enumerate(np.rollaxis(modes,2,0)):
+                        fit_parameters = self.fitgaussian(mode) 
+                        fit_gaussian = self.gaussian(*fit_parameters)
+                        xcoords = np.mgrid[0:xmax_nmf-xmin_nmf,0:ymax_nmf-ymin_nmf][0]
+                        ycoords =  np.mgrid[0:xmax_nmf-xmin_nmf,0:ymax_nmf-ymin_nmf][1]
+                        fit_data = fit_gaussian(xcoords, ycoords)
+
+                        plt.subplot(2,2,i+1)
+                        plt.cla()
+                        plt.imshow(mode)
+                        plt.contour(fit_data, cmap=mpl.cm.Pastel1)
+
+
                     newMask = (newCell * self.currentMaskNumber) + self.currentMask
                     newMask = newMask.astype('uint16')
 
