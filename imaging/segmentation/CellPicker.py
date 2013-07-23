@@ -824,6 +824,55 @@ class CellPickerGUI(object):
                     # remove all pixels in and near current mask
                     newCell[mahotas.dilate(self.currentMask>0)] = 0
 
+                    # do NMF decomposition
+                    # n_comp = 4
+                    # n = NMF(n_components=n_comp, tol=1e-1)
+
+                    # xmin_nmf = int(x - self.diskSize*5)
+                    # xmax_nmf = int(x + self.diskSize*5)
+                    # ymin_nmf = int(y - self.diskSize*5)
+                    # ymax_nmf = int(y + self.diskSize*5)
+
+                    # xcenter_nmf = (xmax_nmf - xmin_nmf) / 2
+                    # ycenter_nmf = (ymax_nmf - ymin_nmf) / 2
+
+                    # reshaped_sub_region_data = self.data[xmin_nmf:xmax_nmf, ymin_nmf:ymax_nmf, :].reshape(xmax_nmf-xmin_nmf * ymax_nmf-ymin_nmf, self.data.shape[2])
+                    # n.fit(reshaped_sub_region_data-reshaped_sub_region_data.min())
+                    # transformed_sub_region_data = n.transform(reshaped_sub_region_data)
+                    # modes = transformed_sub_region_data.reshape(xmax_nmf-xmin_nmf, ymax_nmf-ymin_nmf, n_comp).copy()
+
+                    # plt.figure('blah')
+                    # params = []
+                    # this_cell = []
+                    # is_cell = []
+                    # for i, mode in enumerate(np.rollaxis(modes,2,0)):
+                    #     fit_parameters = self.fitgaussian(mode) 
+                    #     fit_height, fit_xcenter, fit_ycenter, fit_xwidth, fit_ywidth = fit_parameters
+                    #     params.append(fit_parameters)
+
+                    #     if np.linalg.norm(np.array([xcenter_nmf, ycenter_nmf]) - np.array([fit_xcenter, fit_ycenter])) > self.diskSize*1.5:
+                    #         this_cell.append(False)
+                    #     else:
+                    #         this_cell.append(True)
+                        
+                    #     if self.diskSize*0.25 < fit_xwidth < 3*self.diskSize and self.diskSize*0.25 < fit_ywidth < 3*self.diskSize:
+                    #         is_cell.append(True)
+                    #     else:
+                    #         is_cell.append(False)
+                                              
+                    #     fit_gaussian = self.gaussian(*fit_parameters)
+                    #     xcoords = np.mgrid[0:xmax_nmf-xmin_nmf,0:ymax_nmf-ymin_nmf][0]
+                    #     ycoords =  np.mgrid[0:xmax_nmf-xmin_nmf,0:ymax_nmf-ymin_nmf][1]
+                    #     fit_data = fit_gaussian(xcoords, ycoords)
+
+                    #     plt.subplot(2,2,i+1)
+                    #     plt.cla()
+                    #     plt.imshow(mode)
+                    #     plt.contour(fit_data, cmap=mpl.cm.Pastel1)
+                    # print params
+                    # print 'this cell', this_cell
+                    # print 'is cell', is_cell
+
                     newMask = (newCell * self.currentMaskNumber) + self.currentMask
                     newMask = newMask.astype('uint16')
 
