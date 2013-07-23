@@ -219,8 +219,6 @@ def getWeightedEvents(event_array, trace_array):
     """
     weighted_events = np.zeros_like(event_array)
     
-    for i in np.unique(event_array):
-        if i == 1:
-            pass
+    for i in np.unique(event_array)[1:]:
         weighted_events[event_array==i] = trace_array[event_array==i].mean()
     return weighted_events
