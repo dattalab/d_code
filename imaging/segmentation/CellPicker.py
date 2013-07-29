@@ -139,7 +139,7 @@ class CellPickerGUI(object):
         self.label_2.setObjectName("label_2")
         #radius selector
         self.dilation_disk = QtGui.QSpinBox(self.splitter)
-        self.dilation_disk.setProperty("value", 3)
+        self.dilation_disk.setProperty("value", 4)
         self.dilation_disk.setObjectName("dilation_disk")
         
         #splitter for threshold
