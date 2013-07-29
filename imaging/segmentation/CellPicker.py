@@ -290,6 +290,14 @@ class CellPickerGUI(object):
         self.horizontalSlider.valueChanged.connect(self.comScroleToLine)
         self.lineEdit.returnPressed.connect(self.comLineToScrole)
         
+        #toggle mask button
+        self.checkBox_2 = QtGui.QCheckBox(self.centralwidget)
+        self.checkBox_2.setGeometry(QtCore.QRect(10, 620, 200, 20))
+        self.checkBox_2.setObjectName("checkBox_2")
+        self.checkBox_2.setText('Toggle Mask')
+        self.checkBox_2.setChecked(True)
+        self.checkBox_2.stateChanged.connect(self.flipMaskOn)
+        
         MainWindow.setCentralWidget(self.centralwidget)
         self.statusbar = QtGui.QStatusBar(MainWindow)
         self.statusbar.setObjectName("statusbar")
@@ -465,16 +473,21 @@ class CellPickerGUI(object):
             self.radioButton_5.setChecked(True)
 
         elif keyPressed == QtCore.Qt.Key_M:
-            if self.maskOn:
-                self.maskOn = False
-                self.currentMask = np.zeros_like(self.currentMask)
-                self.makeNewMaskAndBackgroundImage()
-            else:
-                self.maskOn = True
-                self.currentMask = self.listOfMasks[-1] 
-                self.makeNewMaskAndBackgroundImage()
+            self.flipMaskOn()
         else:
             pass
+
+    def flipMaskOn(self):
+        if self.maskOn:
+            self.maskOn = False
+            self.currentMask = np.zeros_like(self.currentMask)
+            self.makeNewMaskAndBackgroundImage()
+            self.checkBox_2.setChecked(False)
+        else:
+            self.maskOn = True
+            self.currentMask = self.listOfMasks[-1] 
+            self.makeNewMaskAndBackgroundImage()
+            self.checkBox_2.setChecked(True)
 
     def clearModeData(self):
         self.modeData = []
