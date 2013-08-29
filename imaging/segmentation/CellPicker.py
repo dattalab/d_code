@@ -66,13 +66,13 @@ class MatplotlibWidget(FigureCanvas):
         self.mask_ax.set_data(mask)
         self.draw()    
     
-    #signal
+    # signal
     def keyPressEvent(self, event):
         # self.c.keyPressed.emit(event.text())
         self.c.keyPressed.emit(event.key())
         event.accept()
         
-    #signal
+    # signal
     def mousePressEvent(self, event):
         self.setFocus()
         
@@ -93,7 +93,7 @@ class MatplotlibWidget(FigureCanvas):
             x = int( (float(event.pos().y()) - x_offset) / (self.height - 2 * x_offset) * self.image.shape[0])
             y = int( (float(event.pos().x()) - y_offset) / (self.width - 2 * y_offset) * self.image.shape[1])
         
-        #switch here for shift-click (emit different signal)
+        # switch here for shift-click (emit different signal)
         if QtCore.Qt.Modifier.SHIFT and event.modifiers():
             self.c.mouseSingleShiftClicked.emit((x, y))
         else: 
@@ -122,29 +122,29 @@ class CellPickerGUI(object):
         sizePolicy.setVerticalStretch(1)
         sizePolicy.setHeightForWidth(self.image_widget.sizePolicy().hasHeightForWidth())
         
-        #custom image
+        # custom image
         self.image_widget.setSizePolicy(sizePolicy)
         self.image_widget.setMinimumSize(QtCore.QSize(512, 512))
         self.image_widget.setObjectName("image_widget")
         self.image_widget.setFocus()
 
-        #splitter for radius selector (organizational)
+        # splitter for radius selector (organizational)
         self.splitter = QtGui.QSplitter(self.centralwidget)
         self.splitter.setGeometry(QtCore.QRect(10, 460, 111, 51))
         self.splitter.setOrientation(QtCore.Qt.Vertical)
         self.splitter.setObjectName("splitter")
         self.splitter.setChildrenCollapsible(False)
-        #label for radius selector
+        # label for radius selector
         self.label_2 = QtGui.QLabel(self.splitter)
         self.label_2.setAlignment(QtCore.Qt.AlignCenter)
         self.label_2.setWordWrap(True)
         self.label_2.setObjectName("label_2")
-        #radius selector
+        # radius selector
         self.dilation_disk = QtGui.QSpinBox(self.splitter)
         self.dilation_disk.setProperty("value", 3)
         self.dilation_disk.setObjectName("dilation_disk")
         
-        #splitter for threshold
+        # splitter for threshold
         self.splitter_2 = QtGui.QSplitter(self.centralwidget)
         self.splitter_2.setGeometry(QtCore.QRect(10, 400, 122, 51))
         self.splitter_2.setFrameShape(QtGui.QFrame.NoFrame)
@@ -153,91 +153,91 @@ class CellPickerGUI(object):
         self.splitter_2.setChildrenCollapsible(False)
         self.splitter_2.setObjectName("splitter_2")
         self.splitter_2.setChildrenCollapsible(False)
-        #threshold label
+        # threshold label
         self.label = QtGui.QLabel(self.splitter_2)
         self.label.setAlignment(QtCore.Qt.AlignCenter)
         self.label.setWordWrap(True)
         self.label.setObjectName("label")
-        #threshold selector
+        # threshold selector
         self.contrast_threshold = QtGui.QDoubleSpinBox(self.splitter_2)
         self.contrast_threshold.setSingleStep(0.01)
         self.contrast_threshold.setProperty("value", 0.95)
         self.contrast_threshold.setObjectName("contrast_threshold")
         
-        #check boxes to switch modes
-        #splitter for mode buttons
+        # check boxes to switch modes
+        # splitter for mode buttons
         self.splitter_3 = QtGui.QSplitter(self.centralwidget)
         self.splitter_3.setGeometry(QtCore.QRect(10, 260, 141, 131))
         self.splitter_3.setOrientation(QtCore.Qt.Vertical)
         self.splitter_3.setObjectName("splitter_3")
         self.splitter_3.setChildrenCollapsible(False)
-        #polygon
+        # polygon
         self.radioButton_3 = QtGui.QRadioButton(self.splitter_3)
         self.radioButton_3.setObjectName("radioButton_3")
         self.radioButton_3.setText('Polygon Mode: (p)')        
-        #square
+        # square
         self.radioButton = QtGui.QRadioButton(self.splitter_3)
         self.radioButton.setObjectName("radioButton")
         self.radioButton.setText('Square Mode: (s)')        
-        #circle
+        # circle
         self.radioButton_4 = QtGui.QRadioButton(self.splitter_3)
         self.radioButton_4.setObjectName("radioButton_4")
         self.radioButton_4.setText('Circel Mode: (c)')        
-        #OGB
+        # OGB
         self.radioButton_2 = QtGui.QRadioButton(self.splitter_3)
         self.radioButton_2.setObjectName("radioButton_2")
         self.radioButton_2.setText('OGB Mode: (o)')
-        #standard
+        # standard
         self.radioButton_5 = QtGui.QRadioButton(self.splitter_3)
         self.radioButton_5.setObjectName("radioButton_5")
         self.radioButton_5.setText('Standard Mode: (x)')
         self.radioButton_5.setChecked(True)
-        #button group for mode radio buttons
+        # button group for mode radio buttons
         self.buttonGroup = QtGui.QButtonGroup()
         self.buttonGroup.addButton(self.radioButton_3, 1)  #Polygon
         self.buttonGroup.addButton(self.radioButton, 2)    #Square
         self.buttonGroup.addButton(self.radioButton_4, 3)  #Circle
         self.buttonGroup.addButton(self.radioButton_2, 4)  #OGB
         self.buttonGroup.addButton(self.radioButton_5, 5)  #Standard
-        #mode switch radio button conecctor
+        # mode switch radio button conecctor
         self.radioButton_3.toggled.connect(self.changeMode)
         self.radioButton.toggled.connect(self.changeMode)
         self.radioButton_4.toggled.connect(self.changeMode)
         self.radioButton_2.toggled.connect(self.changeMode)
         self.radioButton_5.toggled.connect(self.changeMode)
         
-        #Hot Key Legend
-        #splitter for key legend
+        # Hot Key Legend
+        # splitter for key legend
         self.splitter_4 = QtGui.QSplitter(self.centralwidget)
         self.splitter_4.setGeometry(QtCore.QRect(10, 10, 141, 241))
         self.splitter_4.setOrientation(QtCore.Qt.Vertical)
         self.splitter_4.setObjectName("splitter_4")
         self.splitter_4.setChildrenCollapsible(False)        
-        #title
+        # title
         self.label_10 = QtGui.QLabel(self.splitter_4)
         self.label_10.setObjectName("label_10")
         self.label_10.setText('HOT KEYS:')        
-        #P
+        # P
         self.label_8 = QtGui.QLabel(self.splitter_4)
         self.label_8.setObjectName("label_8")
         self.label_8.setText('Polygon Mode: (p)')       
-        #T
+        # T
         self.label_9 = QtGui.QLabel(self.splitter_4)
         self.label_9.setObjectName("label_9")
         self.label_9.setText('Terminate Poly.: (t)')       
-        #S
+        # S
         self.label_7 = QtGui.QLabel(self.splitter_4)
         self.label_7.setObjectName("label_7")
         self.label_7.setText('Square: (s)')
-        #C
+        # C
         self.label_5 = QtGui.QLabel(self.splitter_4)
         self.label_5.setObjectName("label_5")
         self.label_5.setText('Circle: (c)')        
-        #O
+        # O
         self.label_6 = QtGui.QLabel(self.splitter_4)
         self.label_6.setObjectName("label_6")
         self.label_6.setText('OGB: (o)')        
-        #standard (X)
+        # standard (X)
         self.label_4 = QtGui.QLabel(self.splitter_4)
         self.label_4.setObjectName("label_4")
         self.label_4.setText('Standard: (x)')
@@ -250,27 +250,27 @@ class CellPickerGUI(object):
             self.currentBackgroundImage = self.data.mean(axis=2)
             self.frame = self.data.shape[2]
         
-        #ave/vid slider gui
+        # ave/vid slider gui
         
-        #slidder label
+        # slider label
         self.label_3 = QtGui.QLabel(self.centralwidget)
         self.label_3.setGeometry(QtCore.QRect(160, 780, 150, 16))
         self.label_3.setObjectName("label_3")
         self.label_3.setText('Slide to Frame in Video')
         self.label_3.setVisible(False)
-        #jumper label
+        # jumper label
         self.label_11 = QtGui.QLabel(self.centralwidget)
         self.label_11.setGeometry(QtCore.QRect(10, 780, 150, 16))
         self.label_11.setObjectName("label_11")
         self.label_11.setText('Jump to Frame')
         self.label_11.setVisible(False)
-        #ave/vid toggel button
+        # ave/vid toggle button
         self.checkBox = QtGui.QCheckBox(self.centralwidget)
         self.checkBox.setGeometry(QtCore.QRect(10, 600, 200, 20))
         self.checkBox.setObjectName("checkBox")
         self.checkBox.setText('Ave(On)/Vid(Off)')
         self.checkBox.setChecked(True)
-        #video frame slidder
+        # video frame slidder
         self.horizontalSlider = QtGui.QSlider(self.centralwidget)
         self.horizontalSlider.setGeometry(QtCore.QRect(160, 800, 750, 22))
         self.horizontalSlider.setOrientation(QtCore.Qt.Horizontal)
@@ -279,16 +279,16 @@ class CellPickerGUI(object):
         self.horizontalSlider.setMaximum(self.frame-1)
         self.currentFrame = self.horizontalSlider.value()
         
-        #jump to video frame
+        # jump to video frame
         self.lineEdit = QtGui.QLineEdit(self.centralwidget)
         self.lineEdit.setGeometry(QtCore.QRect(10, 800, 113, 21))
         self.lineEdit.setObjectName("lineEdit")
         self.lineEdit.setVisible(False)
         
-        #ave/vid checkbox connector
+        # ave/vid checkbox connector
         self.checkBox.stateChanged.connect(self.avgBoxClicked)
         
-        #connect value in box and slider
+        # connect value in box and slider
         self.horizontalSlider.valueChanged.connect(self.comScrollToLine)
         self.lineEdit.returnPressed.connect(self.comLineToScroll)
         
@@ -328,7 +328,7 @@ class CellPickerGUI(object):
 
         self.makeNewMaskAndBackgroundImage()
     
-    #ave/vid is clicked
+    # ave/vid is clicked
     def avgBoxClicked(self, state):
         if state == QtCore.Qt.Checked:
             self.currentBackgroundImage = self.data.mean(axis=2)
@@ -342,7 +342,7 @@ class CellPickerGUI(object):
             self.horizontalSlider.setVisible(True)
             self.lineEdit.setVisible(True)
             
-    #changes the mode from radio buttons
+    # changes the mode from radio buttons
     def changeMode(self):
         state = self.buttonGroup.checkedId()
         if state == 1:
@@ -356,7 +356,7 @@ class CellPickerGUI(object):
         elif state == 5:
             self.mode = None
     
-    #connect the box and slider
+    # connect the box and slider
     def comLineToScroll(self):
         self.currentFrame = int(self.lineEdit.text())
         self.horizontalSlider.setValue(self.currentFrame)
@@ -527,7 +527,7 @@ class CellPickerGUI(object):
 
         self.infofig = plt.figure('info')
         
-        #activity plot
+        # activity plot
         axes1 = self.infofig.add_axes([0.04, 0.6, 0.92, 0.35]) # main axes
         axes1.cla()
         trace = self.timeCourseROI(ROI_mask)
@@ -542,7 +542,7 @@ class CellPickerGUI(object):
         axes1[0].get_axes().set_ylim(self.data.min()*0.9, self.max_of_trace*1.1)
         axes1[0].get_axes().set_title('Activity Plot')
 
-        #Mask display
+        # Mask display
         axes2 = self.infofig.add_axes([0.04, 0.325, 0.2, 0.2]) # inset axes
         axes2.cla()
         axes2 = plt.imshow(self.currentMask + ROI_mask)
@@ -550,7 +550,7 @@ class CellPickerGUI(object):
         axes2.get_axes().set_xticklabels([])
         axes2.get_axes().set_title('Mask')
 
-        #ROI corralation
+        # ROI corralation
         axes3 = self.infofig.add_axes([0.28, 0.325, 0.2, 0.2])
         axes3.cla()
         
@@ -590,7 +590,7 @@ class CellPickerGUI(object):
         axes3.get_axes().set_xticklabels([])
         axes3.get_axes().set_title('ROI Corralation')
 
-        #Histogram
+        # Histogram
         
         axes4 = self.infofig.add_axes([0.52, 0.325, 0.2, 0.2])
         axes4.cla()
@@ -605,6 +605,8 @@ class CellPickerGUI(object):
         axes5.get_axes().set_xticklabels([])       
         axes5.imshow(local_data.mean(axis=2), cmap=mpl.cm.gray)
         
+        # NMF Modes
+
         axes6 = self.infofig.add_axes([0.04, 0.025, 0.2, 0.2])
         axes6.cla()
         axes6.get_axes().set_yticklabels([])
@@ -1038,8 +1040,6 @@ class CellPickerGUI(object):
         print 'is cell', is_cell
         
         return modes, np.array(this_cell), np.array(is_cell)
-
-
     
     @QtCore.Slot(tuple)
     def deleteCell(self, eventTuple):
@@ -1086,7 +1086,7 @@ class CellPickerGUI(object):
         else:
             color_mask = converter.to_rgba(self.currentMask)
         color_mask[:,:,3] = 0
-        color_mask[:,:,3] = (color_mask[:,:,0:2].sum(axis=2) > 0).astype(float) * 0.4 # alpha value of 0.4
+        color_mask[:,:,3] = (color_mask[:,:,0:2].sum(axis=2) > 0).astype(float) * 0.4 # alpha value of 40%
 
         self.image_widget.updateImage(self.currentBackgroundImage, color_mask)
         
