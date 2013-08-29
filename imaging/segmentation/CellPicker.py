@@ -20,6 +20,8 @@ import matplotlib.nxutils as nx
 
 from sklearn.decomposition import NMF
 
+import pdb
+
 class Communicate(QtCore.QObject):
     keyPressed = QtCore.Signal(tuple)
     mouseSingleClicked = QtCore.Signal(tuple)
@@ -322,6 +324,7 @@ class CellPickerGUI(object):
         self.modeData = None # or a list of point tuples
 
         self.maskOn = True
+        self.useNMF = True
 
         self.makeNewMaskAndBackgroundImage()
     
@@ -474,6 +477,10 @@ class CellPickerGUI(object):
                 self.maskOn = True
                 self.currentMask = self.listOfMasks[-1] 
                 self.makeNewMaskAndBackgroundImage()
+
+        elif keyPressed == QtCore.Qt.Key_N:
+            self.useNMF = not(self.useNMF)
+
         else:
             pass
 
@@ -570,7 +577,6 @@ class CellPickerGUI(object):
             for yv in range(y):
                 corr_map[xv,yv] = np.correlate(local_data[xv,yv,:]-local_data[xv,yv,:].mean(), trace-trace.mean())
        
-        print corr_map.shape 
         corr_map[np.isnan(corr_map)] = 0
         corr_map = corr_map/corr_map.max()
         
@@ -587,7 +593,7 @@ class CellPickerGUI(object):
         axes3.get_axes().set_xticklabels([])
         axes3.get_axes().set_title('ROI Corralation')
 
-        #Histagram
+        #Histogram
         
         axes4 = self.infofig.add_axes([0.52, 0.325, 0.2, 0.2])
         axes4.cla()
@@ -622,6 +628,7 @@ class CellPickerGUI(object):
         axes9.cla()
         axes9.get_axes().set_yticklabels([])
         axes9.get_axes().set_xticklabels([])
+
         
         # do NMF decomposition
         n_comp = 4
@@ -663,7 +670,7 @@ class CellPickerGUI(object):
         width_y = np.sqrt(abs((np.arange(row.size)-x)**2*row).sum()/row.sum())
         height = data.max()
         return height, x, y, width_x, width_y
-    
+
     def fitgaussian(self, data):
         """Returns (height, x, y, width_x, width_y)
         the gaussian parameters of a 2D distribution found by a fit"""
@@ -742,6 +749,10 @@ class CellPickerGUI(object):
 
             self.currentMask = self.currentMask.astype('uint16')
 
+            # need center of mass for polygon
+            center_of_mass = scipy.ndimage.measurements.center_of_mass(poly_mask)
+            modes, this_cell, is_cell = self.doLocalNMF(center_of_mass[0], center_of_mass[1])
+
             # add poly_mask to mask
             newMask = (poly_mask * self.currentMaskNumber) + self.currentMask
             newMask = newMask.astype('uint16')
@@ -753,8 +764,6 @@ class CellPickerGUI(object):
             self.makeNewMaskAndBackgroundImage()
 
     
-    
-
     @QtCore.Slot(tuple)
     def addCell(self, eventTuple):
         if self.maskOn:
@@ -814,64 +823,93 @@ class CellPickerGUI(object):
                     center = g_l == g_l[g_l.shape[0]/2, g_l.shape[0]/2]
                     #edges = mahotas.dilate(mahotas.dilate(mahotas.dilate(center))) - center
 
+
                     newCell = np.zeros_like(self.currentMask)
                     newCell[xmin:xmax, ymin:ymax] = center
+                    newCell = mahotas.dilate(newCell)
 
-    #                newCell[xmin:xmax, ymin:ymax] = mahotas.erode(np.logical_not(sub_region_image > threshold))
-    #                newCell = mahotas.dilate(newCell).astype(int)
-    #                newCell = self.conditionallyDilateMask(newCell, self.series).astype(int)
+                    if self.useNMF:
+                        modes, this_cell, is_cell = self.doLocalNMF(x,y, newCell)
 
-                    # remove all pixels in and near current mask
+                        roi_as_selected = newCell.copy()
+
+                        # need to add all modes belonging to this cell first,
+                        # then remove the ones nearby.
+
+                        # if a mode is a cell and is this cell, add some of it to the ROI
+                        for m, t, i in zip(np.rollaxis(modes, 2, 0)[1:], this_cell[1:], is_cell[1:]):
+                            mode_thresh = m > mahotas.otsu(m.astype('uint16'))
+                            # need to place it in the right place
+                            # have x and y
+                            mode_width, mode_height = mode_thresh.shape
+                            mode_thresh_fullsize = np.zeros_like(newCell)
+
+                            if x <= mode_width/2:
+                                x_range = (0, mode_width)
+                            elif x > mode_thresh_fullsize.shape[0] - mode_width/2:
+                                x_range = (mode_thresh_fullsize.shape[0]-mode_width, mode_thresh_fullsize.shape[0])
+                            else:
+                                if mode_width % 2 == 0:
+                                    x_range = (x-mode_width/2, x+mode_width/2)
+                                else:
+                                    x_range = (x-mode_width/2, x+mode_width/2+1)
+
+                            if y <= mode_height/2:
+                                y_range = (0, mode_height)
+                            elif y > mode_thresh_fullsize.shape[1] - mode_height/2:
+                                y_range = (mode_thresh_fullsize.shape[1]-mode_height, mode_thresh_fullsize.shape[1])
+                            else:
+                                if mode_height % 2 == 0:
+                                    y_range = (y-mode_height/2, y+mode_height/2)
+                                else:
+                                    y_range = (y-mode_height/2, y+mode_height/2+1)
+
+                            mode_thresh_fullsize[x_range[0]:x_range[1], y_range[0]:y_range[1]] = mode_thresh
+
+                            if i and t:
+                                valid_area = np.logical_and(mahotas.dilate(mahotas.dilate(mahotas.dilate(mahotas.dilate(newCell.astype(bool))))), mode_thresh_fullsize)
+                                newCell = np.logical_or(newCell.astype(bool), valid_area)
+
+                        for m, t, i in zip(np.rollaxis(modes, 2, 0)[1:], this_cell[1:], is_cell[1:]):
+                            mode_thresh = m > mahotas.otsu(m.astype('uint16'))
+                            # need to place it in the right place
+                            # have x and y
+                            mode_width, mode_height = mode_thresh.shape
+                            mode_thresh_fullsize = np.zeros_like(newCell)
+
+                            if x <= mode_width/2:
+                                x_range = (0, mode_width)
+                            elif x > mode_thresh_fullsize.shape[0] - mode_width/2:
+                                x_range = (mode_thresh_fullsize.shape[0]-mode_width, mode_thresh_fullsize.shape[0])
+                            else:
+                                if mode_width % 2 == 0:
+                                    x_range = (x-mode_width/2, x+mode_width/2)
+                                else:
+                                    x_range = (x-mode_width/2, x+mode_width/2+1)
+
+                            if y <= mode_height/2:
+                                y_range = (0, mode_height)
+                            elif y > mode_thresh_fullsize.shape[1] - mode_height/2:
+                                y_range = (mode_thresh_fullsize.shape[1]-mode_height, mode_thresh_fullsize.shape[1])
+                            else:
+                                if mode_height % 2 == 0:
+                                    y_range = (y-mode_height/2, y+mode_height/2)
+                                else:
+                                    y_range = (y-mode_height/2, y+mode_height/2+1)
+
+                            mode_thresh_fullsize[x_range[0]:x_range[1], y_range[0]:y_range[1]] = mode_thresh
+
+                            if i and not t:
+                                newCell = np.logical_and(newCell.astype(bool), np.logical_not(mahotas.dilate(mode_thresh_fullsize)))
+
+                        newCell = mahotas.close_holes(newCell.astype(bool))
+                        self.excludePixels(newCell, 2)
+
+                    newCell = newCell.astype(self.currentMask.dtype)
+
+                    # remove all pixels in and near current mask and filter for ROI size
                     newCell[mahotas.dilate(self.currentMask>0)] = 0
-
-                    # do NMF decomposition
-                    # n_comp = 4
-                    # n = NMF(n_components=n_comp, tol=1e-1)
-
-                    # xmin_nmf = int(x - self.diskSize*5)
-                    # xmax_nmf = int(x + self.diskSize*5)
-                    # ymin_nmf = int(y - self.diskSize*5)
-                    # ymax_nmf = int(y + self.diskSize*5)
-
-                    # xcenter_nmf = (xmax_nmf - xmin_nmf) / 2
-                    # ycenter_nmf = (ymax_nmf - ymin_nmf) / 2
-
-                    # reshaped_sub_region_data = self.data[xmin_nmf:xmax_nmf, ymin_nmf:ymax_nmf, :].reshape(xmax_nmf-xmin_nmf * ymax_nmf-ymin_nmf, self.data.shape[2])
-                    # n.fit(reshaped_sub_region_data-reshaped_sub_region_data.min())
-                    # transformed_sub_region_data = n.transform(reshaped_sub_region_data)
-                    # modes = transformed_sub_region_data.reshape(xmax_nmf-xmin_nmf, ymax_nmf-ymin_nmf, n_comp).copy()
-
-                    # plt.figure('blah')
-                    # params = []
-                    # this_cell = []
-                    # is_cell = []
-                    # for i, mode in enumerate(np.rollaxis(modes,2,0)):
-                    #     fit_parameters = self.fitgaussian(mode) 
-                    #     fit_height, fit_xcenter, fit_ycenter, fit_xwidth, fit_ywidth = fit_parameters
-                    #     params.append(fit_parameters)
-
-                    #     if np.linalg.norm(np.array([xcenter_nmf, ycenter_nmf]) - np.array([fit_xcenter, fit_ycenter])) > self.diskSize*1.5:
-                    #         this_cell.append(False)
-                    #     else:
-                    #         this_cell.append(True)
-                        
-                    #     if self.diskSize*0.25 < fit_xwidth < 3*self.diskSize and self.diskSize*0.25 < fit_ywidth < 3*self.diskSize:
-                    #         is_cell.append(True)
-                    #     else:
-                    #         is_cell.append(False)
-                                              
-                    #     fit_gaussian = self.gaussian(*fit_parameters)
-                    #     xcoords = np.mgrid[0:xmax_nmf-xmin_nmf,0:ymax_nmf-ymin_nmf][0]
-                    #     ycoords =  np.mgrid[0:xmax_nmf-xmin_nmf,0:ymax_nmf-ymin_nmf][1]
-                    #     fit_data = fit_gaussian(xcoords, ycoords)
-
-                    #     plt.subplot(2,2,i+1)
-                    #     plt.cla()
-                    #     plt.imshow(mode)
-                    #     plt.contour(fit_data, cmap=mpl.cm.Pastel1)
-                    # print params
-                    # print 'this cell', this_cell
-                    # print 'is cell', is_cell
+                    newCell = self.excludePixels(newCell, 10)
 
                     newMask = (newCell * self.currentMaskNumber) + self.currentMask
                     newMask = newMask.astype('uint16')
@@ -910,6 +948,8 @@ class CellPickerGUI(object):
                 dilateMean = mahotas.dilate(erodedMean, Bc=seJunk)
                 dilateMean = mahotas.dilate(dilateMean, Bc=seExpand)
 
+                modes, this_cell, is_cell = self.doLocaNMF(x,y)
+
                 newCell = np.logical_and(dilateMean, safeUnselected)
                 newMask = (newCell * self.currentMaskNumber) + self.currentMask
                 newMask = newMask.astype('uint16')
@@ -933,6 +973,9 @@ class CellPickerGUI(object):
                     # check if square_mask interfers with current mask, if so, abort
                     if np.any(np.logical_and(square_mask, self.currentMask)):
                         return None
+
+#                    print ((xend+xstart)/2,(yend+ystart)/2)
+                    modes, this_cell, is_cell = self.doLocalNMF((xend+xstart)/2,(yend+ystart)/2)
 
                     # add square_mask to mask
                     newMask = (square_mask * self.currentMaskNumber) + self.currentMask
@@ -966,9 +1009,13 @@ class CellPickerGUI(object):
                 if np.any(np.logical_and(circle_mask, mahotas.dilate(self.currentMask.astype(bool)))):
                     return None
 
+                modes, this_cell, is_cell = self.doLocalNMF(x,y, circle_mask)
+
                 # add circle_mask to mask
                 newMask = (circle_mask * self.currentMaskNumber) + self.currentMask
                 newMask = newMask.astype('uint16')
+
+
 
                 self.listOfMasks.append(newMask)
                 self.currentMask = self.listOfMasks[-1]
@@ -979,6 +1026,74 @@ class CellPickerGUI(object):
 
             sys.stdout.flush()
             self.makeNewMaskAndBackgroundImage()
+
+
+    def excludePixels(self, image, size_cutoff=1):
+        labeled_image = mahotas.label(image)[0]
+
+        for label_id in range(labeled_image.max()+1):
+            label_id_index = labeled_image == label_id
+            if label_id_index.sum() <= size_cutoff:
+                labeled_image[label_id_index] = 0
+
+        return labeled_image>0
+
+    def doLocalNMF(self, x, y, roi, n_comp=4):
+        # do NMF decomposition
+        n = NMF(n_components=n_comp, tol=1e-1)
+
+        xmin_nmf = max(0,int(x - self.diskSize*5))
+        xmax_nmf = min(int(x + self.diskSize*5), self.data.shape[0])
+        ymin_nmf = max(0, int(y - self.diskSize*5))
+        ymax_nmf = min(int(y + self.diskSize*5), self.data.shape[1])
+
+        local_roi = roi[xmin_nmf:xmax_nmf, ymin_nmf:ymax_nmf]
+
+        xcenter_nmf = (xmax_nmf - xmin_nmf) / 2
+        ycenter_nmf = (ymax_nmf - ymin_nmf) / 2
+
+        reshaped_sub_region_data = self.data[xmin_nmf:xmax_nmf, ymin_nmf:ymax_nmf, :].reshape(xmax_nmf-xmin_nmf * ymax_nmf-ymin_nmf, self.data.shape[2])
+        n.fit(reshaped_sub_region_data-reshaped_sub_region_data.min())
+        transformed_sub_region_data = n.transform(reshaped_sub_region_data)
+        modes = transformed_sub_region_data.reshape(xmax_nmf-xmin_nmf, ymax_nmf-ymin_nmf, n_comp).copy()
+
+        params = []
+        this_cell = []
+        is_cell = []
+        for i, mode in enumerate(np.rollaxis(modes,2,0)):
+            # threshold mode
+            thresh_mode = (mode.astype('uint16') > mahotas.otsu(mode.astype('uint16'))).astype(int)
+
+
+            # fit thresholded mode
+            fit_parameters = self.fitgaussian(thresh_mode) 
+            fit_height, fit_xcenter, fit_ycenter, fit_xwidth, fit_ywidth  = fit_parameters
+            print 'mode ' + str(i) + ' parameters: ' + str(fit_parameters)
+            params.append(fit_parameters)
+
+            # is cell-like?
+            if self.diskSize*0.25 < fit_xwidth < 3*self.diskSize and self.diskSize*0.25 < fit_ywidth < 3*self.diskSize:
+                is_cell.append(True)
+            else:
+                is_cell.append(False)
+
+            # is this cell?
+            if np.linalg.norm(np.array([xcenter_nmf, ycenter_nmf]) - np.array([fit_xcenter, fit_ycenter])) < self.diskSize*1.5:
+                this_cell.append(True)
+            else:
+                this_cell.append(False)
+
+            fit_gaussian = self.gaussian(*fit_parameters)
+            xcoords = np.mgrid[0:xmax_nmf-xmin_nmf,0:ymax_nmf-ymin_nmf][0]
+            ycoords =  np.mgrid[0:xmax_nmf-xmin_nmf,0:ymax_nmf-ymin_nmf][1]
+            fit_data = fit_gaussian(xcoords, ycoords)
+
+        print 'this cell', this_cell
+        print 'is cell', is_cell
+        
+        return modes, np.array(this_cell), np.array(is_cell)
+
+
     
     @QtCore.Slot(tuple)
     def deleteCell(self, eventTuple):
