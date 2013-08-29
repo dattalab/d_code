@@ -357,7 +357,7 @@ class CellPickerGUI(object):
         elif state == 5:
             self.mode = None
     
-    #connect the box and slidder
+    #connect the box and slider
     def comLineToScroll(self):
         self.currentFrame = int(self.lineEdit.text())
         self.horizontalSlider.setValue(self.currentFrame)
