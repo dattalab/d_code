@@ -289,8 +289,8 @@ class CellPickerGUI(object):
         self.checkBox.stateChanged.connect(self.boxClicked)
         
         #connect value in box and slider
-        self.horizontalSlider.valueChanged.connect(self.comScroleToLine)
-        self.lineEdit.returnPressed.connect(self.comLineToScrole)
+        self.horizontalSlider.valueChanged.connect(self.comScrollToLine)
+        self.lineEdit.returnPressed.connect(self.comLineToScroll)
         
         MainWindow.setCentralWidget(self.centralwidget)
         self.statusbar = QtGui.QStatusBar(MainWindow)
@@ -358,12 +358,12 @@ class CellPickerGUI(object):
             self.mode = None
     
     #connect the box and slidder
-    def comLineToScrole(self):
+    def comLineToScroll(self):
         self.currentFrame = int(self.lineEdit.text())
         self.horizontalSlider.setValue(self.currentFrame)
         self.currentBackgroundImage = self.data[:,:,self.currentFrame]
         self.makeNewMaskAndBackgroundImage()
-    def comScroleToLine(self):
+    def comScrollToLine(self):
         self.currentFrame = self.horizontalSlider.value()
         self.lineEdit.setText(str(self.currentFrame))
         self.currentBackgroundImage = self.data[:,:,self.currentFrame]
@@ -629,7 +629,6 @@ class CellPickerGUI(object):
         axes9.get_axes().set_yticklabels([])
         axes9.get_axes().set_xticklabels([])
 
-        
         # do NMF decomposition
         n_comp = 4
         n = NMF(n_components=n_comp, tol=1e-1)
