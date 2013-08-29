@@ -286,7 +286,7 @@ class CellPickerGUI(object):
         self.lineEdit.setVisible(False)
         
         #ave/vid checkbox connector
-        self.checkBox.stateChanged.connect(self.boxClicked)
+        self.checkBox.stateChanged.connect(self.avgBoxClicked)
         
         #connect value in box and slider
         self.horizontalSlider.valueChanged.connect(self.comScrollToLine)
@@ -329,7 +329,7 @@ class CellPickerGUI(object):
         self.makeNewMaskAndBackgroundImage()
     
     #ave/vid is clicked
-    def boxClicked(self, state):
+    def avgBoxClicked(self, state):
         if state == QtCore.Qt.Checked:
             self.currentBackgroundImage = self.data.mean(axis=2)
             self.makeNewMaskAndBackgroundImage()
