@@ -514,19 +514,17 @@ class CellPickerGUI(object):
 
 
     def updateInfoPanel(self, ROI_number=None):
-
-        box_size = 3*self.dilation_disk.value()
-
         if self.data.ndim == 2:
             print 'No series information!'
             sys.stdout.flush()
             return None
 
-        # we have two figures, a trace, and masks
+        
+        self.infofig = plt.figure('info')
+        box_size = 5*self.dilation_disk.value()
+
         ROI_mask = self.maskFromROINumber(ROI_number)
 
-        self.infofig = plt.figure('info')
-        
         # activity plot
         axes1 = self.infofig.add_axes([0.04, 0.6, 0.92, 0.35]) # main axes
         axes1.cla()
@@ -627,23 +625,29 @@ class CellPickerGUI(object):
         axes9.get_axes().set_yticklabels([])
         axes9.get_axes().set_xticklabels([])
 
-        # do NMF decomposition
-        n_comp = 4
-        n = NMF(n_components=n_comp, tol=1e-1)
-        reshaped_data = local_data.reshape(box_size*2 * box_size*2 ,local_data.shape[2])
-        n.fit(reshaped_data)
-        transformed_local_data = n.transform(reshaped_data)
-        modes = transformed_local_data.reshape(box_size*2,box_size*2,n_comp).copy()
-       
-        for mode, ax in zip(np.rollaxis(modes,2,0), [axes6, axes7, axes8, axes9]):
+
+        modes, this_cell, is_cell = self.doLocalNMF(xcenter, ycenter, ROI_mask)
+
+        for i, (mode, t, is_a_cell, ax) in enumerate(zip(np.rollaxis(modes,2,0)[1:], this_cell[1:], is_cell[1:], [axes6, axes7, axes8, axes9])):
             fit_parameters = self.fitgaussian(mode) 
-            fit_gaussian = self.gaussian(*fit_parameters)
+            gaussian_function = self.gaussian(*fit_parameters)
             xcoords = np.mgrid[0:box_size*2,0:box_size*2][0]
             ycoords = np.mgrid[0:box_size*2,0:box_size*2][1]
-            fit_data = fit_gaussian(xcoords, ycoords)
+            fit_data = gaussian_function(xcoords, ycoords)
 
             ax.imshow(mode)
             ax.contour(fit_data, cmap=mpl.cm.Pastel1)
+            if t:
+                mode_is_this_cell = 'this cell'
+            else:
+                mode_is_this_cell = 'not this cell'
+
+            if is_a_cell:
+                mode_is_a_cell = 'is a cell'
+            else:
+                mode_is_a_cell = 'is not a cell'
+
+            ax.set_title(str(i) + ', ' + mode_is_this_cell + ', ' + mode_is_a_cell)
 
         plt.draw()
     
@@ -986,14 +990,14 @@ class CellPickerGUI(object):
 
         return labeled_image>0
 
-    def doLocalNMF(self, x, y, roi, n_comp=4):
+    def doLocalNMF(self, x, y, roi, n_comp=5, diskSizeMultiplier=5):
         # do NMF decomposition
         n = NMF(n_components=n_comp, tol=1e-1)
 
-        xmin_nmf = max(0,int(x - self.diskSize*5))
-        xmax_nmf = min(int(x + self.diskSize*5), self.data.shape[0])
-        ymin_nmf = max(0, int(y - self.diskSize*5))
-        ymax_nmf = min(int(y + self.diskSize*5), self.data.shape[1])
+        xmin_nmf = max(0,int(x - self.diskSize*diskSizeMultiplier))
+        xmax_nmf = min(int(x + self.diskSize*diskSizeMultiplier), self.data.shape[0])
+        ymin_nmf = max(0, int(y - self.diskSize*diskSizeMultiplier))
+        ymax_nmf = min(int(y + self.diskSize*diskSizeMultiplier), self.data.shape[1])
 
         local_roi = roi[xmin_nmf:xmax_nmf, ymin_nmf:ymax_nmf]
 
@@ -1012,6 +1016,7 @@ class CellPickerGUI(object):
             # threshold mode
             thresh_mode = (mode.astype('uint16') > mahotas.otsu(mode.astype('uint16'))).astype(int)
 
+            print 'sum:' + str(thresh_mode.sum())
 
             # fit thresholded mode
             fit_parameters = self.fitgaussian(thresh_mode) 
@@ -1020,8 +1025,9 @@ class CellPickerGUI(object):
             params.append(fit_parameters)
 
             # is cell-like?
-            if self.diskSize*0.25 < fit_xwidth < 3*self.diskSize and self.diskSize*0.25 < fit_ywidth < 3*self.diskSize:
-                is_cell.append(True)
+            if self.diskSize*0.25 < fit_xwidth < 2*self.diskSize and self.diskSize*0.25 < fit_ywidth < 2*self.diskSize:
+                if thresh_mode.sum()/float(thresh_mode.size) <= 0.25:
+                    is_cell.append(True)
             else:
                 is_cell.append(False)
 
@@ -1038,7 +1044,8 @@ class CellPickerGUI(object):
 
         print 'this cell', this_cell
         print 'is cell', is_cell
-        
+        print ' '
+
         return modes, np.array(this_cell), np.array(is_cell)
     
     @QtCore.Slot(tuple)
