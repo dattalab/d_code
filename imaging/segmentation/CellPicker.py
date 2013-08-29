@@ -337,7 +337,6 @@ class CellPickerGUI(object):
             self.lineEdit.setVisible(False)
             
         else:
-            print self.data.shape
             self.currentBackgroundImage = self.data[:,:,self.currentFrame]
             self.makeNewMaskAndBackgroundImage()
             self.horizontalSlider.setVisible(True)
@@ -487,7 +486,6 @@ class CellPickerGUI(object):
     def clearModeData(self):
         self.modeData = []
 
-
     def lastROI(self):
         if len(self.listOfMasks) is 0:
             print 'no mask!'
@@ -498,7 +496,6 @@ class CellPickerGUI(object):
         else:
             lastROI = np.logical_xor(self.listOfMasks[-1], self.listOfMasks[-2]) 
         return lastROI
-
 
     def maskFromROINumber(self, ROI_number=None):
         if ROI_number is None:
@@ -606,7 +603,6 @@ class CellPickerGUI(object):
         axes5.cla()
         axes5.get_axes().set_yticklabels([])
         axes5.get_axes().set_xticklabels([])       
-        print local_data.shape
         axes5.imshow(local_data.mean(axis=2), cmap=mpl.cm.gray)
         
         axes6 = self.infofig.add_axes([0.04, 0.025, 0.2, 0.2])
@@ -678,66 +674,6 @@ class CellPickerGUI(object):
         p, success = scipy.optimize.leastsq(errorfunction, params)
         return p
             
-    def averageCorrCoefScore(self, series, mask):
-        coef_matrix = np.corrcoef(series[mask, :])
-        return coef_matrix[np.triu_indices(coef_matrix.shape[0],1)].mean()
-
-    def addRandomPixelsToEdge(self, mask):
-        mask = mask.astype(bool)
-        ring = mahotas.dilate(mask) - mask
-        rand_ring = np.logical_and(ring, np.random.random((ring.shape[0], ring.shape[1]))>0.5)
-
-        return rand_ring
-
-    def conditionallyDilateMask(self, mask, series, cutoff=0.5, num_guesses=750, topcut=50):
-        # assuming mask is a binary array of just one ROI
-    
-        # cut down the size of the array to a region just around the ROI-
-        # speeds up correlation calculation below
-        sub_xmin = np.where(mask)[0].min() - 2
-        sub_xmax = np.where(mask)[0].max() + 2 
-        sub_ymin = np.where(mask)[1].min() - 2
-        sub_ymax = np.where(mask)[1].max() + 2
-        sub_series = series[sub_xmin:sub_xmax, sub_ymin:sub_ymax, :]
-        sub_mask = mask[sub_xmin:sub_xmax, sub_ymin:sub_ymax] > 0
-
-        core = np.corrcoef(sub_series[sub_mask>0,:])
-        print 'core corr coef: ' + str(np.mean(core[np.triu_indices(core.shape[0], 1)]))
-
-        # generate a population of possible masks and their average correlation coeffecients
-        num_guesses = num_guesses
-        masks = np.zeros((sub_series.shape[0], sub_series.shape[1], num_guesses))
-        corrs = np.zeros(num_guesses)
-        for i in range(num_guesses):
-            masks[:,:,i] = self.addRandomPixelsToEdge(sub_mask) + sub_mask>0
-            corrs[i] = self.averageCorrCoefScore(sub_series, masks[:,:,i]>0)
-    
-        # sort masks based on corr coef score
-        # and return thresholded average of top 50
-        top_population = masks[:,:,np.argsort(corrs)[-topcut:-1]].mean(axis=2)
-        top_population_thresh = top_population > cutoff
-
-        # place new mask in place
-        mask[sub_xmin:sub_xmax, sub_ymin:sub_ymax] = top_population_thresh
-
-        return mask > 0 
-
-
-    def maskFromPoints(self, vertex_list, size_x, size_y):
-        #poly_verts = [(20,0), (50,50), (0,75)]
-
-        # Create vertex coordinates for each grid cell...
-        # (<0,0> is at the top left of the grid in this system)
-        x, y = np.meshgrid(np.arange(size_x), np.arange(size_y))
-        x, y = x.flatten(), y.flatten()
-        point_space = np.vstack((x,y)).T
-
-        poly_mask = nx.points_inside_poly(point_space, vertex_list)
-        poly_mask = poly_mask.reshape(size_x, size_y)
-
-        return poly_mask.T
-
-
     def addPolyCell(self):
         if self.maskOn:
             # build poly_mask
@@ -762,6 +698,17 @@ class CellPickerGUI(object):
             sys.stdout.flush()
             self.makeNewMaskAndBackgroundImage()
 
+    def maskFromPoints(self, vertex_list, size_x, size_y):
+        # Create vertex coordinates for each grid cell...
+        # (<0,0> is at the top left of the grid in this system)
+        x, y = np.meshgrid(np.arange(size_x), np.arange(size_y))
+        x, y = x.flatten(), y.flatten()
+        point_space = np.vstack((x,y)).T
+
+        poly_mask = nx.points_inside_poly(point_space, vertex_list)
+        poly_mask = poly_mask.reshape(size_x, size_y)
+
+        return poly_mask.T
     
     @QtCore.Slot(tuple)
     def addCell(self, eventTuple):
