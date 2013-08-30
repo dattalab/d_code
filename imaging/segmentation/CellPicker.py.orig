@@ -475,11 +475,22 @@ class CellPickerGUI(object):
             self.radioButton_5.setChecked(True)
 
         elif keyPressed == QtCore.Qt.Key_M:
+<<<<<<< HEAD
             self.flipMaskOn()
+=======
+            if self.maskOn:
+                self.maskOn = False
+                self.currentMask = np.zeros_like(self.currentMask)
+                self.makeNewMaskAndBackgroundImage()
+            else:
+                self.maskOn = True
+                self.currentMask = self.listOfMasks[-1] 
+                self.makeNewMaskAndBackgroundImage()
 
         elif keyPressed == QtCore.Qt.Key_N:
             self.useNMF = not(self.useNMF)
 
+>>>>>>> 3e15852a91434497133984b79e6178474a08b8bb
         else:
             pass
 
@@ -612,8 +623,13 @@ class CellPickerGUI(object):
         axes5 = self.infofig.add_axes([0.76, 0.325, 0.2, 0.2])
         axes5.cla()
         axes5.get_axes().set_yticklabels([])
+<<<<<<< HEAD
         axes5.get_axes().set_xticklabels([])
         axes5.get_axes().set_title('Local ROI')       
+        print local_data.shape
+=======
+        axes5.get_axes().set_xticklabels([])       
+>>>>>>> 3e15852a91434497133984b79e6178474a08b8bb
         axes5.imshow(local_data.mean(axis=2), cmap=mpl.cm.gray)
         
         # NMF Modes
@@ -640,11 +656,25 @@ class CellPickerGUI(object):
         axes9.cla()
         axes9.get_axes().set_yticklabels([])
         axes9.get_axes().set_xticklabels([])
+<<<<<<< HEAD
         axes9.get_axes().set_title('Mode 4')
         
+        # do NMF decomposition
+        n_comp = 4
+        n = NMF(n_components=n_comp, tol=1e-1)
+        reshaped_data = local_data.reshape(box_size*2 * box_size*2 ,local_data.shape[2])
+        n.fit(reshaped_data)
+        transformed_local_data = n.transform(reshaped_data)
+        modes = transformed_local_data.reshape(box_size*2,box_size*2,n_comp).copy()
+       
+        for mode, ax in zip(np.rollaxis(modes,2,0), [axes6, axes7, axes8, axes9]):
+=======
+
+
         modes, this_cell, is_cell = self.doLocalNMF(xcenter, ycenter, ROI_mask)
 
         for i, (mode, t, is_a_cell, ax) in enumerate(zip(np.rollaxis(modes,2,0)[1:], this_cell[1:], is_cell[1:], [axes6, axes7, axes8, axes9])):
+>>>>>>> 3e15852a91434497133984b79e6178474a08b8bb
             fit_parameters = self.fitgaussian(mode) 
             gaussian_function = self.gaussian(*fit_parameters)
             xcoords = np.mgrid[0:box_size*2,0:box_size*2][0]
