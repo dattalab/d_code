@@ -324,7 +324,7 @@ class CellPickerGUI(object):
         self.modeData = None # or a list of point tuples
 
         self.maskOn = True
-        self.useNMF = True
+        self.useNMF = False
 
         self.makeNewMaskAndBackgroundImage()
     
