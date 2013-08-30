@@ -492,7 +492,7 @@ class CellPickerGUI(object):
             self.maskOn = True
             self.currentMask = self.listOfMasks[-1].copy()
             self.makeNewMaskAndBackgroundImage()
-        self.checkBox_2.setChecked(self.MaskOn)
+        self.checkBox_2.setChecked(self.maskOn)
 
     def clearModeData(self):
         self.modeData = []
