@@ -488,12 +488,11 @@ class CellPickerGUI(object):
             self.maskOn = False
             self.currentMask = np.zeros_like(self.currentMask)
             self.makeNewMaskAndBackgroundImage()
-            self.checkBox_2.setChecked(False)
         else:
             self.maskOn = True
-            self.currentMask = self.listOfMasks[-1] 
+            self.currentMask = self.listOfMasks[-1].copy()
             self.makeNewMaskAndBackgroundImage()
-            self.checkBox_2.setChecked(True)
+        self.checkBox_2.setChecked(self.MaskOn)
 
     def clearModeData(self):
         self.modeData = []
@@ -653,6 +652,8 @@ class CellPickerGUI(object):
 
             ax.imshow(mode)
             ax.contour(fit_data, cmap=mpl.cm.Pastel1)
+            ax.set_xlim(0,mode.shape[0])
+            ax.set_ylim(0,mode.shape[1])
             if t:
                 mode_is_this_cell = 'this cell'
             else:
