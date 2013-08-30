@@ -298,7 +298,7 @@ class CellPickerGUI(object):
         self.checkBox_2.setObjectName("checkBox_2")
         self.checkBox_2.setText('Toggle Mask')
         self.checkBox_2.setChecked(True)
-        self.checkBox_2.stateChanged.connect(self.flipMaskOn)
+        self.checkBox_2.stateChanged.connect(self.flipMask)
         
         MainWindow.setCentralWidget(self.centralwidget)
         self.statusbar = QtGui.QStatusBar(MainWindow)
@@ -475,7 +475,7 @@ class CellPickerGUI(object):
             self.radioButton_5.setChecked(True)
 
         elif keyPressed == QtCore.Qt.Key_M:
-            self.flipMaskOn()
+            self.flipMask()
 
         elif keyPressed == QtCore.Qt.Key_N:
             self.useNMF = not(self.useNMF)
@@ -483,7 +483,7 @@ class CellPickerGUI(object):
         else:
             pass
 
-    def flipMaskOn(self):
+    def flipMask(self):
         if self.maskOn:
             self.maskOn = False
             self.currentMask = np.zeros_like(self.currentMask)
