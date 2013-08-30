@@ -323,9 +323,9 @@ class CellPickerGUI(object):
 
         self.listOfMasks = []
         self.listOfMasks.append(self.currentMask)
-        self.diskSize = 3
+        self.diskSize = 4
         self.contrastThreshold = 0.95
-        self.cellRadius = 3
+        self.cellRadius = 4
         self.currentMaskNumber = 1
         
         self.mode = None # can be standard (None), 'poly', or 'square'
@@ -586,7 +586,7 @@ class CellPickerGUI(object):
         
         axes3.imshow(corr_map, vmax=1)
         
-        rgba_mask = np.zeros((box_size*2,box_size*2,4))
+        rgba_mask = np.zeros((x,y,4))
         rgba_mask[:,:,0] = resp_mask[xcenter-box_size:xcenter+box_size,ycenter-box_size:ycenter+box_size]
         rgba_mask[:,:,1] = resp_mask[xcenter-box_size:xcenter+box_size,ycenter-box_size:ycenter+box_size]
         rgba_mask[:,:,2] = resp_mask[xcenter-box_size:xcenter+box_size,ycenter-box_size:ycenter+box_size]
@@ -641,8 +641,11 @@ class CellPickerGUI(object):
         
         modes, this_cell, is_cell = self.doLocalNMF(xcenter, ycenter, ROI_mask)
 
-        for i, (mode, t, is_a_cell, ax) in enumerate(zip(np.rollaxis(modes,2,0)[1:], this_cell[1:], is_cell[1:], [axes6, axes7, axes8, axes9])):
-            fit_parameters = self.fitgaussian(mode) 
+        for i, (mode, t, is_a_cell, ax) in enumerate(zip(np.rollaxis(modes,2,0), this_cell, is_cell, [axes6, axes7, axes8, axes9])):
+            thresh_mode = (mode.astype('uint16') > mahotas.otsu(mode.astype('uint16'))).astype(int)
+
+            fit_parameters = self.fitgaussian(thresh_mode) 
+
             gaussian_function = self.gaussian(*fit_parameters)
             xcoords = np.mgrid[0:box_size*2,0:box_size*2][0]
             ycoords = np.mgrid[0:box_size*2,0:box_size*2][1]
@@ -688,7 +691,7 @@ class CellPickerGUI(object):
         row = data[int(x), :]
         width_y = np.sqrt(abs((np.arange(row.size)-x)**2*row).sum()/row.sum())
         height = data.max()
-        return height, x, y, width_x, width_y
+        return height, x, y, max(width_x, 1.0), max(width_y, 1.0)
 
     def fitgaussian(self, data):
         """Returns (height, x, y, width_x, width_y)
@@ -807,7 +810,7 @@ class CellPickerGUI(object):
                         # then remove the ones nearby.
 
                         # if a mode is a cell and is this cell, add some of it to the ROI
-                        for m, t, i in zip(np.rollaxis(modes, 2, 0)[1:], this_cell[1:], is_cell[1:]):
+                        for m, t, i in zip(np.rollaxis(modes, 2, 0), this_cell, is_cell):
                             mode_thresh = m > mahotas.otsu(m.astype('uint16'))
                             # need to place it in the right place
                             # have x and y
@@ -1008,7 +1011,7 @@ class CellPickerGUI(object):
 
         return labeled_image>0
 
-    def doLocalNMF(self, x, y, roi, n_comp=5, diskSizeMultiplier=5):
+    def doLocalNMF(self, x, y, roi, n_comp=4, diskSizeMultiplier=5):
         # do NMF decomposition
         n = NMF(n_components=n_comp, tol=1e-1)
 
@@ -1043,7 +1046,7 @@ class CellPickerGUI(object):
             params.append(fit_parameters)
 
             # is cell-like?
-            if self.diskSize*0.25 < fit_xwidth < 2*self.diskSize and self.diskSize*0.25 < fit_ywidth < 2*self.diskSize:
+            if 1 <= np.abs(fit_xwidth) <= 2*self.diskSize and 1 <= np.abs(fit_ywidth) <= 2*self.diskSize:
                 if thresh_mode.sum()/float(thresh_mode.size) <= 0.25:
                     is_cell.append(True)
             else:
