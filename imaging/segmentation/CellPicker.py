@@ -141,7 +141,7 @@ class CellPickerGUI(object):
         self.label_2.setObjectName("label_2")
         # radius selector
         self.dilation_disk = QtGui.QSpinBox(self.splitter)
-        self.dilation_disk.setProperty("value", 3)
+        self.dilation_disk.setProperty("value", 4)
         self.dilation_disk.setObjectName("dilation_disk")
         
         # splitter for threshold
@@ -292,6 +292,14 @@ class CellPickerGUI(object):
         self.horizontalSlider.valueChanged.connect(self.comScrollToLine)
         self.lineEdit.returnPressed.connect(self.comLineToScroll)
         
+        #toggle mask button
+        self.checkBox_2 = QtGui.QCheckBox(self.centralwidget)
+        self.checkBox_2.setGeometry(QtCore.QRect(10, 620, 200, 20))
+        self.checkBox_2.setObjectName("checkBox_2")
+        self.checkBox_2.setText('Toggle Mask')
+        self.checkBox_2.setChecked(True)
+        self.checkBox_2.stateChanged.connect(self.flipMask)
+        
         MainWindow.setCentralWidget(self.centralwidget)
         self.statusbar = QtGui.QStatusBar(MainWindow)
         self.statusbar.setObjectName("statusbar")
@@ -321,7 +329,7 @@ class CellPickerGUI(object):
         self.currentMaskNumber = 1
         
         self.mode = None # can be standard (None), 'poly', or 'square'
-        self.modeData = None # or a list of point tuples
+        self.modeData = None # or a list of point tuples       
 
         self.maskOn = True
         self.useNMF = False
@@ -367,8 +375,7 @@ class CellPickerGUI(object):
         self.lineEdit.setText(str(self.currentFrame))
         self.currentBackgroundImage = self.data[:,:,self.currentFrame]
         self.makeNewMaskAndBackgroundImage()
-
-                
+               
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QtGui.QApplication.translate("MainWindow", "MainWindow", None, QtGui.QApplication.UnicodeUTF8))
         self.label_2.setText(QtGui.QApplication.translate("MainWindow", "<html><head/><body><p>Cell Radius Size</p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
@@ -468,20 +475,24 @@ class CellPickerGUI(object):
             self.radioButton_5.setChecked(True)
 
         elif keyPressed == QtCore.Qt.Key_M:
-            if self.maskOn:
-                self.maskOn = False
-                self.currentMask = np.zeros_like(self.currentMask)
-                self.makeNewMaskAndBackgroundImage()
-            else:
-                self.maskOn = True
-                self.currentMask = self.listOfMasks[-1] 
-                self.makeNewMaskAndBackgroundImage()
+            self.flipMask()
 
         elif keyPressed == QtCore.Qt.Key_N:
             self.useNMF = not(self.useNMF)
 
         else:
             pass
+
+    def flipMask(self):
+        if self.maskOn:
+            self.maskOn = False
+            self.currentMask = np.zeros_like(self.currentMask)
+            self.makeNewMaskAndBackgroundImage()
+        else:
+            self.maskOn = True
+            self.currentMask = self.listOfMasks[-1].copy()
+            self.makeNewMaskAndBackgroundImage()
+        self.checkBox_2.setChecked(self.MaskOn)
 
     def clearModeData(self):
         self.modeData = []
@@ -600,7 +611,8 @@ class CellPickerGUI(object):
         axes5 = self.infofig.add_axes([0.76, 0.325, 0.2, 0.2])
         axes5.cla()
         axes5.get_axes().set_yticklabels([])
-        axes5.get_axes().set_xticklabels([])       
+        axes5.get_axes().set_xticklabels([])
+        axes5.get_axes().set_title('Local ROI')       
         axes5.imshow(local_data.mean(axis=2), cmap=mpl.cm.gray)
         
         # NMF Modes
@@ -609,23 +621,26 @@ class CellPickerGUI(object):
         axes6.cla()
         axes6.get_axes().set_yticklabels([])
         axes6.get_axes().set_xticklabels([])
+        axes6.get_axes().set_title('Mode 1')
                 
         axes7 = self.infofig.add_axes([0.28, 0.025, 0.2, 0.2])
         axes7.cla()
         axes7.get_axes().set_yticklabels([])
         axes7.get_axes().set_xticklabels([])
+        axes7.get_axes().set_title('Mode 2')
         
         axes8 = self.infofig.add_axes([0.52, 0.025, 0.2, 0.2])
         axes8.cla()
         axes8.get_axes().set_yticklabels([])
         axes8.get_axes().set_xticklabels([])
+        axes8.get_axes().set_title('Mode 3')
         
         axes9 = self.infofig.add_axes([0.76, 0.025, 0.2, 0.2])
         axes9.cla()
         axes9.get_axes().set_yticklabels([])
         axes9.get_axes().set_xticklabels([])
-
-
+        axes9.get_axes().set_title('Mode 4')
+        
         modes, this_cell, is_cell = self.doLocalNMF(xcenter, ycenter, ROI_mask)
 
         for i, (mode, t, is_a_cell, ax) in enumerate(zip(np.rollaxis(modes,2,0)[1:], this_cell[1:], is_cell[1:], [axes6, axes7, axes8, axes9])):
@@ -637,6 +652,8 @@ class CellPickerGUI(object):
 
             ax.imshow(mode)
             ax.contour(fit_data, cmap=mpl.cm.Pastel1)
+            ax.set_xlim(0,mode.shape[0])
+            ax.set_ylim(0,mode.shape[1])
             if t:
                 mode_is_this_cell = 'this cell'
             else:
@@ -650,6 +667,9 @@ class CellPickerGUI(object):
             ax.set_title(str(i) + ', ' + mode_is_this_cell + ', ' + mode_is_a_cell)
 
         plt.draw()
+    
+    def exitHandler(self):
+        self.infofig.close()
     
     def gaussian(self, height, center_x, center_y, width_x, width_y):
         """Returns a gaussian function with the given parameters"""
