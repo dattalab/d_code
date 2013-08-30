@@ -20,6 +20,8 @@ import matplotlib.nxutils as nx
 
 from sklearn.decomposition import NMF
 
+import pdb
+
 class Communicate(QtCore.QObject):
     keyPressed = QtCore.Signal(tuple)
     mouseSingleClicked = QtCore.Signal(tuple)
@@ -64,13 +66,13 @@ class MatplotlibWidget(FigureCanvas):
         self.mask_ax.set_data(mask)
         self.draw()    
     
-    #signal
+    # signal
     def keyPressEvent(self, event):
         # self.c.keyPressed.emit(event.text())
         self.c.keyPressed.emit(event.key())
         event.accept()
         
-    #signal
+    # signal
     def mousePressEvent(self, event):
         self.setFocus()
         
@@ -91,7 +93,7 @@ class MatplotlibWidget(FigureCanvas):
             x = int( (float(event.pos().y()) - x_offset) / (self.height - 2 * x_offset) * self.image.shape[0])
             y = int( (float(event.pos().x()) - y_offset) / (self.width - 2 * y_offset) * self.image.shape[1])
         
-        #switch here for shift-click (emit different signal)
+        # switch here for shift-click (emit different signal)
         if QtCore.Qt.Modifier.SHIFT and event.modifiers():
             self.c.mouseSingleShiftClicked.emit((x, y))
         else: 
@@ -120,29 +122,29 @@ class CellPickerGUI(object):
         sizePolicy.setVerticalStretch(1)
         sizePolicy.setHeightForWidth(self.image_widget.sizePolicy().hasHeightForWidth())
         
-        #custom image
+        # custom image
         self.image_widget.setSizePolicy(sizePolicy)
         self.image_widget.setMinimumSize(QtCore.QSize(512, 512))
         self.image_widget.setObjectName("image_widget")
         self.image_widget.setFocus()
 
-        #splitter for radius selector (organizational)
+        # splitter for radius selector (organizational)
         self.splitter = QtGui.QSplitter(self.centralwidget)
         self.splitter.setGeometry(QtCore.QRect(10, 460, 111, 51))
         self.splitter.setOrientation(QtCore.Qt.Vertical)
         self.splitter.setObjectName("splitter")
         self.splitter.setChildrenCollapsible(False)
-        #label for radius selector
+        # label for radius selector
         self.label_2 = QtGui.QLabel(self.splitter)
         self.label_2.setAlignment(QtCore.Qt.AlignCenter)
         self.label_2.setWordWrap(True)
         self.label_2.setObjectName("label_2")
-        #radius selector
+        # radius selector
         self.dilation_disk = QtGui.QSpinBox(self.splitter)
         self.dilation_disk.setProperty("value", 3)
         self.dilation_disk.setObjectName("dilation_disk")
         
-        #splitter for threshold
+        # splitter for threshold
         self.splitter_2 = QtGui.QSplitter(self.centralwidget)
         self.splitter_2.setGeometry(QtCore.QRect(10, 400, 122, 51))
         self.splitter_2.setFrameShape(QtGui.QFrame.NoFrame)
@@ -151,91 +153,91 @@ class CellPickerGUI(object):
         self.splitter_2.setChildrenCollapsible(False)
         self.splitter_2.setObjectName("splitter_2")
         self.splitter_2.setChildrenCollapsible(False)
-        #threshold label
+        # threshold label
         self.label = QtGui.QLabel(self.splitter_2)
         self.label.setAlignment(QtCore.Qt.AlignCenter)
         self.label.setWordWrap(True)
         self.label.setObjectName("label")
-        #threshold selector
+        # threshold selector
         self.contrast_threshold = QtGui.QDoubleSpinBox(self.splitter_2)
         self.contrast_threshold.setSingleStep(0.01)
         self.contrast_threshold.setProperty("value", 0.95)
         self.contrast_threshold.setObjectName("contrast_threshold")
         
-        #check boxes to switch modes
-        #splitter for mode buttons
+        # check boxes to switch modes
+        # splitter for mode buttons
         self.splitter_3 = QtGui.QSplitter(self.centralwidget)
         self.splitter_3.setGeometry(QtCore.QRect(10, 260, 141, 131))
         self.splitter_3.setOrientation(QtCore.Qt.Vertical)
         self.splitter_3.setObjectName("splitter_3")
         self.splitter_3.setChildrenCollapsible(False)
-        #polygon
+        # polygon
         self.radioButton_3 = QtGui.QRadioButton(self.splitter_3)
         self.radioButton_3.setObjectName("radioButton_3")
         self.radioButton_3.setText('Polygon Mode: (p)')        
-        #square
+        # square
         self.radioButton = QtGui.QRadioButton(self.splitter_3)
         self.radioButton.setObjectName("radioButton")
         self.radioButton.setText('Square Mode: (s)')        
-        #circle
+        # circle
         self.radioButton_4 = QtGui.QRadioButton(self.splitter_3)
         self.radioButton_4.setObjectName("radioButton_4")
         self.radioButton_4.setText('Circel Mode: (c)')        
-        #OGB
+        # OGB
         self.radioButton_2 = QtGui.QRadioButton(self.splitter_3)
         self.radioButton_2.setObjectName("radioButton_2")
         self.radioButton_2.setText('OGB Mode: (o)')
-        #standard
+        # standard
         self.radioButton_5 = QtGui.QRadioButton(self.splitter_3)
         self.radioButton_5.setObjectName("radioButton_5")
         self.radioButton_5.setText('Standard Mode: (x)')
         self.radioButton_5.setChecked(True)
-        #button group for mode radio buttons
+        # button group for mode radio buttons
         self.buttonGroup = QtGui.QButtonGroup()
         self.buttonGroup.addButton(self.radioButton_3, 1)  #Polygon
         self.buttonGroup.addButton(self.radioButton, 2)    #Square
         self.buttonGroup.addButton(self.radioButton_4, 3)  #Circle
         self.buttonGroup.addButton(self.radioButton_2, 4)  #OGB
         self.buttonGroup.addButton(self.radioButton_5, 5)  #Standard
-        #mode switch radio button conecctor
+        # mode switch radio button conecctor
         self.radioButton_3.toggled.connect(self.changeMode)
         self.radioButton.toggled.connect(self.changeMode)
         self.radioButton_4.toggled.connect(self.changeMode)
         self.radioButton_2.toggled.connect(self.changeMode)
         self.radioButton_5.toggled.connect(self.changeMode)
         
-        #Hot Key Legend
-        #splitter for key legend
+        # Hot Key Legend
+        # splitter for key legend
         self.splitter_4 = QtGui.QSplitter(self.centralwidget)
         self.splitter_4.setGeometry(QtCore.QRect(10, 10, 141, 241))
         self.splitter_4.setOrientation(QtCore.Qt.Vertical)
         self.splitter_4.setObjectName("splitter_4")
         self.splitter_4.setChildrenCollapsible(False)        
-        #title
+        # title
         self.label_10 = QtGui.QLabel(self.splitter_4)
         self.label_10.setObjectName("label_10")
         self.label_10.setText('HOT KEYS:')        
-        #P
+        # P
         self.label_8 = QtGui.QLabel(self.splitter_4)
         self.label_8.setObjectName("label_8")
         self.label_8.setText('Polygon Mode: (p)')       
-        #T
+        # T
         self.label_9 = QtGui.QLabel(self.splitter_4)
         self.label_9.setObjectName("label_9")
         self.label_9.setText('Terminate Poly.: (t)')       
-        #S
+        # S
         self.label_7 = QtGui.QLabel(self.splitter_4)
         self.label_7.setObjectName("label_7")
         self.label_7.setText('Square: (s)')
-        #C
+        # C
         self.label_5 = QtGui.QLabel(self.splitter_4)
         self.label_5.setObjectName("label_5")
         self.label_5.setText('Circle: (c)')        
-        #O
+        # O
         self.label_6 = QtGui.QLabel(self.splitter_4)
         self.label_6.setObjectName("label_6")
         self.label_6.setText('OGB: (o)')        
-        #standard (X)
+        # standard (X)
         self.label_4 = QtGui.QLabel(self.splitter_4)
         self.label_4.setObjectName("label_4")
         self.label_4.setText('Standard: (x)')
@@ -248,27 +250,27 @@ class CellPickerGUI(object):
             self.currentBackgroundImage = self.data.mean(axis=2)
             self.frame = self.data.shape[2]
         
-        #ave/vid slider gui
+        # ave/vid slider gui
         
-        #slidder label
+        # slider label
         self.label_3 = QtGui.QLabel(self.centralwidget)
         self.label_3.setGeometry(QtCore.QRect(160, 780, 150, 16))
         self.label_3.setObjectName("label_3")
         self.label_3.setText('Slide to Frame in Video')
         self.label_3.setVisible(False)
-        #jumper label
+        # jumper label
         self.label_11 = QtGui.QLabel(self.centralwidget)
         self.label_11.setGeometry(QtCore.QRect(10, 780, 150, 16))
         self.label_11.setObjectName("label_11")
         self.label_11.setText('Jump to Frame')
         self.label_11.setVisible(False)
-        #ave/vid toggel button
+        # ave/vid toggle button
         self.checkBox = QtGui.QCheckBox(self.centralwidget)
         self.checkBox.setGeometry(QtCore.QRect(10, 600, 200, 20))
         self.checkBox.setObjectName("checkBox")
         self.checkBox.setText('Ave(On)/Vid(Off)')
         self.checkBox.setChecked(True)
-        #video frame slidder
+        # video frame slidder
         self.horizontalSlider = QtGui.QSlider(self.centralwidget)
         self.horizontalSlider.setGeometry(QtCore.QRect(160, 800, 750, 22))
         self.horizontalSlider.setOrientation(QtCore.Qt.Horizontal)
@@ -277,18 +279,18 @@ class CellPickerGUI(object):
         self.horizontalSlider.setMaximum(self.frame-1)
         self.currentFrame = self.horizontalSlider.value()
         
-        #jump to video frame
+        # jump to video frame
         self.lineEdit = QtGui.QLineEdit(self.centralwidget)
         self.lineEdit.setGeometry(QtCore.QRect(10, 800, 113, 21))
         self.lineEdit.setObjectName("lineEdit")
         self.lineEdit.setVisible(False)
         
-        #ave/vid checkbox connector
-        self.checkBox.stateChanged.connect(self.boxClicked)
+        # ave/vid checkbox connector
+        self.checkBox.stateChanged.connect(self.avgBoxClicked)
         
-        #connect value in box and slider
-        self.horizontalSlider.valueChanged.connect(self.comScroleToLine)
-        self.lineEdit.returnPressed.connect(self.comLineToScrole)
+        # connect value in box and slider
+        self.horizontalSlider.valueChanged.connect(self.comScrollToLine)
+        self.lineEdit.returnPressed.connect(self.comLineToScroll)
         
         MainWindow.setCentralWidget(self.centralwidget)
         self.statusbar = QtGui.QStatusBar(MainWindow)
@@ -322,11 +324,12 @@ class CellPickerGUI(object):
         self.modeData = None # or a list of point tuples
 
         self.maskOn = True
+        self.useNMF = False
 
         self.makeNewMaskAndBackgroundImage()
     
-    #ave/vid is clicked
-    def boxClicked(self, state):
+    # ave/vid is clicked
+    def avgBoxClicked(self, state):
         if state == QtCore.Qt.Checked:
             self.currentBackgroundImage = self.data.mean(axis=2)
             self.makeNewMaskAndBackgroundImage()
@@ -334,13 +337,12 @@ class CellPickerGUI(object):
             self.lineEdit.setVisible(False)
             
         else:
-            print self.data.shape
             self.currentBackgroundImage = self.data[:,:,self.currentFrame]
             self.makeNewMaskAndBackgroundImage()
             self.horizontalSlider.setVisible(True)
             self.lineEdit.setVisible(True)
             
-    #changes the mode from radio buttons
+    # changes the mode from radio buttons
     def changeMode(self):
         state = self.buttonGroup.checkedId()
         if state == 1:
@@ -354,13 +356,13 @@ class CellPickerGUI(object):
         elif state == 5:
             self.mode = None
     
-    #connect the box and slidder
-    def comLineToScrole(self):
+    # connect the box and slider
+    def comLineToScroll(self):
         self.currentFrame = int(self.lineEdit.text())
         self.horizontalSlider.setValue(self.currentFrame)
         self.currentBackgroundImage = self.data[:,:,self.currentFrame]
         self.makeNewMaskAndBackgroundImage()
-    def comScroleToLine(self):
+    def comScrollToLine(self):
         self.currentFrame = self.horizontalSlider.value()
         self.lineEdit.setText(str(self.currentFrame))
         self.currentBackgroundImage = self.data[:,:,self.currentFrame]
@@ -474,12 +476,15 @@ class CellPickerGUI(object):
                 self.maskOn = True
                 self.currentMask = self.listOfMasks[-1] 
                 self.makeNewMaskAndBackgroundImage()
+
+        elif keyPressed == QtCore.Qt.Key_N:
+            self.useNMF = not(self.useNMF)
+
         else:
             pass
 
     def clearModeData(self):
         self.modeData = []
-
 
     def lastROI(self):
         if len(self.listOfMasks) is 0:
@@ -491,7 +496,6 @@ class CellPickerGUI(object):
         else:
             lastROI = np.logical_xor(self.listOfMasks[-1], self.listOfMasks[-2]) 
         return lastROI
-
 
     def maskFromROINumber(self, ROI_number=None):
         if ROI_number is None:
@@ -510,20 +514,18 @@ class CellPickerGUI(object):
 
 
     def updateInfoPanel(self, ROI_number=None):
-
-        box_size = 3*self.dilation_disk.value()
-
         if self.data.ndim == 2:
             print 'No series information!'
             sys.stdout.flush()
             return None
 
-        # we have two figures, a trace, and masks
+        
+        self.infofig = plt.figure('info')
+        box_size = 5*self.dilation_disk.value()
+
         ROI_mask = self.maskFromROINumber(ROI_number)
 
-        self.infofig = plt.figure('info')
-        
-        #activity plot
+        # activity plot
         axes1 = self.infofig.add_axes([0.04, 0.6, 0.92, 0.35]) # main axes
         axes1.cla()
         trace = self.timeCourseROI(ROI_mask)
@@ -538,7 +540,7 @@ class CellPickerGUI(object):
         axes1[0].get_axes().set_ylim(self.data.min()*0.9, self.max_of_trace*1.1)
         axes1[0].get_axes().set_title('Activity Plot')
 
-        #Mask display
+        # Mask display
         axes2 = self.infofig.add_axes([0.04, 0.325, 0.2, 0.2]) # inset axes
         axes2.cla()
         axes2 = plt.imshow(self.currentMask + ROI_mask)
@@ -546,7 +548,7 @@ class CellPickerGUI(object):
         axes2.get_axes().set_xticklabels([])
         axes2.get_axes().set_title('Mask')
 
-        #ROI corralation
+        # ROI corralation
         axes3 = self.infofig.add_axes([0.28, 0.325, 0.2, 0.2])
         axes3.cla()
         
@@ -570,7 +572,6 @@ class CellPickerGUI(object):
             for yv in range(y):
                 corr_map[xv,yv] = np.correlate(local_data[xv,yv,:]-local_data[xv,yv,:].mean(), trace-trace.mean())
        
-        print corr_map.shape 
         corr_map[np.isnan(corr_map)] = 0
         corr_map = corr_map/corr_map.max()
         
@@ -587,7 +588,7 @@ class CellPickerGUI(object):
         axes3.get_axes().set_xticklabels([])
         axes3.get_axes().set_title('ROI Corralation')
 
-        #Histagram
+        # Histogram
         
         axes4 = self.infofig.add_axes([0.52, 0.325, 0.2, 0.2])
         axes4.cla()
@@ -600,9 +601,10 @@ class CellPickerGUI(object):
         axes5.cla()
         axes5.get_axes().set_yticklabels([])
         axes5.get_axes().set_xticklabels([])       
-        print local_data.shape
         axes5.imshow(local_data.mean(axis=2), cmap=mpl.cm.gray)
         
+        # NMF Modes
+
         axes6 = self.infofig.add_axes([0.04, 0.025, 0.2, 0.2])
         axes6.cla()
         axes6.get_axes().set_yticklabels([])
@@ -622,24 +624,30 @@ class CellPickerGUI(object):
         axes9.cla()
         axes9.get_axes().set_yticklabels([])
         axes9.get_axes().set_xticklabels([])
-        
-        # do NMF decomposition
-        n_comp = 4
-        n = NMF(n_components=n_comp, tol=1e-1)
-        reshaped_data = local_data.reshape(box_size*2 * box_size*2 ,local_data.shape[2])
-        n.fit(reshaped_data)
-        transformed_local_data = n.transform(reshaped_data)
-        modes = transformed_local_data.reshape(box_size*2,box_size*2,n_comp).copy()
-       
-        for mode, ax in zip(np.rollaxis(modes,2,0), [axes6, axes7, axes8, axes9]):
+
+
+        modes, this_cell, is_cell = self.doLocalNMF(xcenter, ycenter, ROI_mask)
+
+        for i, (mode, t, is_a_cell, ax) in enumerate(zip(np.rollaxis(modes,2,0)[1:], this_cell[1:], is_cell[1:], [axes6, axes7, axes8, axes9])):
             fit_parameters = self.fitgaussian(mode) 
-            fit_gaussian = self.gaussian(*fit_parameters)
+            gaussian_function = self.gaussian(*fit_parameters)
             xcoords = np.mgrid[0:box_size*2,0:box_size*2][0]
             ycoords = np.mgrid[0:box_size*2,0:box_size*2][1]
-            fit_data = fit_gaussian(xcoords, ycoords)
+            fit_data = gaussian_function(xcoords, ycoords)
 
             ax.imshow(mode)
             ax.contour(fit_data, cmap=mpl.cm.Pastel1)
+            if t:
+                mode_is_this_cell = 'this cell'
+            else:
+                mode_is_this_cell = 'not this cell'
+
+            if is_a_cell:
+                mode_is_a_cell = 'is a cell'
+            else:
+                mode_is_a_cell = 'is not a cell'
+
+            ax.set_title(str(i) + ', ' + mode_is_this_cell + ', ' + mode_is_a_cell)
 
         plt.draw()
     
@@ -663,7 +671,7 @@ class CellPickerGUI(object):
         width_y = np.sqrt(abs((np.arange(row.size)-x)**2*row).sum()/row.sum())
         height = data.max()
         return height, x, y, width_x, width_y
-    
+
     def fitgaussian(self, data):
         """Returns (height, x, y, width_x, width_y)
         the gaussian parameters of a 2D distribution found by a fit"""
@@ -672,66 +680,6 @@ class CellPickerGUI(object):
         p, success = scipy.optimize.leastsq(errorfunction, params)
         return p
             
-    def averageCorrCoefScore(self, series, mask):
-        coef_matrix = np.corrcoef(series[mask, :])
-        return coef_matrix[np.triu_indices(coef_matrix.shape[0],1)].mean()
-
-    def addRandomPixelsToEdge(self, mask):
-        mask = mask.astype(bool)
-        ring = mahotas.dilate(mask) - mask
-        rand_ring = np.logical_and(ring, np.random.random((ring.shape[0], ring.shape[1]))>0.5)
-
-        return rand_ring
-
-    def conditionallyDilateMask(self, mask, series, cutoff=0.5, num_guesses=750, topcut=50):
-        # assuming mask is a binary array of just one ROI
-    
-        # cut down the size of the array to a region just around the ROI-
-        # speeds up correlation calculation below
-        sub_xmin = np.where(mask)[0].min() - 2
-        sub_xmax = np.where(mask)[0].max() + 2 
-        sub_ymin = np.where(mask)[1].min() - 2
-        sub_ymax = np.where(mask)[1].max() + 2
-        sub_series = series[sub_xmin:sub_xmax, sub_ymin:sub_ymax, :]
-        sub_mask = mask[sub_xmin:sub_xmax, sub_ymin:sub_ymax] > 0
-
-        core = np.corrcoef(sub_series[sub_mask>0,:])
-        print 'core corr coef: ' + str(np.mean(core[np.triu_indices(core.shape[0], 1)]))
-
-        # generate a population of possible masks and their average correlation coeffecients
-        num_guesses = num_guesses
-        masks = np.zeros((sub_series.shape[0], sub_series.shape[1], num_guesses))
-        corrs = np.zeros(num_guesses)
-        for i in range(num_guesses):
-            masks[:,:,i] = self.addRandomPixelsToEdge(sub_mask) + sub_mask>0
-            corrs[i] = self.averageCorrCoefScore(sub_series, masks[:,:,i]>0)
-    
-        # sort masks based on corr coef score
-        # and return thresholded average of top 50
-        top_population = masks[:,:,np.argsort(corrs)[-topcut:-1]].mean(axis=2)
-        top_population_thresh = top_population > cutoff
-
-        # place new mask in place
-        mask[sub_xmin:sub_xmax, sub_ymin:sub_ymax] = top_population_thresh
-
-        return mask > 0 
-
-
-    def maskFromPoints(self, vertex_list, size_x, size_y):
-        #poly_verts = [(20,0), (50,50), (0,75)]
-
-        # Create vertex coordinates for each grid cell...
-        # (<0,0> is at the top left of the grid in this system)
-        x, y = np.meshgrid(np.arange(size_x), np.arange(size_y))
-        x, y = x.flatten(), y.flatten()
-        point_space = np.vstack((x,y)).T
-
-        poly_mask = nx.points_inside_poly(point_space, vertex_list)
-        poly_mask = poly_mask.reshape(size_x, size_y)
-
-        return poly_mask.T
-
-
     def addPolyCell(self):
         if self.maskOn:
             # build poly_mask
@@ -741,6 +689,10 @@ class CellPickerGUI(object):
                 return None
 
             self.currentMask = self.currentMask.astype('uint16')
+
+            # need center of mass for polygon
+            center_of_mass = scipy.ndimage.measurements.center_of_mass(poly_mask)
+            modes, this_cell, is_cell = self.doLocalNMF(center_of_mass[0], center_of_mass[1])
 
             # add poly_mask to mask
             newMask = (poly_mask * self.currentMaskNumber) + self.currentMask
@@ -752,9 +704,18 @@ class CellPickerGUI(object):
             sys.stdout.flush()
             self.makeNewMaskAndBackgroundImage()
 
-    
-    
+    def maskFromPoints(self, vertex_list, size_x, size_y):
+        # Create vertex coordinates for each grid cell...
+        # (<0,0> is at the top left of the grid in this system)
+        x, y = np.meshgrid(np.arange(size_x), np.arange(size_y))
+        x, y = x.flatten(), y.flatten()
+        point_space = np.vstack((x,y)).T
 
+        poly_mask = nx.points_inside_poly(point_space, vertex_list)
+        poly_mask = poly_mask.reshape(size_x, size_y)
+
+        return poly_mask.T
+    
     @QtCore.Slot(tuple)
     def addCell(self, eventTuple):
         if self.maskOn:
@@ -814,64 +775,93 @@ class CellPickerGUI(object):
                     center = g_l == g_l[g_l.shape[0]/2, g_l.shape[0]/2]
                     #edges = mahotas.dilate(mahotas.dilate(mahotas.dilate(center))) - center
 
+
                     newCell = np.zeros_like(self.currentMask)
                     newCell[xmin:xmax, ymin:ymax] = center
+                    newCell = mahotas.dilate(newCell)
 
-    #                newCell[xmin:xmax, ymin:ymax] = mahotas.erode(np.logical_not(sub_region_image > threshold))
-    #                newCell = mahotas.dilate(newCell).astype(int)
-    #                newCell = self.conditionallyDilateMask(newCell, self.series).astype(int)
+                    if self.useNMF:
+                        modes, this_cell, is_cell = self.doLocalNMF(x,y, newCell)
 
-                    # remove all pixels in and near current mask
+                        roi_as_selected = newCell.copy()
+
+                        # need to add all modes belonging to this cell first,
+                        # then remove the ones nearby.
+
+                        # if a mode is a cell and is this cell, add some of it to the ROI
+                        for m, t, i in zip(np.rollaxis(modes, 2, 0)[1:], this_cell[1:], is_cell[1:]):
+                            mode_thresh = m > mahotas.otsu(m.astype('uint16'))
+                            # need to place it in the right place
+                            # have x and y
+                            mode_width, mode_height = mode_thresh.shape
+                            mode_thresh_fullsize = np.zeros_like(newCell)
+
+                            if x <= mode_width/2:
+                                x_range = (0, mode_width)
+                            elif x > mode_thresh_fullsize.shape[0] - mode_width/2:
+                                x_range = (mode_thresh_fullsize.shape[0]-mode_width, mode_thresh_fullsize.shape[0])
+                            else:
+                                if mode_width % 2 == 0:
+                                    x_range = (x-mode_width/2, x+mode_width/2)
+                                else:
+                                    x_range = (x-mode_width/2, x+mode_width/2+1)
+
+                            if y <= mode_height/2:
+                                y_range = (0, mode_height)
+                            elif y > mode_thresh_fullsize.shape[1] - mode_height/2:
+                                y_range = (mode_thresh_fullsize.shape[1]-mode_height, mode_thresh_fullsize.shape[1])
+                            else:
+                                if mode_height % 2 == 0:
+                                    y_range = (y-mode_height/2, y+mode_height/2)
+                                else:
+                                    y_range = (y-mode_height/2, y+mode_height/2+1)
+
+                            mode_thresh_fullsize[x_range[0]:x_range[1], y_range[0]:y_range[1]] = mode_thresh
+
+                            if i and t:
+                                valid_area = np.logical_and(mahotas.dilate(mahotas.dilate(mahotas.dilate(mahotas.dilate(newCell.astype(bool))))), mode_thresh_fullsize)
+                                newCell = np.logical_or(newCell.astype(bool), valid_area)
+
+                        for m, t, i in zip(np.rollaxis(modes, 2, 0)[1:], this_cell[1:], is_cell[1:]):
+                            mode_thresh = m > mahotas.otsu(m.astype('uint16'))
+                            # need to place it in the right place
+                            # have x and y
+                            mode_width, mode_height = mode_thresh.shape
+                            mode_thresh_fullsize = np.zeros_like(newCell)
+
+                            if x <= mode_width/2:
+                                x_range = (0, mode_width)
+                            elif x > mode_thresh_fullsize.shape[0] - mode_width/2:
+                                x_range = (mode_thresh_fullsize.shape[0]-mode_width, mode_thresh_fullsize.shape[0])
+                            else:
+                                if mode_width % 2 == 0:
+                                    x_range = (x-mode_width/2, x+mode_width/2)
+                                else:
+                                    x_range = (x-mode_width/2, x+mode_width/2+1)
+
+                            if y <= mode_height/2:
+                                y_range = (0, mode_height)
+                            elif y > mode_thresh_fullsize.shape[1] - mode_height/2:
+                                y_range = (mode_thresh_fullsize.shape[1]-mode_height, mode_thresh_fullsize.shape[1])
+                            else:
+                                if mode_height % 2 == 0:
+                                    y_range = (y-mode_height/2, y+mode_height/2)
+                                else:
+                                    y_range = (y-mode_height/2, y+mode_height/2+1)
+
+                            mode_thresh_fullsize[x_range[0]:x_range[1], y_range[0]:y_range[1]] = mode_thresh
+
+                            if i and not t:
+                                newCell = np.logical_and(newCell.astype(bool), np.logical_not(mahotas.dilate(mode_thresh_fullsize)))
+
+                        newCell = mahotas.close_holes(newCell.astype(bool))
+                        self.excludePixels(newCell, 2)
+
+                    newCell = newCell.astype(self.currentMask.dtype)
+
+                    # remove all pixels in and near current mask and filter for ROI size
                     newCell[mahotas.dilate(self.currentMask>0)] = 0
-
-                    # do NMF decomposition
-                    # n_comp = 4
-                    # n = NMF(n_components=n_comp, tol=1e-1)
-
-                    # xmin_nmf = int(x - self.diskSize*5)
-                    # xmax_nmf = int(x + self.diskSize*5)
-                    # ymin_nmf = int(y - self.diskSize*5)
-                    # ymax_nmf = int(y + self.diskSize*5)
-
-                    # xcenter_nmf = (xmax_nmf - xmin_nmf) / 2
-                    # ycenter_nmf = (ymax_nmf - ymin_nmf) / 2
-
-                    # reshaped_sub_region_data = self.data[xmin_nmf:xmax_nmf, ymin_nmf:ymax_nmf, :].reshape(xmax_nmf-xmin_nmf * ymax_nmf-ymin_nmf, self.data.shape[2])
-                    # n.fit(reshaped_sub_region_data-reshaped_sub_region_data.min())
-                    # transformed_sub_region_data = n.transform(reshaped_sub_region_data)
-                    # modes = transformed_sub_region_data.reshape(xmax_nmf-xmin_nmf, ymax_nmf-ymin_nmf, n_comp).copy()
-
-                    # plt.figure('blah')
-                    # params = []
-                    # this_cell = []
-                    # is_cell = []
-                    # for i, mode in enumerate(np.rollaxis(modes,2,0)):
-                    #     fit_parameters = self.fitgaussian(mode) 
-                    #     fit_height, fit_xcenter, fit_ycenter, fit_xwidth, fit_ywidth = fit_parameters
-                    #     params.append(fit_parameters)
-
-                    #     if np.linalg.norm(np.array([xcenter_nmf, ycenter_nmf]) - np.array([fit_xcenter, fit_ycenter])) > self.diskSize*1.5:
-                    #         this_cell.append(False)
-                    #     else:
-                    #         this_cell.append(True)
-                        
-                    #     if self.diskSize*0.25 < fit_xwidth < 3*self.diskSize and self.diskSize*0.25 < fit_ywidth < 3*self.diskSize:
-                    #         is_cell.append(True)
-                    #     else:
-                    #         is_cell.append(False)
-                                              
-                    #     fit_gaussian = self.gaussian(*fit_parameters)
-                    #     xcoords = np.mgrid[0:xmax_nmf-xmin_nmf,0:ymax_nmf-ymin_nmf][0]
-                    #     ycoords =  np.mgrid[0:xmax_nmf-xmin_nmf,0:ymax_nmf-ymin_nmf][1]
-                    #     fit_data = fit_gaussian(xcoords, ycoords)
-
-                    #     plt.subplot(2,2,i+1)
-                    #     plt.cla()
-                    #     plt.imshow(mode)
-                    #     plt.contour(fit_data, cmap=mpl.cm.Pastel1)
-                    # print params
-                    # print 'this cell', this_cell
-                    # print 'is cell', is_cell
+                    newCell = self.excludePixels(newCell, 10)
 
                     newMask = (newCell * self.currentMaskNumber) + self.currentMask
                     newMask = newMask.astype('uint16')
@@ -910,6 +900,8 @@ class CellPickerGUI(object):
                 dilateMean = mahotas.dilate(erodedMean, Bc=seJunk)
                 dilateMean = mahotas.dilate(dilateMean, Bc=seExpand)
 
+                modes, this_cell, is_cell = self.doLocaNMF(x,y)
+
                 newCell = np.logical_and(dilateMean, safeUnselected)
                 newMask = (newCell * self.currentMaskNumber) + self.currentMask
                 newMask = newMask.astype('uint16')
@@ -933,6 +925,9 @@ class CellPickerGUI(object):
                     # check if square_mask interfers with current mask, if so, abort
                     if np.any(np.logical_and(square_mask, self.currentMask)):
                         return None
+
+#                    print ((xend+xstart)/2,(yend+ystart)/2)
+                    modes, this_cell, is_cell = self.doLocalNMF((xend+xstart)/2,(yend+ystart)/2)
 
                     # add square_mask to mask
                     newMask = (square_mask * self.currentMaskNumber) + self.currentMask
@@ -966,9 +961,13 @@ class CellPickerGUI(object):
                 if np.any(np.logical_and(circle_mask, mahotas.dilate(self.currentMask.astype(bool)))):
                     return None
 
+                modes, this_cell, is_cell = self.doLocalNMF(x,y, circle_mask)
+
                 # add circle_mask to mask
                 newMask = (circle_mask * self.currentMaskNumber) + self.currentMask
                 newMask = newMask.astype('uint16')
+
+
 
                 self.listOfMasks.append(newMask)
                 self.currentMask = self.listOfMasks[-1]
@@ -979,6 +978,75 @@ class CellPickerGUI(object):
 
             sys.stdout.flush()
             self.makeNewMaskAndBackgroundImage()
+
+
+    def excludePixels(self, image, size_cutoff=1):
+        labeled_image = mahotas.label(image)[0]
+
+        for label_id in range(labeled_image.max()+1):
+            label_id_index = labeled_image == label_id
+            if label_id_index.sum() <= size_cutoff:
+                labeled_image[label_id_index] = 0
+
+        return labeled_image>0
+
+    def doLocalNMF(self, x, y, roi, n_comp=5, diskSizeMultiplier=5):
+        # do NMF decomposition
+        n = NMF(n_components=n_comp, tol=1e-1)
+
+        xmin_nmf = max(0,int(x - self.diskSize*diskSizeMultiplier))
+        xmax_nmf = min(int(x + self.diskSize*diskSizeMultiplier), self.data.shape[0])
+        ymin_nmf = max(0, int(y - self.diskSize*diskSizeMultiplier))
+        ymax_nmf = min(int(y + self.diskSize*diskSizeMultiplier), self.data.shape[1])
+
+        local_roi = roi[xmin_nmf:xmax_nmf, ymin_nmf:ymax_nmf]
+
+        xcenter_nmf = (xmax_nmf - xmin_nmf) / 2
+        ycenter_nmf = (ymax_nmf - ymin_nmf) / 2
+
+        reshaped_sub_region_data = self.data[xmin_nmf:xmax_nmf, ymin_nmf:ymax_nmf, :].reshape(xmax_nmf-xmin_nmf * ymax_nmf-ymin_nmf, self.data.shape[2])
+        n.fit(reshaped_sub_region_data-reshaped_sub_region_data.min())
+        transformed_sub_region_data = n.transform(reshaped_sub_region_data)
+        modes = transformed_sub_region_data.reshape(xmax_nmf-xmin_nmf, ymax_nmf-ymin_nmf, n_comp).copy()
+
+        params = []
+        this_cell = []
+        is_cell = []
+        for i, mode in enumerate(np.rollaxis(modes,2,0)):
+            # threshold mode
+            thresh_mode = (mode.astype('uint16') > mahotas.otsu(mode.astype('uint16'))).astype(int)
+
+            print 'sum:' + str(thresh_mode.sum())
+
+            # fit thresholded mode
+            fit_parameters = self.fitgaussian(thresh_mode) 
+            fit_height, fit_xcenter, fit_ycenter, fit_xwidth, fit_ywidth  = fit_parameters
+            print 'mode ' + str(i) + ' parameters: ' + str(fit_parameters)
+            params.append(fit_parameters)
+
+            # is cell-like?
+            if self.diskSize*0.25 < fit_xwidth < 2*self.diskSize and self.diskSize*0.25 < fit_ywidth < 2*self.diskSize:
+                if thresh_mode.sum()/float(thresh_mode.size) <= 0.25:
+                    is_cell.append(True)
+            else:
+                is_cell.append(False)
+
+            # is this cell?
+            if np.linalg.norm(np.array([xcenter_nmf, ycenter_nmf]) - np.array([fit_xcenter, fit_ycenter])) < self.diskSize*1.5:
+                this_cell.append(True)
+            else:
+                this_cell.append(False)
+
+            fit_gaussian = self.gaussian(*fit_parameters)
+            xcoords = np.mgrid[0:xmax_nmf-xmin_nmf,0:ymax_nmf-ymin_nmf][0]
+            ycoords =  np.mgrid[0:xmax_nmf-xmin_nmf,0:ymax_nmf-ymin_nmf][1]
+            fit_data = fit_gaussian(xcoords, ycoords)
+
+        print 'this cell', this_cell
+        print 'is cell', is_cell
+        print ' '
+
+        return modes, np.array(this_cell), np.array(is_cell)
     
     @QtCore.Slot(tuple)
     def deleteCell(self, eventTuple):
@@ -1025,7 +1093,7 @@ class CellPickerGUI(object):
         else:
             color_mask = converter.to_rgba(self.currentMask)
         color_mask[:,:,3] = 0
-        color_mask[:,:,3] = (color_mask[:,:,0:2].sum(axis=2) > 0).astype(float) * 0.4 # alpha value of 0.4
+        color_mask[:,:,3] = (color_mask[:,:,0:2].sum(axis=2) > 0).astype(float) * 0.4 # alpha value of 40%
 
         self.image_widget.updateImage(self.currentBackgroundImage, color_mask)
         
