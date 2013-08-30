@@ -475,11 +475,10 @@ class CellPickerGUI(object):
             self.radioButton_5.setChecked(True)
 
         elif keyPressed == QtCore.Qt.Key_M:
-            self.flipMask()
+            self.checkBox_2.toggle() # calls the callback automatically!
 
         elif keyPressed == QtCore.Qt.Key_N:
             self.useNMF = not(self.useNMF)
-
         else:
             pass
 
@@ -492,7 +491,6 @@ class CellPickerGUI(object):
             self.maskOn = True
             self.currentMask = self.listOfMasks[-1].copy()
             self.makeNewMaskAndBackgroundImage()
-        self.checkBox_2.setChecked(self.maskOn)
 
     def clearModeData(self):
         self.modeData = []
