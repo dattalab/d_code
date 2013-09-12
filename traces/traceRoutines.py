@@ -7,7 +7,7 @@ import scipy.ndimage as nd
 import scipy.stats
 import scipy
 
-from scipy.signal import butter, lfilter
+from scipy.signal import butter, bessel, lfilter
 
 import matplotlib as mpl
 from matplotlib import mlab
@@ -331,19 +331,32 @@ def fir_filter(sig, sampling_freq, critical_freq, kernel_window = 'hamming', tap
 
     kernel = make_fir_filter(sampling_freq, critical_freq, kernel_window, taps, kind, **kwargs) 
 
-
     return np.roll(scipy.signal.lfilter(kernel, [1], sig), -taps/2+1)
 
 # BUTTERWORTH bandpass
 
-def butter_bandpass_filter(data, lowcut, highcut, fs, order=5):
+def butter_bandpass_filter(data, lowcut, highcut, fs, order=2):
+    nyq = 0.5 * fs
+    low = lowcut / nyq
+    high = highcut / nyq
+    
+    # butter() and lfilter() are from scipy.signal
+    
+    b, a = butter(order, [low, high], btype='band')
+    y = lfilter(b, a, data)
+    return y
+
+def bessel_bandpass_filter(data, lowcut, highcut, fs, order=2):
     nyq = 0.5 * fs
     low = lowcut / nyq
     high = highcut / nyq
 
-    b, a = butter(order, [low, high], btype='band')
+    # bessel() and lfilter() are from scipy.signal
+
+    b, a = bessel(order, [low, high], btype='band')
     y = lfilter(b, a, data)
     return y
+
 
 # -------------------- SPECTROGRAM ROUTINES------------------------------------------
 # modified from http://code.google.com/p/python-neural-analysis-scripts/source/browse/trunk/LFP/signal_utils.py
@@ -430,14 +443,20 @@ def specgram(signal, sampling_frequency, time_resolution,
         interface.
     Inputs:
         signal                  : the input signal (a one dimensional array)
+
         sampling_frequency      : the sampling frequency of signal
+
         time_resolution         : the desired time resolution of the specgram
                                     this is the guaranteed worst time resolution
+
         frequency_resolution    : the desired frequency resolution of the 
                                     specgram.  this is the guaranteed worst
                                     frequency resolution.
-        high_frequency_cutoff   : optional high freq. cutoff.  algo resamples data
+
+        high_frequency_cutoff   : optional high freq. cutoff.  resamples data
                                   to this value and then uses that for Fs parameter
+                                  probably better to just truncate the power array
+
         logscale                : rescale data based on log values?  defaults is True
 
         --keyword arguments--
