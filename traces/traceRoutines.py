@@ -444,9 +444,9 @@ def specgram(signal, sampling_frequency, time_resolution,
         **kwargs                : Arguments passed on to 
                                    matplotlib.mlab.specgram
     Returns:
-            power
-            freqs
-            bins
+            power - 2d array of power (dB/Hz?)
+            freqs - in Hz
+            bins - in seconds
 
     Plot with: 
         power, freqs, bins = specgram(...)
