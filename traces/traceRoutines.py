@@ -423,8 +423,8 @@ def psd(signal, sampling_frequency, frequency_resolution,
                     noverlap=0, **kwargs)
 
 def specgram(signal, sampling_frequency, time_resolution, 
-             frequency_resolution, bath_signals=[], 
-             high_frequency_cutoff=None,  axes=None, logscale=True, **kwargs):
+             frequency_resolution, high_frequency_cutoff=None, 
+             logscale=True, **kwargs):
     """
     This function wraps matplotlib.mlab.specgram to provide a more intuitive 
         interface.
@@ -436,18 +436,22 @@ def specgram(signal, sampling_frequency, time_resolution,
         frequency_resolution    : the desired frequency resolution of the 
                                     specgram.  this is the guaranteed worst
                                     frequency resolution.
+        high_frequency_cutoff   : optional high freq. cutoff.  algo resamples data
+                                  to this value and then uses that for Fs parameter
+        logscale                : rescale data based on log values?  defaults is True
+
         --keyword arguments--
         **kwargs                : Arguments passed on to 
                                    matplotlib.mlab.specgram
     Returns:
-            Pxx
+            power
             freqs
             bins
 
     Plot with: 
-        points, freqs, bins = specgram(...)
+        power, freqs, bins = specgram(...)
         extent = (bins[0], bins[-1], freqs[0], freqs[-1])
-        imshow(points, aspect='auto', origin='lower', extent=extent) # from pyplot
+        imshow(power, aspect='auto', origin='lower', extent=extent) # from pyplot
 
     """
     if (high_frequency_cutoff is not None 
@@ -464,16 +468,15 @@ def specgram(signal, sampling_frequency, time_resolution,
                                                num_data_samples)
     NFFT     = specgram_settings['power_of_two_NFFT']
     noverlap = specgram_settings['noverlap']
-    Pxx, freqs, bins = mlab.specgram(resampled_signal, 
+    power, freqs, bins = mlab.specgram(resampled_signal, 
                                                 NFFT=NFFT, 
                                                 Fs=high_frequency_cutoff, 
                                                 noverlap=noverlap, **kwargs)
 
-
     if logscale:
-        Pxx = 10*np.log10(Pxx)
+        power = 10*np.log10(power)
 
-    return Pxx, freqs, bins
+    return power, freqs, bins
 
 # -------------------- SPLINE FITTING/BASELINE ROUTINES------------------------------------------
 
