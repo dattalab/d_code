@@ -12,10 +12,9 @@ from scipy.signal import butter, lfilter
 import matplotlib as mpl
 from matplotlib import mlab
 
-__all__ = ['baseline', 'normalize', 'normalizeAndBaseline', 'findLevels', \
-               'findLevels1d', 'findLevelsNd', \
-               'subBaseline', 'boxcar', 'smooth', \
-               'calcCorrectedSTDs', 'calcTracesOverThreshhold',  'calcPosTraces', 'partitionTracesBySTD', \
+__all__ = ['baseline', 'normalize', 'normalizeAndBaseline', \
+               'findLevels', 'findLevels1d', 'findLevelsNd', \
+               'boxcar', 'smooth', 'lowess', \
                'fir_filter', 'butter_bandpass_filter', 'psd', 'specgram',\
                'mask_deviations', 'baseline_splines']
 
@@ -79,6 +78,8 @@ def normalizeAndBaseline(A, baseRange, baseAxis):
     :returns: normalized, baselined array
     """
     return baseline(normalize(A, baseRange, baseAxis), baseRange, baseAxis)
+
+# -------------------- LEVEL FINDING ROUTINES------------------------------------------
 
 def findLevels(A, level, mode='rising', boxWidth=0, rangeSubset=None):
     """Function to find level crossings in an 1d numpy array.  Based on the Igor
@@ -155,7 +156,7 @@ def findLevelsNd(A, level, mode='rising', axis=0, boxWidth=0):
 
 # -------------------- SMOOTHING ROUTINES------------------------------------------
 
-def lowessPy(x, y, f=2./3., iters=3): 
+def lowess(x, y, f=2./3., iters=3): 
     """lowess(x, y, f=2./3., iter=3) -> yest 
 
     Lowess smoother: Robust locally weighted regression. 
@@ -271,69 +272,6 @@ def smooth(A, window_len=11, window='hanning'):
 
     y=np.convolve(w/w.sum(),s,mode='valid')
     return y
-
-def calcCorrectedSTDs(A, expectedMean):
-    A = np.atleast_2d(A)
-    STDs = np.zeros((A.shape[1]))
-
-    for i in range(A.shape[1]):
-        trace = A[:,i].copy()
-
-        negValues = np.array([value for value in trace if value < expectedMean])
-        flippedNegValues = np.abs(negValues-expectedMean)+expectedMean
-        STDs[i] = np.std(np.concatenate((negValues, flippedNegValues)))
-
-    return STDs
-
-def calcTracesOverThreshhold(A, thresh):
-    A = np.atleast_2d(A)
-    overList = np.zeros((A.shape[1]))
-
-    # if threshList is just a number, then it's a global comparison
-    if type(thresh) is not np.ndarray:
-        threshList = np.ones(A.shape[1]) * thresh
-    else:
-        threshList = thresh.copy()
-        
-    overList = np.zeros(A.shape[0])
-    for i in range(A.shape[1]):
-        overList[i] = (A[:,i] >= threshList[i]).any()
-
-    return overList.astype('bool')
-
-# -------------------- PLAYING ROUTINES------------------------------------------
-
-def calcPosTraces(A, stdList, threshRange, numThresh=100, baseLevel=1.0):
-    
-    threshList = np.arange(threshRange[0], threshRange[1], (threshRange[1]-threshRange[0])/float(numThresh)) 
-
-    numPos = np.zeros(len(threshList))
-    posMat = np.zeros((A.shape[1], numThresh))
-
-
-    for i, threshLevel in enumerate(threshList):
-        s = stdList*threshLevel
-        overT = calcTracesOverThreshhold(A, s)
-
-        numPos[i] = np.sum(overT)
-        posMat[:,i] = overT.copy()
-    
-    return numPos, posMat.astype('bool')
-
-def partitionTracesBySTD(posMatrix, lowValue, highValue):
-    diff = np.diff(np.logical_not(posMatrix), axis=1)
-    dropLevels = np.argmax(diff, 1)
-    
-    # a dropLevel of '0' means either it always succeed so let's set it to the max
-    dropLevels[dropLevels == 0] = posMatrix.shape[1] 
-    
-    low  = [index for index, cutLevel in enumerate(dropLevels) if cutLevel < lowValue]
-    mid  = [index for index, cutLevel in enumerate(dropLevels) if lowValue <= cutLevel < highValue]
-    high = [index for index, cutLevel in enumerate(dropLevels) if cutLevel >= highValue]
-
-    return low, mid, high
-
-
 
 # -------------------- Filtering Routines ------------------------------------------
 # from http://code.google.com/p/python-neural-analysis-scripts/source/browse/trunk/scripts/Filtering/Fir.py
