@@ -11,13 +11,11 @@ from scipy.signal import butter, lfilter
 
 import matplotlib as mpl
 from matplotlib import mlab
-import bisect
 
 __all__ = ['baseline', 'normalize', 'normalizeAndBaseline', 'findLevels', \
-               'subBaseline', 'normAndCorrectBaseline', 'correctionMatrixLinearFit', \
-               'correctionMatrixSmoothed', 'boxcar', 'smooth', \
-               'calcCorrectedSTDs', 'calcTracesOverThreshhold',  'calcPosTraces', 'partitionTracesBySTD', \
                'findLevels1d', 'findLevelsNd', \
+               'subBaseline', 'boxcar', 'smooth', \
+               'calcCorrectedSTDs', 'calcTracesOverThreshhold',  'calcPosTraces', 'partitionTracesBySTD', \
                'fir_filter', 'butter_bandpass_filter', 'psd', 'specgram',\
                'mask_deviations', 'baseline_splines']
 
@@ -154,81 +152,8 @@ def findLevelsNd(A, level, mode='rising', axis=0, boxWidth=0):
         return crossings<0
     else:
         return np.abs(crossings>0)
-    
-def subBaseline(A):
-    X = correctionMatrixSmoothed(A)
-    return (A - X)
 
-def normAndCorrectBaseline(A):
-    X = correctionMatrixSmoothed(A)
-    return (A - X + np.mean(X, axis=0)) / np.mean(X, axis=0)
-
-def correctionMatrixLinearFit(A):
-    """This routine could be improved quite a bit.  presumes that the first
-    and last lines of the trace near the baseline and builds a 5 point
-    average of those and a line which linearlly interpolates between them.
-
-    This is done for every trace in the array, building a correction for baseline
-    drift over a given axix (axis 0)
-    """
-    
-    correctionMatrix = np.zeros_like(A)
-    xRange = np.array([0, A.shape[0]])
-    for traceNum in range(A.shape[1]):
-        t = A[:,traceNum]
-        traceLength = t.shape[0]
-        start_window = np.array([0, 3])
-        stop_window = np.array([traceLength-5, traceLength-1])
-
-        start = np.mean(t[slice(start_window[0], start_window[1])])
-        stop = np.mean(t[slice(stop_window[0], stop_window[1])])
-        
-        endpointRatio = start/stop
-        numStartShifts = 0
-        numStopShifts = 0
-        start_std = np.std(t[slice(start_window[0], start_window[1])])
-        stop_std = np.std(t[slice(stop_window[0], stop_window[1])])
-
-        def shiftWin(window, shift_amount, trace):
-            return window + shift_amount, np.mean(t[slice(window[0], window[1])]), np.std(t[slice(window[0], window[1])])
-
-        while endpointRatio>1.2 or endpointRatio <0.85:
-            if endpointRatio<1:
-                print 'endpoint ratio >1, shifting...'
-                stop_window, stop, stop_std = shiftWin(stop_window, -1, t)
-                endpointRatio = start/stop
-                numStopShifts += 1
-            if endpointRatio>1:
-                print 'endpoint ratio < 0.85, shifting...'
-                start_window, start, start_std = shiftWin(start_window, 1, t)
-                endpointRatio = start/stop
-                numStartShifts += 1
-                
-        if numStartShifts > 0 or numStopShifts > 0:
-            print 'shifted start %d times, shifted stop %d times.  final endpoints:' % (numStartShifts, numStopShifts)
-            print start, stop
-            print 'std of ranges: %f, %f' % (start_std,stop_std)
-            if stop_std > 10:
-                stop_window, stop, stop_std = shiftWin(stop_window, -1, t)
-                print 'Stop window STD still high, shift by two, and now: %f' % stop_std
-            if start_std > 10:
-                start_window, start, start_std = shiftWin(start_window, 1, t)
-                print 'Start window STD still high, shift by two, and now: %f' % start_std
-                
-        yRange = np.array([start, stop])
-        f = interp1d(xRange, yRange)
-        correctionMatrix[:,traceNum] = f(np.linspace(0,A.shape[0],A.shape[0]))
-    return correctionMatrix
-
-def correctionMatrixSmoothed(A):
-    """
-    """
-    correctionMatrix = np.zeros_like(A)
-    for traceNum in range(A.shape[1]):
-        t = A[:,traceNum]
-        sm = lowessPy(np.arange(float(len(t))), t, f=1.8, iters=10)
-        correctionMatrix[:,traceNum] = sm
-    return correctionMatrix
+# -------------------- SMOOTHING ROUTINES------------------------------------------
 
 def lowessPy(x, y, f=2./3., iters=3): 
     """lowess(x, y, f=2./3., iter=3) -> yest 
@@ -294,9 +219,6 @@ def lowessPy(x, y, f=2./3., iters=3):
         delta[:] = delta*delta 
     return yest 
 
-
-# -------------------- SMOOTHING ROUTINES------------------------------------------
-
 def boxcar(A, boxWidth=3, axis=1):
     """Boxcar smoothes a matrix of 1d traces with a boxcar of a specified width.
     Does this by convolving the traces with another flat array.
@@ -349,8 +271,6 @@ def smooth(A, window_len=11, window='hanning'):
 
     y=np.convolve(w/w.sum(),s,mode='valid')
     return y
-
-
 
 def calcCorrectedSTDs(A, expectedMean):
     A = np.atleast_2d(A)
@@ -486,9 +406,6 @@ def butter_bandpass_filter(data, lowcut, highcut, fs, order=5):
     b, a = butter(order, [low, high], btype='band')
     y = lfilter(b, a, data)
     return y
-
-
-
 
 # -------------------- SPECTROGRAM ROUTINES------------------------------------------
 # modified from http://code.google.com/p/python-neural-analysis-scripts/source/browse/trunk/LFP/signal_utils.py
