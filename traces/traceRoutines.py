@@ -403,21 +403,27 @@ def resample_signal(signal, prev_sample_rate, new_sample_rate):
     return scipy.signal.resample(signal, int(len(signal)*rate_factor))    
 
 def psd(signal, sampling_frequency, frequency_resolution,
-        high_frequency_cutoff=None,  axes=None, **kwargs):
+        high_frequency_cutoff=None,  **kwargs):
     """
     This function wraps matplotlib.mlab.psd to provide a more intuitive 
         interface.
     Inputs:
         signal                  : the input signal (a one dimensional array)
+
         sampling_frequency      : the sampling frequency of signal
+
         frequency_resolution    : the desired frequency resolution of the 
                                     specgram.  this is the guaranteed worst
                                     frequency resolution.
+        high_frequency_cutoff   : optional high freq. cutoff.  resamples data
+                                  to this value and then uses that for Fs parameter
+                                  probably better to just truncate the power array
+
         --keyword arguments--
         **kwargs                : Arguments passed on to 
-                                   matplotlib.mlab.specgram
+                                   matplotlib.mlab.psd
     Returns:
-        Pxx
+        power
         freqs
     """
     if (high_frequency_cutoff is not None 
