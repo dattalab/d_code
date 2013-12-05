@@ -32,16 +32,24 @@ def plot_avg_and_sem(npArray, axis=1):
     plt.fill_between(np.arange(mean.shape[0]), sem_plus, sem_minus, alpha=0.5)
     plt.plot(mean)
 
-def plot_array(npArray, axis=1, xlim=None, ylim=None):
+def plot_array(npArray, axis=1, xlim=None, ylim=None, color=None, suppress_labels=True, title=None):
 
-    plt.figure()
+    f = plt.figure()
+    f.suptitle(title, fontsize=14)
 
     num_plots = npArray.shape[axis]
     side = np.ceil(np.sqrt(num_plots))
-    for current_plot in range(1, num_plots+1):
 
+    if color is not None:
+        if not isinstance(color, (list, tuple)):  # did we pass in a list of colors?
+            color_list = [color] * num_plots
+    else:
+        color_list = [None] * num_plots
+
+    assert(len(color_list) == num_plots)
+    for current_plot, color in zip(range(1, num_plots+1), color_list):
         plt.subplot(side, side, current_plot)
-    
+
         # need to make a tuple of Ellipses and an int that is the current plot number
         slice_obj = []
         for a in range(npArray.ndim):
@@ -50,7 +58,10 @@ def plot_array(npArray, axis=1, xlim=None, ylim=None):
             else:
                 slice_obj.append(Ellipsis)
 
-        plt.plot(npArray[tuple(slice_obj)])
+        if color is None:
+            plt.plot(npArray[tuple(slice_obj)])
+        else:
+            plt.plot(npArray[tuple(slice_obj)], color=color)
 
         if xlim is not None:
             plt.xlim(xlim)
@@ -60,6 +71,13 @@ def plot_array(npArray, axis=1, xlim=None, ylim=None):
             plot_min = np.min(npArray[np.logical_not(np.isnan(npArray))]) * 0.9
             plot_max = np.max(npArray[np.logical_not(np.isnan(npArray))]) * 1.1
             plt.ylim([plot_min,plot_max])
+        
+        if suppress_labels:
+            a = plt.gca()
+            a.set_xticklabels([])
+            a.set_yticklabels([])
+
+    return f
 
 def plot_array_xy(npArray_x, npArray_y, axis=1, xlim=None, ylim=None):
     # ensure x and y match in dimensions
@@ -99,9 +117,10 @@ def plot_array_xy(npArray_x, npArray_y, axis=1, xlim=None, ylim=None):
             plt.ylim([plot_min,plot_max])
 
 
-def imshow_array(npArray, axis=2, vmax=None, vmin=None, transpose=False, tight_axis=True):
+def imshow_array(npArray, axis=2, vmax=None, vmin=None, transpose=False, tight_axis=True, suppress_labels=True, title=None):
 
-    plt.figure()
+    f = plt.figure()
+    f.suptitle(title, fontsize=14)
 
     num_plots = npArray.shape[axis]
     side = np.ceil(np.sqrt(num_plots))
@@ -129,6 +148,11 @@ def imshow_array(npArray, axis=2, vmax=None, vmin=None, transpose=False, tight_a
         if tight_axis is True:
             plt.axis('tight')
 
+        if suppress_labels:
+            a = plt.gca()
+            a.set_xticklabels([])
+            a.set_yticklabels([])
+    return f
 
 def plot_avg_and_comps(npArray, axis=1):
     plt.figure()
