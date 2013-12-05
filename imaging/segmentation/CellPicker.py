@@ -16,7 +16,10 @@ import scipy
 import pymorph
 import mahotas
 
-import matplotlib.nxutils as nx
+try:
+    import matplotlib.nxutils as nx
+except ImportError:
+    print 'POLY MODE DISABLED!'
 
 from sklearn.decomposition import NMF
 
