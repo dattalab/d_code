@@ -19,7 +19,7 @@ import mahotas
 try:
     import matplotlib.nxutils as nx
 except ImportError:
-    print 'POLY MODE DISABLED!'
+    print 'CellPicker:  POLY MODE DISABLED!'
 
 from sklearn.decomposition import NMF
 
