@@ -375,7 +375,7 @@ class CellPickerGUI(object):
 
         self.labelsOn = False
         self.maskOn = True
-        self.useNMF = False
+        self.useNMF = True
 
         self.makeNewMaskAndBackgroundImage()
     
@@ -1084,12 +1084,12 @@ class CellPickerGUI(object):
             # threshold mode
             thresh_mode = (mode.astype('uint16') > mahotas.otsu(mode.astype('uint16'))).astype(int)
 
-            print 'sum:' + str(thresh_mode.sum())
+#            print 'sum:' + str(thresh_mode.sum())
 
             # fit thresholded mode
             fit_parameters = self.fitgaussian(thresh_mode) 
             fit_height, fit_xcenter, fit_ycenter, fit_xwidth, fit_ywidth  = fit_parameters
-            print 'mode ' + str(i) + ' parameters: ' + str(fit_parameters)
+#            print 'mode ' + str(i) + ' parameters: ' + str(fit_parameters)
             params.append(fit_parameters)
 
             # is cell-like?
@@ -1110,9 +1110,9 @@ class CellPickerGUI(object):
             ycoords =  np.mgrid[0:xmax_nmf-xmin_nmf,0:ymax_nmf-ymin_nmf][1]
             fit_data = fit_gaussian(xcoords, ycoords)
 
-        print 'this cell', this_cell
-        print 'is cell', is_cell
-        print ' '
+ #       print 'this cell', this_cell
+ #       print 'is cell', is_cell
+ #       print ' '
 
         return modes, np.array(this_cell), np.array(is_cell)
     
