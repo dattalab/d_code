@@ -7,17 +7,14 @@ import scipy.ndimage as nd
 import scipy.stats
 import scipy
 
-from scipy.signal import butter, lfilter
+from scipy.signal import butter, bessel, lfilter
 
 import matplotlib as mpl
 from matplotlib import mlab
-import bisect
 
-__all__ = ['baseline', 'normalize', 'normalizeAndBaseline', 'findLevels', \
-               'subBaseline', 'normAndCorrectBaseline', 'correctionMatrixLinearFit', \
-               'correctionMatrixSmoothed', 'boxcar', 'smooth', \
-               'calcCorrectedSTDs', 'calcTracesOverThreshhold',  'calcPosTraces', 'partitionTracesBySTD', \
-               'findLevels1d', 'findLevelsNd', \
+__all__ = ['baseline', 'normalize', 'normalizeAndBaseline', \
+               'findLevels', 'findLevels1d', 'findLevelsNd', \
+               'boxcar', 'smooth', 'lowess', \
                'fir_filter', 'butter_bandpass_filter', 'psd', 'specgram',\
                'mask_deviations', 'baseline_splines']
 
@@ -81,6 +78,8 @@ def normalizeAndBaseline(A, baseRange, baseAxis):
     :returns: normalized, baselined array
     """
     return baseline(normalize(A, baseRange, baseAxis), baseRange, baseAxis)
+
+# -------------------- LEVEL FINDING ROUTINES------------------------------------------
 
 def findLevels(A, level, mode='rising', boxWidth=0, rangeSubset=None):
     """Function to find level crossings in an 1d numpy array.  Based on the Igor
@@ -154,83 +153,10 @@ def findLevelsNd(A, level, mode='rising', axis=0, boxWidth=0):
         return crossings<0
     else:
         return np.abs(crossings>0)
-    
-def subBaseline(A):
-    X = correctionMatrixSmoothed(A)
-    return (A - X)
 
-def normAndCorrectBaseline(A):
-    X = correctionMatrixSmoothed(A)
-    return (A - X + np.mean(X, axis=0)) / np.mean(X, axis=0)
+# -------------------- SMOOTHING ROUTINES------------------------------------------
 
-def correctionMatrixLinearFit(A):
-    """This routine could be improved quite a bit.  presumes that the first
-    and last lines of the trace near the baseline and builds a 5 point
-    average of those and a line which linearlly interpolates between them.
-
-    This is done for every trace in the array, building a correction for baseline
-    drift over a given axix (axis 0)
-    """
-    
-    correctionMatrix = np.zeros_like(A)
-    xRange = np.array([0, A.shape[0]])
-    for traceNum in range(A.shape[1]):
-        t = A[:,traceNum]
-        traceLength = t.shape[0]
-        start_window = np.array([0, 3])
-        stop_window = np.array([traceLength-5, traceLength-1])
-
-        start = np.mean(t[slice(start_window[0], start_window[1])])
-        stop = np.mean(t[slice(stop_window[0], stop_window[1])])
-        
-        endpointRatio = start/stop
-        numStartShifts = 0
-        numStopShifts = 0
-        start_std = np.std(t[slice(start_window[0], start_window[1])])
-        stop_std = np.std(t[slice(stop_window[0], stop_window[1])])
-
-        def shiftWin(window, shift_amount, trace):
-            return window + shift_amount, np.mean(t[slice(window[0], window[1])]), np.std(t[slice(window[0], window[1])])
-
-        while endpointRatio>1.2 or endpointRatio <0.85:
-            if endpointRatio<1:
-                print 'endpoint ratio >1, shifting...'
-                stop_window, stop, stop_std = shiftWin(stop_window, -1, t)
-                endpointRatio = start/stop
-                numStopShifts += 1
-            if endpointRatio>1:
-                print 'endpoint ratio < 0.85, shifting...'
-                start_window, start, start_std = shiftWin(start_window, 1, t)
-                endpointRatio = start/stop
-                numStartShifts += 1
-                
-        if numStartShifts > 0 or numStopShifts > 0:
-            print 'shifted start %d times, shifted stop %d times.  final endpoints:' % (numStartShifts, numStopShifts)
-            print start, stop
-            print 'std of ranges: %f, %f' % (start_std,stop_std)
-            if stop_std > 10:
-                stop_window, stop, stop_std = shiftWin(stop_window, -1, t)
-                print 'Stop window STD still high, shift by two, and now: %f' % stop_std
-            if start_std > 10:
-                start_window, start, start_std = shiftWin(start_window, 1, t)
-                print 'Start window STD still high, shift by two, and now: %f' % start_std
-                
-        yRange = np.array([start, stop])
-        f = interp1d(xRange, yRange)
-        correctionMatrix[:,traceNum] = f(np.linspace(0,A.shape[0],A.shape[0]))
-    return correctionMatrix
-
-def correctionMatrixSmoothed(A):
-    """
-    """
-    correctionMatrix = np.zeros_like(A)
-    for traceNum in range(A.shape[1]):
-        t = A[:,traceNum]
-        sm = lowessPy(np.arange(float(len(t))), t, f=1.8, iters=10)
-        correctionMatrix[:,traceNum] = sm
-    return correctionMatrix
-
-def lowessPy(x, y, f=2./3., iters=3): 
+def lowess(x, y, f=2./3., iters=3): 
     """lowess(x, y, f=2./3., iter=3) -> yest 
 
     Lowess smoother: Robust locally weighted regression. 
@@ -294,9 +220,6 @@ def lowessPy(x, y, f=2./3., iters=3):
         delta[:] = delta*delta 
     return yest 
 
-
-# -------------------- SMOOTHING ROUTINES------------------------------------------
-
 def boxcar(A, boxWidth=3, axis=1):
     """Boxcar smoothes a matrix of 1d traces with a boxcar of a specified width.
     Does this by convolving the traces with another flat array.
@@ -349,71 +272,6 @@ def smooth(A, window_len=11, window='hanning'):
 
     y=np.convolve(w/w.sum(),s,mode='valid')
     return y
-
-
-
-def calcCorrectedSTDs(A, expectedMean):
-    A = np.atleast_2d(A)
-    STDs = np.zeros((A.shape[1]))
-
-    for i in range(A.shape[1]):
-        trace = A[:,i].copy()
-
-        negValues = np.array([value for value in trace if value < expectedMean])
-        flippedNegValues = np.abs(negValues-expectedMean)+expectedMean
-        STDs[i] = np.std(np.concatenate((negValues, flippedNegValues)))
-
-    return STDs
-
-def calcTracesOverThreshhold(A, thresh):
-    A = np.atleast_2d(A)
-    overList = np.zeros((A.shape[1]))
-
-    # if threshList is just a number, then it's a global comparison
-    if type(thresh) is not np.ndarray:
-        threshList = np.ones(A.shape[1]) * thresh
-    else:
-        threshList = thresh.copy()
-        
-    overList = np.zeros(A.shape[0])
-    for i in range(A.shape[1]):
-        overList[i] = (A[:,i] >= threshList[i]).any()
-
-    return overList.astype('bool')
-
-# -------------------- PLAYING ROUTINES------------------------------------------
-
-def calcPosTraces(A, stdList, threshRange, numThresh=100, baseLevel=1.0):
-    
-    threshList = np.arange(threshRange[0], threshRange[1], (threshRange[1]-threshRange[0])/float(numThresh)) 
-
-    numPos = np.zeros(len(threshList))
-    posMat = np.zeros((A.shape[1], numThresh))
-
-
-    for i, threshLevel in enumerate(threshList):
-        s = stdList*threshLevel
-        overT = calcTracesOverThreshhold(A, s)
-
-        numPos[i] = np.sum(overT)
-        posMat[:,i] = overT.copy()
-    
-    return numPos, posMat.astype('bool')
-
-def partitionTracesBySTD(posMatrix, lowValue, highValue):
-    diff = np.diff(np.logical_not(posMatrix), axis=1)
-    dropLevels = np.argmax(diff, 1)
-    
-    # a dropLevel of '0' means either it always succeed so let's set it to the max
-    dropLevels[dropLevels == 0] = posMatrix.shape[1] 
-    
-    low  = [index for index, cutLevel in enumerate(dropLevels) if cutLevel < lowValue]
-    mid  = [index for index, cutLevel in enumerate(dropLevels) if lowValue <= cutLevel < highValue]
-    high = [index for index, cutLevel in enumerate(dropLevels) if cutLevel >= highValue]
-
-    return low, mid, high
-
-
 
 # -------------------- Filtering Routines ------------------------------------------
 # from http://code.google.com/p/python-neural-analysis-scripts/source/browse/trunk/scripts/Filtering/Fir.py
@@ -473,21 +331,31 @@ def fir_filter(sig, sampling_freq, critical_freq, kernel_window = 'hamming', tap
 
     kernel = make_fir_filter(sampling_freq, critical_freq, kernel_window, taps, kind, **kwargs) 
 
-
     return np.roll(scipy.signal.lfilter(kernel, [1], sig), -taps/2+1)
 
 # BUTTERWORTH bandpass
 
-def butter_bandpass_filter(data, lowcut, highcut, fs, order=5):
+def butter_bandpass_filter(data, lowcut, highcut, fs, order=2):
     nyq = 0.5 * fs
     low = lowcut / nyq
     high = highcut / nyq
-
+    
+    # butter() and lfilter() are from scipy.signal
+    
     b, a = butter(order, [low, high], btype='band')
     y = lfilter(b, a, data)
     return y
 
+def bessel_bandpass_filter(data, lowcut, highcut, fs, order=2):
+    nyq = 0.5 * fs
+    low = lowcut / nyq
+    high = highcut / nyq
 
+    # bessel() and lfilter() are from scipy.signal
+
+    b, a = bessel(order, [low, high], btype='band')
+    y = lfilter(b, a, data)
+    return y
 
 
 # -------------------- SPECTROGRAM ROUTINES------------------------------------------
@@ -535,21 +403,27 @@ def resample_signal(signal, prev_sample_rate, new_sample_rate):
     return scipy.signal.resample(signal, int(len(signal)*rate_factor))    
 
 def psd(signal, sampling_frequency, frequency_resolution,
-        high_frequency_cutoff=None,  axes=None, **kwargs):
+        high_frequency_cutoff=None,  **kwargs):
     """
     This function wraps matplotlib.mlab.psd to provide a more intuitive 
         interface.
     Inputs:
         signal                  : the input signal (a one dimensional array)
+
         sampling_frequency      : the sampling frequency of signal
+
         frequency_resolution    : the desired frequency resolution of the 
                                     specgram.  this is the guaranteed worst
                                     frequency resolution.
+        high_frequency_cutoff   : optional high freq. cutoff.  resamples data
+                                  to this value and then uses that for Fs parameter
+                                  probably better to just truncate the power array
+
         --keyword arguments--
         **kwargs                : Arguments passed on to 
-                                   matplotlib.mlab.specgram
+                                   matplotlib.mlab.psd
     Returns:
-        Pxx
+        power
         freqs
     """
     if (high_frequency_cutoff is not None 
@@ -568,31 +442,41 @@ def psd(signal, sampling_frequency, frequency_resolution,
                     noverlap=0, **kwargs)
 
 def specgram(signal, sampling_frequency, time_resolution, 
-             frequency_resolution, bath_signals=[], 
-             high_frequency_cutoff=None,  axes=None, logscale=True, **kwargs):
+             frequency_resolution, high_frequency_cutoff=None, 
+             logscale=True, **kwargs):
     """
     This function wraps matplotlib.mlab.specgram to provide a more intuitive 
         interface.
     Inputs:
         signal                  : the input signal (a one dimensional array)
+
         sampling_frequency      : the sampling frequency of signal
+
         time_resolution         : the desired time resolution of the specgram
                                     this is the guaranteed worst time resolution
+
         frequency_resolution    : the desired frequency resolution of the 
                                     specgram.  this is the guaranteed worst
                                     frequency resolution.
+
+        high_frequency_cutoff   : optional high freq. cutoff.  resamples data
+                                  to this value and then uses that for Fs parameter
+                                  probably better to just truncate the power array
+
+        logscale                : rescale data based on log values?  defaults is True
+
         --keyword arguments--
         **kwargs                : Arguments passed on to 
                                    matplotlib.mlab.specgram
     Returns:
-            Pxx
-            freqs
-            bins
+            power - 2d array of power (dB/Hz?)
+            freqs - in Hz
+            bins - in seconds
 
     Plot with: 
-        points, freqs, bins = specgram(...)
+        power, freqs, bins = specgram(...)
         extent = (bins[0], bins[-1], freqs[0], freqs[-1])
-        imshow(points, aspect='auto', origin='lower', extent=extent) # from pyplot
+        imshow(power, aspect='auto', origin='lower', extent=extent) # from pyplot
 
     """
     if (high_frequency_cutoff is not None 
@@ -609,16 +493,17 @@ def specgram(signal, sampling_frequency, time_resolution,
                                                num_data_samples)
     NFFT     = specgram_settings['power_of_two_NFFT']
     noverlap = specgram_settings['noverlap']
-    Pxx, freqs, bins = mlab.specgram(resampled_signal, 
+    power, freqs, bins = mlab.specgram(resampled_signal, 
                                                 NFFT=NFFT, 
                                                 Fs=high_frequency_cutoff, 
                                                 noverlap=noverlap, **kwargs)
 
-
     if logscale:
-        Pxx = 10*np.log10(Pxx)
+        power = 10*np.log10(power)
 
-    return Pxx, freqs, bins
+    return power, freqs, bins
+
+# -------------------- SPLINE FITTING/BASELINE ROUTINES------------------------------------------
 
 def mask_deviations(traces, std_cutoff=2.25, axis=0, iterations=40):
     """This routine takes a 1, 2, or 3d array and masks large positive deviations from the mean.

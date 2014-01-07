@@ -16,7 +16,10 @@ import scipy
 import pymorph
 import mahotas
 
-import matplotlib.nxutils as nx
+try:
+    import matplotlib.nxutils as nx
+except ImportError:
+    print 'CellPicker:  POLY MODE DISABLED!'
 
 from sklearn.decomposition import NMF
 
@@ -50,20 +53,59 @@ class MatplotlibWidget(FigureCanvas):
         self.image_ax = self.axes.imshow(self.image, cmap=mpl.cm.gray, vmax=self.maxAverageImageVal*cutoff)
         self.mask = np.zeros((self.image.shape[0], self.image.shape[1],4))
         self.mask_ax = self.axes.imshow(self.mask, cmap=mpl.cm.jet)
-        
+
         self.setGeometry(QtCore.QRect(150, 10, 768, 768))
         self.width = self.geometry().width()
         self.height = self.geometry().height()
 
         self.setFocus()
+        self.labels=[]
 
     @QtCore.Slot()
-    def updateImage(self, image, mask=None):
+    def updateImage(self, image, mask=None, labels=False):
         """image is a 2d image, mask is a 2d RGBA image"""
+        if np.any(np.not_equal(self.mask, mask)):
+            labels_changed = True
+        else:
+            labels_changed = False
+        
+        if len(self.labels) == 0:
+            labels_empty = True
+        else:
+            labels_empty = False
+
         self.image = image
         self.mask = mask
         self.image_ax.set_data(image)
         self.mask_ax.set_data(mask)
+
+        if labels is True and (labels_changed or labels_empty):
+            for item in self.labels:
+                item.remove()
+            self.labels=[]
+
+            labeled_mask = pymorph.label((mask[:,:,3]>0).astype(int))
+
+            for cell in range(1, labeled_mask.max() + 1):
+                xx, yy = zip(*np.argwhere(labeled_mask == cell))
+
+                # NOTE INVERSION
+                y_loc = np.median(np.unique(xx))
+                x_loc = np.median(np.unique(yy))
+
+                self.labels.append(self.axes.text(x_loc, 
+                                                  y_loc, 
+                                                  str(cell), 
+                                                  verticalalignment='center', 
+                                                  horizontalalignment='center', 
+                                                  color='yellow', 
+                                                  size=9))
+        elif labels is False:
+            for item in self.labels:
+                item.remove()
+            self.labels = []
+        else:
+            pass
         self.draw()    
     
     # signal
@@ -331,8 +373,9 @@ class CellPickerGUI(object):
         self.mode = None # can be standard (None), 'poly', or 'square'
         self.modeData = None # or a list of point tuples       
 
+        self.labelsOn = False
         self.maskOn = True
-        self.useNMF = False
+        self.useNMF = True
 
         self.makeNewMaskAndBackgroundImage()
     
@@ -476,6 +519,10 @@ class CellPickerGUI(object):
 
         elif keyPressed == QtCore.Qt.Key_M:
             self.checkBox_2.toggle() # calls the callback automatically!
+
+        elif keyPressed == QtCore.Qt.Key_L:
+            self.labelsOn = not(self.labelsOn)
+            self.makeNewMaskAndBackgroundImage() # 
 
         elif keyPressed == QtCore.Qt.Key_N:
             self.useNMF = not(self.useNMF)
@@ -1037,12 +1084,12 @@ class CellPickerGUI(object):
             # threshold mode
             thresh_mode = (mode.astype('uint16') > mahotas.otsu(mode.astype('uint16'))).astype(int)
 
-            print 'sum:' + str(thresh_mode.sum())
+#            print 'sum:' + str(thresh_mode.sum())
 
             # fit thresholded mode
             fit_parameters = self.fitgaussian(thresh_mode) 
             fit_height, fit_xcenter, fit_ycenter, fit_xwidth, fit_ywidth  = fit_parameters
-            print 'mode ' + str(i) + ' parameters: ' + str(fit_parameters)
+#            print 'mode ' + str(i) + ' parameters: ' + str(fit_parameters)
             params.append(fit_parameters)
 
             # is cell-like?
@@ -1063,9 +1110,9 @@ class CellPickerGUI(object):
             ycoords =  np.mgrid[0:xmax_nmf-xmin_nmf,0:ymax_nmf-ymin_nmf][1]
             fit_data = fit_gaussian(xcoords, ycoords)
 
-        print 'this cell', this_cell
-        print 'is cell', is_cell
-        print ' '
+ #       print 'this cell', this_cell
+ #       print 'is cell', is_cell
+ #       print ' '
 
         return modes, np.array(this_cell), np.array(is_cell)
     
@@ -1116,7 +1163,7 @@ class CellPickerGUI(object):
         color_mask[:,:,3] = 0
         color_mask[:,:,3] = (color_mask[:,:,0:2].sum(axis=2) > 0).astype(float) * 0.4 # alpha value of 40%
 
-        self.image_widget.updateImage(self.currentBackgroundImage, color_mask)
+        self.image_widget.updateImage(self.currentBackgroundImage, color_mask, self.labelsOn)
         
     # update model
     @QtCore.Slot()
