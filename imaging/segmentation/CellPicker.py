@@ -292,6 +292,9 @@ class CellPickerGUI(object):
             self.currentBackgroundImage = self.data.mean(axis=2)
             self.frame = self.data.shape[2]
         
+        self.data_white = self.data / self.data.mean(axis=2)[:,:,None]
+        self.data_white = self.data_white - (self.data_white.mean(axis=0).mean(axis=0))[None,None,:]
+
         # ave/vid slider gui
         
         # slider label
@@ -361,7 +364,6 @@ class CellPickerGUI(object):
             self.currentMask = np.zeros_like(self.currentBackgroundImage, dtype='uint16')
         else:
             self.currentMask = mask.astype('uint16')
-        
 
         self.listOfMasks = []
         self.listOfMasks.append(self.currentMask)
@@ -1067,12 +1069,10 @@ class CellPickerGUI(object):
         ymin_nmf = max(0, int(y - self.diskSize*diskSizeMultiplier))
         ymax_nmf = min(int(y + self.diskSize*diskSizeMultiplier), self.data.shape[1])
 
-        local_roi = roi[xmin_nmf:xmax_nmf, ymin_nmf:ymax_nmf]
-
         xcenter_nmf = (xmax_nmf - xmin_nmf) / 2
         ycenter_nmf = (ymax_nmf - ymin_nmf) / 2
 
-        reshaped_sub_region_data = self.data[xmin_nmf:xmax_nmf, ymin_nmf:ymax_nmf, :].reshape(xmax_nmf-xmin_nmf * ymax_nmf-ymin_nmf, self.data.shape[2])
+        reshaped_sub_region_data = self.data_white[xmin_nmf:xmax_nmf, ymin_nmf:ymax_nmf, :].reshape(xmax_nmf-xmin_nmf * ymax_nmf-ymin_nmf, self.data.shape[2])
         n.fit(reshaped_sub_region_data-reshaped_sub_region_data.min())
         transformed_sub_region_data = n.transform(reshaped_sub_region_data)
         modes = transformed_sub_region_data.reshape(xmax_nmf-xmin_nmf, ymax_nmf-ymin_nmf, n_comp).copy()
