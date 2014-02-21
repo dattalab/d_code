@@ -1,6 +1,5 @@
 import numpy as np
 import scipy
-import glob
 import datetime
 
 import scipy.io
@@ -22,7 +21,6 @@ def parseXSG(filename):
     data = raw['data']
     
     acq_fields = data.dtype.names
-    header_fields = header.dtype.names
 
     xsgDict = {}
 
@@ -153,7 +151,6 @@ def s2d(s):
             return s[()]
 
     else:
-        fields = s.dtype.names
         for field in s.dtype.names:
             d[field] = s2d(s[field][()])
     return d
