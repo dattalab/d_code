@@ -85,8 +85,8 @@ def findEventsDombeck(traces, stds, false_positive_rate=0.05, lower_sigma=1, upp
 
     The falling value is hardcoded at 0.75 * std of baseline, as per Dombeck et al. 2007.
 
-    :param: traces - 3d numpy array of traces
-    :param: stds - 2d numpy array of values representing noise levels in the data
+    :param: traces - 2d or 3d numpy array of traces (time x cells or time x cells x trials)
+    :param: stds - 1d or 2d numpy array of values representing noise levels in the data (cells, or cells x trials)
     :param: false_positive_rate - float value of desired false positive rate (0.05 = 5%)
     :param: lower_sigma - starting point for scan
     :param: upper_sigma - stopping point for scan
