@@ -27,16 +27,16 @@ def findEventsAtThreshold(traces, stds, rising_threshold, falling_threshold=0.75
     kernel of width `boxWidth` and successive crossings are paired.  Any
     crossings less that `distance_cutoff` apart are discarded.
 
-    This routine is called by findEvents().
+    This routine is called by findEventsDombeck().
 
-    :param: traces - 2d or 3d numpy array of traces (time x cells, or time x cells x trial)
+    :param: traces - 2d or 3d numpy array of dF/F traces (time x cells, or time x cells x trial)
     :param: stds - 1d or 2d numpy array of values representing noise levels in the data (cells, or cells x trials)
     :param: rising_threshold - float used for first crossings
     :param: falling_threshold - float used for second crossings
     :param: boxWidth - filter size
-    :param: distance_cutoff - function eliminates crossings pairs closer than this- eliminates noise
+    :param: distance_cutoff - eliminate crossings pairs closer than this- eliminates noise
 
-    :returns: 2d or 3d array same size as traces, labeled with event number
+    :returns: 2d or 3d array same size and dimension as traces, labeled with event number
     """
 
     # insure that we have at least one 'trial' dimension.
@@ -115,55 +115,51 @@ def findEventsDombeck(traces, stds, false_positive_rate=0.05, lower_sigma=1, upp
 
 
 def getStartsAndStops(event_array):
-    """This routine takes an event_array (time x cells) and returns the starting
-    and stopping times for all events in the array.
+    """This routine takes an event_array and returns the starting and stopping times for all events in the array.
 
-    :param: event_array - 2d numpy event array (time x cells)
-    :returns: tuple of masked numpy arrays, one for starting times and stopping times.
-              size is cells x largest number of events.  masked entries are account 
-              for variable number of events
+    :param: event_array - 2d or 3d numpy event array (time x cells, or time x cells x trials))
+    :returns: masked numpy arrays, one for starting times and stopping times.
+              size is cells x max event number or cells x trials x max event number.
+              masked array is to account for the variable number of events in each cell
     """
 
-    time, cells = event_array.shape
-    
-    counts = np.empty(cells)
-    for i, cell in enumerate(np.rollaxis(event_array, 1, 0)):
-        counts[i] = len(set(np.unique(cell)))-1
-    max_num_events = counts.max()
+    event_array = np.atleast_3d(event_array)
+    max_num_events = getCounts(event_array).max()
+    time, cells, trials = event_array.shape
 
-    starts = np.empty((cells, max_num_events))
-    stops = np.empty((cells, max_num_events))
-    
+    starts = np.zeros((cells, trials, max_num_events))
+    stops = np.zeros((cells, trials, max_num_events))
+
     starts[:] = np.nan
     stops[:] = np.nan
-    for i, cell in enumerate(np.rollaxis(event_array, 1, 0)):
-        label_values = set(np.unique(cell)[1:])
-        for j, label in enumerate(label_values):
-            starts[i, j] = np.argwhere(cell == label).min()
-            stops[i, j] = np.argwhere(cell == label).max()
-     
-    starts = np.sort(np.ma.masked_array(starts, np.isnan(starts)))
-    stops = np.sort(np.ma.masked_array(stops, np.isnan(stops)))
+
+    for cell in range(cells):
+        for trial in range(trials):
+            event_ids = np.unique(event_array[:,cell,trial])[1:]
+            for i, event_id in enumerate(event_ids):
+                starts[cell, trial, i] = np.argwhere(event_array[:,cell,trial] == event_id).flatten()[0]
+                stops[cell, trial, i] = np.argwhere(event_array[:,cell,trial] == event_id).flatten()[-1]
+
+    starts = np.ma.array(starts, mask=np.isnan(starts))
+    starts = np.squeeze(starts)
+
+    stops = np.ma.array(stops, mask=np.isnan(stops))
+    stops = np.squeeze(stops)
+
     return starts, stops
 
-
 def getCounts(event_array, time_range=None):
-    """This routine takes an event_array (time x cells) and returns the number
+    """This routine takes an event_array and optionally a time range and returns the number
     of events in each cell.
 
-    :param: event_array - 2d numpy event array (time x cells)
+    :param: event_array - 2d or 3d numpy event array (time x cells or time x cells x trials)
     :param: time_range - optional list of 2 numbers limiting the time range to count events
-    :returns: 2d numpy array (cells x counts)
+    :returns: 1d or 2d numpy array of counts (cells or cells x trials)
     """
-
-    starts, stops = getStartsAndStops(event_array)
-
     if time_range is not None:
-        starts = np.ma.masked_less_equal(starts, time_range[0])
-        starts = np.ma.masked_greater_equal(starts, time_range[1])
-    
-    return np.array((starts>0).sum(axis=1))
-
+        event_array = event_array[time_range[0]:time_range[1],:] # note that this works for 2 or 3d arrays...
+    counts = (event_array>0).sum(axis=0)
+    return counts
 
 def getDurations(event_array, time_range=None):
     """This routine takes an event_array (time x cells) and returns the duration
@@ -174,17 +170,22 @@ def getDurations(event_array, time_range=None):
     :returns: 2d masked numpy array of event durations. size is cells x largest number of events.
               masked entries are to account for variable number of events
     """
-    starts, stops = getStartsAndStops(event_array)
+    event_array = np.atleast_3d(event_array)
+    max_num_events = getCounts(event_array).max()
+    time, cells, trials = event_array.shape
+
+    durations = np.zeros((cells, trials, max_num_events))
+    durations[:] = np.nan
+
+    for cell in range(cells):
+        for trial in range(trials):
+            event_ids = np.unique(event_array[:,cell,trial])[1:]
+            for i, event_id in enumerate(event_ids):
+                durations[cell, trial, i] = np.argwhere(event_array[:,cell,trial] == event_id).size
+    durations = np.ma.array(durations, mask=np.isnan(durations))
+    durations = np.squeeze(durations)
     
-    if time_range is not None:
-        starts = np.ma.masked_less_equal(starts, time_range[0])
-        starts = np.ma.masked_greater_equal(starts, time_range[1])
-
-        stops = np.ma.masked_less_equal(stops, time_range[0])
-        stops = np.ma.masked_greater_equal(stops, time_range[1])
-
-    return np.ma.masked_array(stops-starts, stops-starts==0)
-
+    return durations
 
 def getAvgAmplitudes(event_array, trace_array, time_range=None):
     """This routine takes an event_array (time x cells) and corresponding trace array
