@@ -14,7 +14,7 @@ import traces as tm
 
 __all__ = ['findEventsAtThreshold', 'findEvents', 'getCounts', 'getStartsAndStops', 'getDurations', 'getAvgAmplitudes', 'getWeightedEvents']
 
-def findEventsAtThreshold(traces, stds, rising_threshold, falling_threshold, first_mode='rising', second_mode='falling', boxWidth=3, distance_cutoff=2):
+def findEventsAtThreshold(traces, stds, rising_threshold, falling_threshold=0.75, first_mode='rising', second_mode='falling', boxWidth=3, distance_cutoff=2):
     """Routine to find events based on the method in Dombeck et al., 2007.  
     Relies on the multi-dimensional findLevels function in traceRoutines.
 
