@@ -26,15 +26,21 @@ def findEventsAtThreshold(traces, stds, rising_threshold, falling_threshold=0.75
 
     This routine is called by findEvents().
 
-    :param: traces - 3d numpy array of traces
-    :param: stds - 2d numpy array of values representing noise levels in the data
+    :param: traces - 2d or 3d numpy array of traces (time x cells, or time x cells x trial)
+    :param: stds - 1d or 2d numpy array of values representing noise levels in the data (cells, or cells x trials)
     :param: rising_threshold - float used for first crossings
     :param: falling_threshold - float used for second crossings
     :param: boxWidth - filter size
     :param: distance_cutoff - function eliminates crossings pairs closer than this- eliminates noise
 
-    :returns: 3d array same size as traces, labeled with event number
+    :returns: 2d or 3d array same size as traces, labeled with event number
     """
+
+    # insure that we have at least one 'trial' dimension.
+    if traces.ndim == 2:
+        traces = np.atleast_3d(traces)
+        stds = np.atleast_2d(stds)
+
     time, cells, trials = traces.shape
     # normally tm.findLevels works with a single number, but if the shapes are right then it will broadcast correctly with a larger array
     first_crossings = tm.findLevelsNd(traces, np.array(stds)*rising_threshold, mode=first_mode, axis=0, boxWidth=boxWidth)
@@ -66,7 +72,8 @@ def findEventsAtThreshold(traces, stds, rising_threshold, falling_threshold=0.75
                 if pair[1]-pair[0] > distance_cutoff:
                     events[pair[0]:pair[1], cell, trial] = i
                     i = i+1
-    return events
+
+    return np.squeeze(events)
 
 def findEventsDombeck(traces, stds, false_positive_rate=0.05, lower_sigma=1, upper_sigma=5, boxWidth=3, distance_cutoff=2):
     """This routine uses findEventsd() at a range of thresholds to
