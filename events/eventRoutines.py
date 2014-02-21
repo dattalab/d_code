@@ -12,7 +12,7 @@ These routines are used to create and analyze event arrays."""
 import numpy as np
 import traces as tm
 
-__all__ = ['findEventsAtThreshold', 'findEvents', 'getCounts', 'getStartsAndStops', 'getDurations', 'getAvgAmplitudes', 'getWeightedEvents']
+__all__ = ['findEventsAtThreshold', 'findEventsDombeck', 'getCounts', 'getStartsAndStops', 'getDurations', 'getAvgAmplitudes', 'getWeightedEvents']
 
 def findEventsAtThreshold(traces, stds, rising_threshold, falling_threshold=0.75, first_mode='rising', second_mode='falling', boxWidth=3, distance_cutoff=2):
     """Routine to find events based on the method in Dombeck et al., 2007.  
@@ -68,8 +68,8 @@ def findEventsAtThreshold(traces, stds, rising_threshold, falling_threshold=0.75
                     i = i+1
     return events
 
-def findEvents(traces, stds, false_positive_rate=0.05, lower_sigma=1, upper_sigma=5, boxWidth=3, distance_cutoff=2):
-    """This routine uses findEventsAtThreshold() at a range of thresholds to
+def findEventsDombeck(traces, stds, false_positive_rate=0.05, lower_sigma=1, upper_sigma=5, boxWidth=3, distance_cutoff=2):
+    """This routine uses findEventsd() at a range of thresholds to
     detect both postive and going events, and calculates a false positive
     rate based on the percentage of total negative events 
     (see Dombeck et al. 2007).  It then calculates the threshold closest to
