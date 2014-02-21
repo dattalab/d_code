@@ -7,7 +7,10 @@ calculating postive and negative going events at different thresholds, one
 can estimate an adaptive threshold that gives ~5% false positive rate.  
 Typical values range from 1.75 to 2.5 times the standard deviations.
 
-These routines are used to create and analyze event arrays."""
+These routines are used to create and analyze event arrays.  Note that the 
+routines that find events can deal with single or multiple trials, but the
+other functions here (getCounts(), getStartsAndStops(), etc.) use single
+trial event arrays i.e. 2d arrays (time x cells)."""
 
 import numpy as np
 import traces as tm
