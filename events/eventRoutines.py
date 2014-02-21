@@ -61,9 +61,6 @@ def findEventsAtThreshold(traces, stds, rising_threshold, falling_threshold, fir
                     possible_pairs.append([r,f])
                 except IndexError:
                     possible_pairs.append([r,time])
-
-            #if cell == 1 and trial == 0:
-            #    1/0
                     
             for pair in possible_pairs:
                 if pair[1]-pair[0] > distance_cutoff:
