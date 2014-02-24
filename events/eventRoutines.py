@@ -29,8 +29,8 @@ def findEventsAtThreshold(traces, stds, rising_threshold, falling_threshold=0.75
 
     This routine is called by findEventsDombeck().
 
-    :param: traces - 2d or 3d numpy array of dF/F traces (time x cells, or time x cells x trial)
-    :param: stds - 1d or 2d numpy array of values representing noise levels in the data (cells, or cells x trials)
+    :param: traces - 2 or 3d numpy array of dF/F traces (time x cells, or time x cells x trial)
+    :param: stds - 1 or 2d numpy array of values representing noise levels in the data (cells, or cells x trials)
     :param: rising_threshold - float used for first crossings
     :param: falling_threshold - float used for second crossings
     :param: boxWidth - filter size
@@ -88,8 +88,8 @@ def findEventsDombeck(traces, stds, false_positive_rate=0.05, lower_sigma=1, upp
 
     The falling value is hardcoded at 0.75 * std of baseline, as per Dombeck et al. 2007.
 
-    :param: traces - 2d or 3d numpy array of traces (time x cells or time x cells x trials)
-    :param: stds - 1d or 2d numpy array of values representing noise levels in the data (cells, or cells x trials)
+    :param: traces - 2 or 3d numpy array of traces (time x cells or time x cells x trials)
+    :param: stds - 1 or 2d numpy array of values representing noise levels in the data (cells, or cells x trials)
     :param: false_positive_rate - float value of desired false positive rate (0.05 = 5%)
     :param: lower_sigma - starting point for scan
     :param: upper_sigma - stopping point for scan
@@ -152,7 +152,7 @@ def getCounts(event_array, time_range=None):
     """This routine takes an event_array and optionally a time range and returns the number
     of events in each cell.
 
-    :param: event_array - 2d or 3d numpy event array (time x cells or time x cells x trials)
+    :param: event_array - 2 or 3d numpy event array (time x cells or time x cells x trials)
     :param: time_range - optional list of 2 numbers limiting the time range to count events
     :returns: 1d or 2d numpy array of counts (cells or cells x trials)
     """
@@ -165,7 +165,7 @@ def getDurations(event_array, time_range=None):
     """This routine takes an event_array (time x cells) and returns the duration
     of events in each cell.
 
-    :param: event_array - 2d numpy event array (time x cells)
+    :param: event_array - 2 or 3d numpy event array (time x cells, or time x cells x trials)
     :param: time_range - optional list of 2 numbers limiting the time range to count events
     :returns: 2d masked numpy array of event durations. size is cells x largest number of events.
               masked entries are to account for variable number of events
@@ -191,7 +191,7 @@ def getAvgAmplitudes(event_array, trace_array, time_range=None):
     """This routine takes an event_array (time x cells) and corresponding trace array
     and returns the average amplitudes of events in each cell.
 
-    :param: event_array - 2d numpy event array (time x cells)
+    :param: event_array - 2 or 3d numpy event array (time x cells, or time x cells x trials)
     :param: time_range - optional list of 2 numbers limiting the time range to count events
     :returns: 2d masked numpy array of event average amplitudes. size is cells x largest number of events.
               masked entries are account for variable number of events
@@ -220,8 +220,8 @@ def getWeightedEvents(event_array, trace_array):
     """This routine takes an event array and corresponding trace array and
     replaces the event labels with the average amplitude of the event.
 
-    :param: event_array - 2d numpy event array (time x cells)
-    :param: trace_array - 2d numpy event array (time x cells)
+    :param: event_array - 2 or 3d numpy event array (time x cells, or time x cells x trials)
+    :param: trace_array - 2 or 3d numpy event array (time x cells, or time x cells x trials)
     :returns: 2d numpy array same shape and size of event_array, zero where there
               weren't events, and the average event amplitude for the event otherwise.
     """
