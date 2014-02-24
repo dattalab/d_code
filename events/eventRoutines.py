@@ -225,7 +225,7 @@ def getWeightedEvents(event_array, trace_array):
     :returns: 2d numpy array same shape and size of event_array, zero where there
               weren't events, and the average event amplitude for the event otherwise.
     """
-    weighted_events = np.zeros_like(event_array)
+    weighted_events = np.zeros_like(event_array, dtype=float)
     
     for i in np.unique(event_array)[1:]:
         weighted_events[event_array==i] = trace_array[event_array==i].mean()
