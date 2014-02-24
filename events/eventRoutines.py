@@ -14,6 +14,7 @@ trial event arrays i.e. 2d arrays (time x cells)."""
 
 import numpy as np
 import traces as tm
+from sklearn.mixture import GMM
 
 __all__ = ['findEventsAtThreshold', 'findEventsDombeck', 'getCounts', 'getStartsAndStops', 'getDurations', 'getAvgAmplitudes', 'getWeightedEvents']
 
@@ -230,3 +231,84 @@ def getWeightedEvents(event_array, trace_array):
     for i in np.unique(event_array)[1:]:
         weighted_events[event_array==i] = trace_array[event_array==i].mean()
     return weighted_events
+
+
+
+def fitGaussianMixture1D(data, n, force_sort='means'):
+    g = GMM(n_components=n, init_params='wc', n_init=5)
+    
+    g.means_ = np.zeros((2, 1))
+    g.means_[0,0] = data[0] # first datapoint is the background value... should be near 0.0
+    g.means_[1,0] = data[data > data[0]].mean()
+
+    g.fit(data)
+
+    return (np.squeeze(g.means_.flatten()), 
+            np.squeeze(np.sqrt(g.covars_).flatten()), 
+            np.squeeze(g.weights_).flatten(),
+            g.bic(data), 
+            g.aic(data), 
+            g)
+
+def getGMMBaselines(traces):
+    # expects single or multiple trials of dF/F
+    traces = np.atleast_3d(traces) # time x cells x trials
+    time, cells, trials = traces.shape
+    gmmBaselines = np.zeros((time, trials)) # one baseline esitmation for each trial
+
+    for trial in np.rollaxis(traces, 2, 0):
+        for frame in trial:
+            means, stds, weights, bic, aic, models = zip(*(fitGaussianMixture1D(frame, 2) for frame in traces))
+            gmmBaselines[:,trial] = np.array(means).min(axis=1)
+    
+    gmmBaselines = np.squeeze(gmmBaselines)
+
+def findEventsAtThresholdGMM(traces, stds, rising_threshold, falling_threshold=0.75, first_mode='rising', second_mode='falling', boxWidth=3, distance_cutoff=2):
+    """ DOC STRING HERE 
+    """
+
+    # insure that we have at least one 'trial' dimension.
+    if traces.ndim == 2:
+        traces = np.atleast_3d(traces)
+        stds = np.atleast_2d(stds)
+
+    time, cells, trials = traces.shape
+
+    # bit of a slow step... for each trial we estimate the population baseline over all frames
+    
+    gmmBaselines = getGMMBaselines(traces)
+
+    # normally tm.findLevels works with a single number, but if the shapes are right then it will broadcast correctly with a larger array
+    first_crossings = tm.findLevelsNd(traces, np.array(stds)*rising_threshold, mode=first_mode, axis=0, boxWidth=boxWidth)
+    second_crossings = tm.findLevelsNd(traces, np.array(stds)*falling_threshold, mode=second_mode, axis=0, boxWidth=boxWidth)
+    
+    events = np.zeros_like(traces)
+    i=1
+    for cell in range(cells):
+        for trial in range(trials):
+            rising_event_locations = np.where(first_crossings[:,cell,trial])[0] # peel off the tuple
+            falling_event_locations = np.where(second_crossings[:,cell,trial])[0] # peel off the tuple
+        
+            possible_pairs = []
+            for r in rising_event_locations:
+                if possible_pairs:
+                    prev_rising = zip(*possible_pairs)[0]
+                    prev_falling = zip(*possible_pairs)[1] 
+                    
+                    if r <= prev_falling[-1]:
+                        continue
+                
+                try:
+                    f = falling_event_locations[np.searchsorted(falling_event_locations, r)]
+                    possible_pairs.append([r,f])
+                except IndexError:
+                    possible_pairs.append([r,time])
+                    
+            for pair in possible_pairs:
+                if pair[1]-pair[0] > distance_cutoff:
+                    events[pair[0]:pair[1], cell, trial] = i
+                    i = i+1
+
+    return np.squeeze(events)
+    
+    pass
