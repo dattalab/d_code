@@ -93,11 +93,15 @@ def parseXSG(filename):
 
             # put all the literal pulses in
             try:
+                num_literal_pulses = 0
                 for i, pulseName in enumerate(header['stimulator']['stimulator']['pulseNameArray']):
-                    if header['stimulator']['stimulator']['pulseParameters'][i]['type'][()][()] == 'Literal':
-                        xsgDict['stimulator'][pulseName[()]] = header['stimulator']['stimulator']['pulseParameters'][i]['signal'][()][()]
+                    if header['stimulator']['stimulator']['pulseParameters'][i]['type'][()] == 'Literal':
+                        num_literal_pulses = num_literal_pulses + 1
+                        xsgDict['stimulator'][pulseName] = header['stimulator']['stimulator']['pulseParameters'][i]['signal'][()][()]
             except:
-                print 'no literal pulses?'
+                print 'error parsing literal pulses?'
+            if num_literal_pulses is 0:
+                print 'no literal pulses found'
     except:
         pass
     # stimulation in the ephys program (a command to the amp)
