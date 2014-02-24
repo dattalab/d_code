@@ -196,23 +196,23 @@ def getAvgAmplitudes(event_array, trace_array, time_range=None):
     :returns: 2d masked numpy array of event average amplitudes. size is cells x largest number of events.
               masked entries are account for variable number of events
     """
-    time, cells = event_array.shape
-    
-    starts, stops = getStartsAndStops(event_array)
-    
-    if time_range is not None:
-        starts = np.ma.masked_less_equal(starts, time_range[0])
-        starts = np.ma.masked_greater_equal(starts, time_range[1])
+    event_array = np.atleast_3d(event_array)
+    trace_array= np.atleast_3d(trace_array)
 
-    amps = np.empty_like(starts)
+    max_num_events = getCounts(event_array).max()
+    time, cells, trials = event_array.shape
+
+    amps = np.zeros((cells, trials, max_num_events))
     amps[:] = np.nan
-    for cell in range(cells):#, cell in enumerate(np.rollaxis(event_array, 1, 0)):
-        starts_and_stops = zip(starts[cell,:], stops[cell,:])
-        for event, (start, stop) in enumerate(starts_and_stops):
-            try:
-                amps[cell, event] = trace_array[start:stop, cell].mean()
-            except IndexError:
-                pass
+
+    for cell in range(cells):
+        for trial in range(trials):
+            event_ids = np.unique(event_array[:,cell,trial])[1:]
+            for i, event_id in enumerate(event_ids):
+                amps[cell, trial, i] = np.argwhere(event_array[:,cell,trial] == event_id).mean()
+    amps = np.ma.array(amps, mask=np.isnan(amps))
+    amps = np.squeeze(amps)
+
     return np.ma.masked_array(amps, np.isnan(amps))
 
 
