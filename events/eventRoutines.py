@@ -161,8 +161,16 @@ def getCounts(event_array, time_range=None):
     """
     if time_range is not None:
         event_array = event_array[time_range[0]:time_range[1],:] # note that this works for 2 or 3d arrays...
-    counts = (event_array>0).sum(axis=0)
-    return counts
+
+    if event_array.ndim is 2:
+        event_array = event_array[:,:,np.newaxis]
+    time, cells, trials = event_array.shape
+    
+    counts = np.zeros((cells,trials))
+    for trial in range(trials):
+        for cell in range(cells):
+            counts[cell, trial] = np.unique(event_array[:,cell,trial]).size - 1
+    return np.squeeze(counts)
 
 def getDurations(event_array, time_range=None):
     """This routine takes an event_array (time x cells) and returns the duration
@@ -177,7 +185,7 @@ def getDurations(event_array, time_range=None):
     max_num_events = getCounts(event_array).max()
     time, cells, trials = event_array.shape
 
-    durations = np.zeros((cells, trials, max_num_events))
+    durations = np.zeros((cells, trials, int(max_num_events)))
     durations[:] = np.nan
 
     for cell in range(cells):
@@ -212,7 +220,7 @@ def getAvgAmplitudes(event_array, trace_array, time_range=None):
         for trial in range(trials):
             event_ids = np.unique(event_array[:,cell,trial])[1:]
             for i, event_id in enumerate(event_ids):
-                amps[cell, trial, i] = np.argwhere(event_array[:,cell,trial] == event_id).mean()
+                amps[cell, trial, i] = trace_array[event_array == event_id].mean()
     amps = np.ma.array(amps, mask=np.isnan(amps))
     amps = np.squeeze(amps)
 
