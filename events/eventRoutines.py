@@ -15,8 +15,10 @@ trial event arrays i.e. 2d arrays (time x cells)."""
 import numpy as np
 import traces as tm
 from sklearn.mixture import GMM
+import scipy.ndimage as nd
+import mahotas
 
-__all__ = ['findEventsAtThreshold', 'findEventsDombeck', 'getCounts', 'getStartsAndStops', 'getDurations', 'getAvgAmplitudes', 'getWeightedEvents']
+__all__ = ['findEventsAtThreshold', 'findEventsDombeck', 'getCounts', 'getStartsAndStops', 'getDurations', 'getAvgAmplitudes', 'getWeightedEvents', 'findEvents', 'findEventsGMM', 'findEventsBackground']
 
 def findEventsAtThreshold(traces, stds, rising_threshold, falling_threshold=0.75, first_mode='rising', second_mode='falling', boxWidth=3, distance_cutoff=2):
     """Routine to find events based on the method in Dombeck et al., 2007.  
@@ -232,8 +234,6 @@ def getWeightedEvents(event_array, trace_array):
         weighted_events[event_array==i] = trace_array[event_array==i].mean()
     return weighted_events
 
-
-
 def fitGaussianMixture1D(data, n, force_sort='means'):
     g = GMM(n_components=n, init_params='wc', n_init=5)
     
@@ -254,61 +254,75 @@ def getGMMBaselines(traces):
     # expects single or multiple trials of dF/F
     traces = np.atleast_3d(traces) # time x cells x trials
     time, cells, trials = traces.shape
-    gmmBaselines = np.zeros((time, trials)) # one baseline esitmation for each trial
+    gmmBaselines = np.zeros((time, trials)) # one baseline estimation for each trial
 
-    for trial in np.rollaxis(traces, 2, 0):
-        for frame in trial:
-            means, stds, weights, bic, aic, models = zip(*(fitGaussianMixture1D(frame, 2) for frame in traces))
-            gmmBaselines[:,trial] = np.array(means).min(axis=1)
-    
-    gmmBaselines = np.squeeze(gmmBaselines)
+    for trial in range(trials):
+        for frame in range(time):
+            means, stds, weights, bic, aic, model = fitGaussianMixture1D(traces[frame,:,trial], 2)
+            gmmBaselines[frame, trial] = means.min()
 
-def findEventsAtThresholdGMM(traces, stds, rising_threshold, falling_threshold=0.75, first_mode='rising', second_mode='falling', boxWidth=3, distance_cutoff=2):
-    """ DOC STRING HERE 
-    """
+    return gmmBaselines
 
-    # insure that we have at least one 'trial' dimension.
+def findEvents(traces, stds, threshold=2.5, falling_threshold=None, baselines=None, boxWidth=3, minimum_length=2):
     if traces.ndim == 2:
-        traces = np.atleast_3d(traces)
-        stds = np.atleast_2d(stds)
-
+        traces = np.atleast_3d(traces) # time x cells x trials
+        stds = np.atleast_2d(stds).T # cells x trials
     time, cells, trials = traces.shape
-
-    # bit of a slow step... for each trial we estimate the population baseline over all frames
-    
-    gmmBaselines = getGMMBaselines(traces)
-
-    # normally tm.findLevels works with a single number, but if the shapes are right then it will broadcast correctly with a larger array
-    first_crossings = tm.findLevelsNd(traces, np.array(stds)*rising_threshold, mode=first_mode, axis=0, boxWidth=boxWidth)
-    second_crossings = tm.findLevelsNd(traces, np.array(stds)*falling_threshold, mode=second_mode, axis=0, boxWidth=boxWidth)
-    
     events = np.zeros_like(traces)
-    i=1
-    for cell in range(cells):
-        for trial in range(trials):
-            rising_event_locations = np.where(first_crossings[:,cell,trial])[0] # peel off the tuple
-            falling_event_locations = np.where(second_crossings[:,cell,trial])[0] # peel off the tuple
-        
-            possible_pairs = []
-            for r in rising_event_locations:
-                if possible_pairs:
-                    prev_rising = zip(*possible_pairs)[0]
-                    prev_falling = zip(*possible_pairs)[1] 
-                    
-                    if r <= prev_falling[-1]:
-                        continue
-                
-                try:
-                    f = falling_event_locations[np.searchsorted(falling_event_locations, r)]
-                    possible_pairs.append([r,f])
-                except IndexError:
-                    possible_pairs.append([r,time])
-                    
-            for pair in possible_pairs:
-                if pair[1]-pair[0] > distance_cutoff:
-                    events[pair[0]:pair[1], cell, trial] = i
-                    i = i+1
 
-    return np.squeeze(events)
+    # broadcasting of baselines.  ends up as time x cells x trials.  this is really annoying,
+    # but relying on numpy to broadcast things was tricky and problembatic.  idea here is to
+    # get baselines identical to traces
+
+    if baselines is None: # no baseline correction, default
+        full_baselines = np.zeros_like(traces)
+
+    elif baselines.shape == (time): # one global correction
+        full_baselines = np.zeros_like(traces)
+        for trial in range(trials):
+            for cell in range(cells):
+                full_baselines[:,cell,trial] = baselines
+
+    elif baselines.shape ==(time, cells): # full, but only one trial
+        full_baselines = baselines[:,:,None] 
     
-    pass
+    elif baselines.shape == (time, trials): # modeled on a trial by trial basis
+            full_baselines = np.zeros_like(traces)
+            for trial in range(trials):
+                for cell in range(cells):
+                    full_baselines[:,cell,trial] = baselines[:,trial]
+
+    # smooth traces and baselines
+    if boxWidth is not 0:
+        traces_smoothed = nd.convolve1d(traces, np.array([1]*boxWidth)/float(boxWidth), axis=0)
+        baselines_smoothed = nd.convolve1d(full_baselines, np.array([1]*boxWidth)/float(boxWidth), axis=0)
+
+    # detect events
+    if falling_threshold is None:  # simply greater than the threshold
+        for trial in range(trials):
+            for cell in range(cells):
+                events[:,cell,trial] = traces_smoothed[:,cell,trial] > baselines_smoothed[:,cell,trial] + (stds[cell, trial] * threshold)
+        events = mahotas.label(events, np.array([1,1])[:,np.newaxis,np.newaxis])[0]
+
+    # filter on size (length)
+    for single_event in range(1, events.max()+1):
+        if (events == single_event).sum() <= minimum_length:
+            events[events == single_event] = 0
+    events = mahotas.label(events>0, np.array([1,1])[:,np.newaxis,np.newaxis])[0]
+
+    return np.squeeze(events) # if we just have one trial, then return a 2d array.
+
+def findEventsGMM(traces, stds, threshold=2.5, falling_threshold=None, boxWidth=3, minimum_length=2):
+    if traces.ndim == 2:
+        traces = np.atleast_3d(traces) # time x cells x trials
+        stds = np.atleast_2d(stds).T # cells x trials
+    baselines = getGMMBaselines(traces) # time x trials (one population baseline trace for all cells)
+    return findEvents(traces, stds, threshold, falling_threshold, baselines, boxWidth, minimum_length)
+
+def findEventsBackground(traces, stds, threshold=2.5, falling_threshold=None, boxWidth=3, minimum_length=2):
+    if traces.ndim == 2:
+        traces = np.atleast_3d(traces) # time x cells x trials
+        stds = np.atleast_2d(stds).T # cells x trials
+    baselines = traces[:,0,:].copy() # time x trials (one population baseline trace for all cells)
+    return findEvents(traces, stds, threshold, falling_threshold, baselines, boxWidth, minimum_length)
+    
