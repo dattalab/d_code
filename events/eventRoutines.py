@@ -17,6 +17,7 @@ import traces as tm
 from sklearn.mixture import GMM
 import scipy.ndimage as nd
 import mahotas
+import pdb
 
 __all__ = ['findEventsAtThreshold', 'findEventsDombeck', 'getCounts', 'getStartsAndStops', 'getDurations', 'getAvgAmplitudes', 'getWeightedEvents', 'findEvents', 'findEventsGMM', 'findEventsBackground']
 
@@ -306,17 +307,37 @@ def findEvents(traces, stds, threshold=2.5, falling_threshold=None, baselines=No
         baselines_smoothed = nd.convolve1d(full_baselines, np.array([1]*boxWidth)/float(boxWidth), axis=0)
 
     # detect events
-    if falling_threshold is None:  # simply greater than the threshold
-        for trial in range(trials):
-            for cell in range(cells):
-                events[:,cell,trial] = traces_smoothed[:,cell,trial] > baselines_smoothed[:,cell,trial] + (stds[cell, trial] * threshold)
-        events = mahotas.label(events, np.array([1,1])[:,np.newaxis,np.newaxis])[0]
+    for trial in range(trials):
+        for cell in range(cells):
+            events[:,cell,trial] = traces_smoothed[:,cell,trial] > baselines_smoothed[:,cell,trial] + (stds[cell, trial] * threshold)
 
-    # filter on size (length)
+    events = mahotas.label(events, np.array([1,1])[:,np.newaxis,np.newaxis])[0]
     for single_event in range(1, events.max()+1):
         if (events == single_event).sum() <= minimum_length:
             events[events == single_event] = 0
+    events = events>0
+
+    if falling_threshold is not None:
+        for trial in range(trials):
+            for cell in range(cells):
+                falling_thresh_events = traces_smoothed[:,cell,trial] > baselines_smoothed[:,cell,trial] + (stds[cell, trial] * falling_threshold)
+
+#                if cell == 0:
+#                    pdb.set_trace()
+
+                for event_end in np.argwhere(np.diff(events[:,cell,trial].astype(int)) == -1):
+                    j = event_end
+                    while ((events[j,cell,trial]) or (falling_thresh_events[j])) and (j < cells):
+                        events[j,cell,trial] = events[j-1,cell,trial]
+                        j = j + 1
+
     events = mahotas.label(events>0, np.array([1,1])[:,np.newaxis,np.newaxis])[0]
+    
+#    # filter on size (number of frames) and relabel
+#    for single_event in range(1, events.max()+1):
+#        if (events == single_event).sum() <= minimum_length:
+#            events[events == single_event] = 0
+#    events = mahotas.label(events>0, np.array([1,1])[:,np.newaxis,np.newaxis])[0]
 
     return np.squeeze(events) # if we just have one trial, then return a 2d array.
 
