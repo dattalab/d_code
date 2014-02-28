@@ -1,6 +1,5 @@
 import numpy as np
 import scipy
-import glob
 import datetime
 
 import scipy.io
@@ -22,7 +21,6 @@ def parseXSG(filename):
     data = raw['data']
     
     acq_fields = data.dtype.names
-    header_fields = header.dtype.names
 
     xsgDict = {}
 
@@ -95,11 +93,15 @@ def parseXSG(filename):
 
             # put all the literal pulses in
             try:
+                num_literal_pulses = 0
                 for i, pulseName in enumerate(header['stimulator']['stimulator']['pulseNameArray']):
-                    if header['stimulator']['stimulator']['pulseParameters'][i]['type'][()][()] == 'Literal':
-                        xsgDict['stimulator'][pulseName[()]] = header['stimulator']['stimulator']['pulseParameters'][i]['signal'][()][()]
+                    if header['stimulator']['stimulator']['pulseParameters'][i]['type'][()] == 'Literal':
+                        num_literal_pulses = num_literal_pulses + 1
+                        xsgDict['stimulator'][pulseName] = header['stimulator']['stimulator']['pulseParameters'][i]['signal'][()][()]
             except:
-                print 'no literal pulses?'
+                print 'error parsing literal pulses?'
+            if num_literal_pulses is 0:
+                print 'no literal pulses found'
     except:
         pass
     # stimulation in the ephys program (a command to the amp)
@@ -153,7 +155,6 @@ def s2d(s):
             return s[()]
 
     else:
-        fields = s.dtype.names
         for field in s.dtype.names:
             d[field] = s2d(s[field][()])
     return d

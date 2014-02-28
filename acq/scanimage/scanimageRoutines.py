@@ -1,6 +1,5 @@
 # scanimage specific analysis functions
 
-import glob
 import sys
 import os
 import numpy as np

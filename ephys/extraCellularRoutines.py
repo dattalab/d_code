@@ -84,6 +84,7 @@ def make_spike_density(sth, sigma=1):
     kernel *= 0.001
     
     center = np.ceil(edges.shape[0]/2)
+    center = int(center)
     
     spike_density = np.empty_like(sth)
     for i, trial in enumerate(np.rollaxis(sth, 1)):
