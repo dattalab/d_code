@@ -205,8 +205,8 @@ def getStartsAndStops(event_array):
     max_num_events = getCounts(event_array).max()
     time, cells, trials = event_array.shape
 
-    starts = np.zeros((cells, trials, max_num_events))
-    stops = np.zeros((cells, trials, max_num_events))
+    starts = np.zeros((cells, trials, int(max_num_events)))
+    stops = np.zeros((cells, trials, int(max_num_events)))
 
     starts[:] = np.nan
     stops[:] = np.nan
@@ -289,7 +289,7 @@ def getAvgAmplitudes(event_array, trace_array, time_range=None):
     max_num_events = getCounts(event_array).max()
     time, cells, trials = event_array.shape
 
-    amps = np.zeros((cells, trials, max_num_events))
+    amps = np.zeros((cells, trials, int(max_num_events)))
     amps[:] = np.nan
 
     for cell in range(cells):
