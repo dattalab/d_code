@@ -7,13 +7,14 @@ import matplotlib.pyplot as plt
 import scipy.stats as stats
 
 
-__all__ = ['data_array_to_spike_data', 'plot_raster', 'make_STH', 'make_spike_density', 'detect_spikes', 'extract_spikes']
+__all__ = ['traceToSpikeData', 'plot_raster', 'make_STH', 'make_spike_density', 'detect_spikes', 'extract_spikes', 'addDataFieldToXSG']
 
-def data_array_to_spike_data(raw_spike_data):
-    spike_data = []
-    for trial in np.rollaxis(raw_spike_data, 1):
-        spike_data.append({'data':np.atleast_2d(trial.T), 'FS':10000, 'n_contacts':1})
-    return spike_data
+def traceToSpikeData(trace, FS=10000):
+    return {'data':np.atleast_2d(trace), 'FS':FS, 'n_contacts':1}
+
+def addDataFieldToXSG(xsg, channel='chan0'):
+    xsg['data'] = np.atleast_2d(xsg['ephys'][channel])
+    return xsg
 
 def plot_raster(spike_times, win=None, n_trials=None, ax=None, height=1.):
     """Creates raster plots of spike trains:
