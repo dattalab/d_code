@@ -16,6 +16,26 @@ def addDataFieldToXSG(xsg, channel='chan0'):
     xsg['data'] = np.atleast_2d(xsg['ephys'][channel])
     return xsg
 
+def mergeXSGs(listOfXSGs):
+    """this is only valid on repetitions of the same sort of acquisition-
+    that is, xsgs that had the same combo of acquirer, ephys and stimulator settings
+    """
+
+    progs = ['acquirer', 'ephys', 'stimulator']
+
+    non_numpy_keys = set(listOfXSGs[0].keys()) - set(progs)
+    merged_xsg = {}
+    for key in non_numpy_keys:
+        merged_xsg[key] = [x[key] for x in listOfXSGs]
+    
+    for prog in progs:
+        if listOfXSGs[0][prog] is None:
+            merged_xsg[prog] = None
+        else:
+            pass
+
+    return merged_xsg
+
 def detectSpikes():
     # extract spike times and add a field called 'spike_times'
     pass
