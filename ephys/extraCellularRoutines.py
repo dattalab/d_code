@@ -6,14 +6,74 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as stats
 
+import copy
 
-__all__ = ['data_array_to_spike_data', 'plot_raster', 'make_STH', 'make_spike_density', 'detect_spikes', 'extract_spikes']
+__all__ = ['traceToSpikeData', 'plot_raster', 'make_STH', 'make_spike_density', 'detect_spikes', 'extract_spikes', 'addDataFieldToXSG', 'detectSpikes', 'mergeXSGs']
 
-def data_array_to_spike_data(raw_spike_data):
-    spike_data = []
-    for trial in np.rollaxis(raw_spike_data, 1):
-        spike_data.append({'data':np.atleast_2d(trial.T), 'FS':10000, 'n_contacts':1})
-    return spike_data
+def traceToSpikeData(trace, FS=10000):
+    return {'data':np.atleast_2d(trace), 'FS':FS, 'n_contacts':1}
+
+def addDataFieldToXSG(xsg, channel='chan0'):
+    xsg['data'] = np.atleast_2d(xsg['ephys'][channel])
+    return xsg
+
+def mergeXSGs(xsg1, xsg2):
+    """this is only valid on repetitions of the same sort of acquisition-
+    that is, xsgs that had the same combo of acquirer, ephys and stimulator settings
+
+    it can be used with reduce
+    """
+    xsg1 = copy.deepcopy(xsg1)
+    xsg2 = copy.deepcopy(xsg2)
+
+    # calculate which keys will be merged via numpy concat
+    # and which by appending lists
+    non_numpy_keys = xsg1.keys()
+    numpy_keys = []
+    for prog in ['acquirer', 'ephys', 'stimulator']:
+        if xsg1[prog] is not None:
+            non_numpy_keys.remove(prog)
+            numpy_keys.append(prog)
+
+    # ensure that 'merged' key is in there, and only once
+    try:
+        non_numpy_keys.remove('merged')
+        non_numpy_keys.append('merged')
+    except ValueError:
+        non_numpy_keys.append('merged')
+
+    # we need to distinguish between 'merged' and 'unmerged' xsgs
+    # xsgs have the 'merged' key set to True, otherwise the key/val doesn't exist
+
+    # the major thing here is that unmerged XSGs need 
+    # to have everything wrapped in lists for merging.
+
+    # three possibilities:
+    #    both unmerged
+    #    one merged, one not
+    #    both merged
+
+    # since this is going to typically be used from a reduce call,
+    # we will often have the first possibility, and the second.
+
+    for x in [xsg1, xsg2]:
+        if 'merged' not in x.keys():
+            x['merged'] = True
+            for key in non_numpy_keys:
+                x[key] = [x[key]]
+
+    merged_xsg = {}
+    for key in non_numpy_keys:
+        merged_xsg[key] = xsg1[key] + xsg2[key]
+    for key in numpy_keys:
+        merged_xsg[key] = xsg1[key]
+
+    return merged_xsg
+
+def detectSpikes():
+    # extract spike times and add a field called 'spike_times'
+    pass
+
 
 def plot_raster(spike_times, win=None, n_trials=None, ax=None, height=1.):
     """Creates raster plots of spike trains:

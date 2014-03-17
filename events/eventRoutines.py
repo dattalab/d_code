@@ -320,25 +320,29 @@ def getWeightedEvents(event_array, trace_array):
 
 #----------------------------------------GMM UTILITY FUNCTIONS-----------------------------------
 
-def fitGaussianMixture1D(data, n):
+def fitGaussianMixture1D(data, n=2, set_mean_priors=True):
     """Routine for fitting a 1d array to a mixture of `n` gaussians.
 
-    We initialize the GMM model with means equal to the first point
-    (the 'background' cell) and all ROIs larger than the mean.
+    if 'set_mean_priors' is True (the default), we initialize the GMM
+    model with means equal to the first point (the 'background' cell)
+    and all ROIs larger than the mean.  Otherwise, we have random means.
 
     After fitting, we return the means, stds, and weights of the GMM,
     along with the BIC, AIC, and the model itself.
 
     :param: data - 1d array of data to fit
-    :param: n - number of gaussians to fit
+    :param: n - number of gaussians to fit, defaults to 2
+    :param: set_mean_priors - boolean, if true, initializes the means of a mixture of 2 gaussians
     :returns: tuple of (means, stds, weights, BIC, AIC, GMM model object)
     """
     
-    g = GMM(n_components=n, init_params='wc', n_init=5)
-    
-    g.means_ = np.zeros((2, 1))
-    g.means_[0,0] = data[0] # first datapoint is the background value... should be near 0.0
-    g.means_[1,0] = data[data > data[0]].mean()
+    if set_mean_priors:
+        g = GMM(n_components=n, init_params='wc', n_init=5)
+        g.means_ = np.zeros((n, 1))
+        g.means_[0,0] = data[0] # first datapoint is the background value... should be near 0.0
+        g.means_[1,0] = data[data > data[0]].mean()
+    else: 
+        g = GMM(n_components=n, n_init=5)
 
     g.fit(data)
 
