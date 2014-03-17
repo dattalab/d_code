@@ -6,8 +6,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as stats
 
+import copy
 
-__all__ = ['traceToSpikeData', 'plot_raster', 'make_STH', 'make_spike_density', 'detect_spikes', 'extract_spikes', 'addDataFieldToXSG', 'detectSpikes']
+__all__ = ['traceToSpikeData', 'plot_raster', 'make_STH', 'make_spike_density', 'detect_spikes', 'extract_spikes', 'addDataFieldToXSG', 'detectSpikes', 'mergeXSGs']
 
 def traceToSpikeData(trace, FS=10000):
     return {'data':np.atleast_2d(trace), 'FS':FS, 'n_contacts':1}
@@ -16,23 +17,56 @@ def addDataFieldToXSG(xsg, channel='chan0'):
     xsg['data'] = np.atleast_2d(xsg['ephys'][channel])
     return xsg
 
-def mergeXSGs(listOfXSGs):
+def mergeXSGs(xsg1, xsg2):
     """this is only valid on repetitions of the same sort of acquisition-
     that is, xsgs that had the same combo of acquirer, ephys and stimulator settings
+
+    it can be used with reduce
     """
+    xsg1 = copy.deepcopy(xsg1)
+    xsg2 = copy.deepcopy(xsg2)
 
-    progs = ['acquirer', 'ephys', 'stimulator']
+    # calculate which keys will be merged via numpy concat
+    # and which by appending lists
+    non_numpy_keys = xsg1.keys()
+    numpy_keys = []
+    for prog in ['acquirer', 'ephys', 'stimulator']:
+        if xsg1[prog] is not None:
+            non_numpy_keys.remove(prog)
+            numpy_keys.append(prog)
 
-    non_numpy_keys = set(listOfXSGs[0].keys()) - set(progs)
+    # ensure that 'merged' key is in there, and only once
+    try:
+        non_numpy_keys.remove('merged')
+        non_numpy_keys.append('merged')
+    except ValueError:
+        non_numpy_keys.append('merged')
+
+    # we need to distinguish between 'merged' and 'unmerged' xsgs
+    # xsgs have the 'merged' key set to True, otherwise the key/val doesn't exist
+
+    # the major thing here is that unmerged XSGs need 
+    # to have everything wrapped in lists for merging.
+
+    # three possibilities:
+    #    both unmerged
+    #    one merged, one not
+    #    both merged
+
+    # since this is going to typically be used from a reduce call,
+    # we will often have the first possibility, and the second.
+
+    for x in [xsg1, xsg2]:
+        if 'merged' not in x.keys():
+            x['merged'] = True
+            for key in non_numpy_keys:
+                x[key] = [x[key]]
+
     merged_xsg = {}
     for key in non_numpy_keys:
-        merged_xsg[key] = [x[key] for x in listOfXSGs]
-    
-    for prog in progs:
-        if listOfXSGs[0][prog] is None:
-            merged_xsg[prog] = None
-        else:
-            pass
+        merged_xsg[key] = xsg1[key] + xsg2[key]
+    for key in numpy_keys:
+        merged_xsg[key] = xsg1[key]
 
     return merged_xsg
 
