@@ -1,6 +1,20 @@
+"""These routines are for doing typical extracellular (cell-attached) analyses.
+
+The main data structures we use here are XSG dictionaries.  These contain keys
+by default that have a collection of meta-data, and one key for each of the three
+ephus programs (ephys, acquierer and stimulator).
+
+We also use some routines from the spike_sort package.  This package produces two 
+different types of dictionaries for keeping track of raw spike data and spike times.
+The routines in this module make XSG files compatible with spike sort routines.
+
+
+"""
+
+
 #import spike_sort as ss
 #import spike_analysis as sa
-#from spike_sort.core.extract import detect_spikes, extract_spikes
+from spike_sort.core.extract import detect_spikes, extract_spikes
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -8,86 +22,42 @@ import scipy.stats as stats
 
 import copy
 
-__all__ = ['traceToSpikeData', 'plot_raster', 'make_STH', 'make_spike_density', 'detect_spikes', 'extract_spikes', 'addDataFieldToXSG', 'mergeXSGs']
+__all__ = ['traceToSpikeData', 'plot_raster', 'make_STH', 'make_spike_density', 'detect_spikes', 'extract_spikes', 'addDataFieldToXSG']
 
 def traceToSpikeData(trace, FS=10000):
+    """Simple routine to take a 1d array and turn it into a 'spike data'
+    dictionary, appropriate for use with other routines in spike_sort and 
+    within this module.
+
+    :param: - trace - a 1d numpy array
+    :param: - FS - optional, sample rate, by default 10k
+    :returns: - a minimal spike_data dictionary
+    """
     return {'data':np.atleast_2d(trace), 'FS':FS, 'n_contacts':1}
 
 def addDataFieldToXSG(xsg, channel='chan0'):
-    xsg['data'] = np.atleast_2d(xsg['ephys'][channel])
-    return xsg
+    """This routine adds the key 'data' to an xsg, which is required
+    for spike_sort routines.  It is also important to note that the
+    order of the axes is reversed for spike sort - it is trials by
+    samples instead of a typical samples x trials.
 
-def mergeXSGs(xsg1, xsg2):
-    """this is only valid on repetitions of the same sort of acquisition-
-    that is, xsgs that had the same combo of acquirer, ephys and stimulator settings
+    We check here if the xsg is merged or not and use that information
+    accordingly in building the data field.
 
-    it can be used with reduce
+    Note that it makes sense to call this AFTER merging XSGs!!
+
+    :param: - xsg - a single or merged XSG dictionary 
+    :param: - channel - a string, indicating the ephys channel to use for the
+              data, defaults to 'chan0' 
+    :returns: - the xsg dictionary with an added 'data' field
     """
-    xsg1 = copy.deepcopy(xsg1)
-    xsg2 = copy.deepcopy(xsg2)
 
-    # calculate which keys will be merged via numpy concat
-    # and which by appending lists
+    if 'merged' in xsg.keys():
+        xsg['data'] = xsg['ephys'][channel].T
+    else:
+        xsg['data'] = np.expand_dims(xsg['ephys'][channel], 0)
 
-    non_numpy_keys = xsg1.keys()
-    for prog in ['acquirer', 'ephys', 'stimulator']:
-        non_numpy_keys.remove(prog)
-    non_numpy_keys.append('merged')
-
-    numpy_keys = ['acquirer', 'ephys', 'stimulator']
-
-    for prog in ['acquirer', 'ephys', 'stimulator']:
-        if xsg1[prog] is None or xsg2[prog] is None:
-            non_numpy_keys.append(prog)
-            numpy_keys.remove(prog)
-
-    non_numpy_keys = list(set(non_numpy_keys))
-    numpy_keys = list(set(numpy_keys))
-
-    # we need to distinguish between 'merged' and 'unmerged' xsgs
-    # xsgs have the 'merged' key set to True, otherwise the key/val doesn't exist
-
-    # the major thing here is that unmerged XSGs need 
-    # to have everything wrapped in lists for merging.
-
-    # three possibilities:
-    #    both unmerged
-    #    one merged, one not
-    #    both merged
-
-    # since this is going to typically be used from a reduce call,
-    # we will often have the first possibility, and the second.
-    # regardless, we set both xsgs to 'merged' and wrap everything in a list
-    # if it wasn't already a merged XSG
-
-    for x in [xsg1, xsg2]:
-        if 'merged' not in x.keys():
-            x['merged'] = True
-            for key in non_numpy_keys:
-                x[key] = [x[key]]
-
-    merged_xsg = {}
-    for key in non_numpy_keys:
-        merged_xsg[key] = xsg1[key] + xsg2[key]
-    for key in numpy_keys:
-        # these are dictionaries with keys of channels and vals of numpy arrays
-        # we need to merge the numpy arrays so that the last dimension is trials
-
-        # let's implement 2 cases:  xsg is merged already, and neither is merged.
-
-        merged_xsg[key] = {}
-        for channel in xsg1[key].keys():
-            dim_diff = xsg1[key][channel].ndim - xsg2[key][channel].ndim
-            if dim_diff is 0: # two unmerged numpy arrays
-                merged_xsg[key][channel] = np.concatenate((xsg1[key][channel][:,np.newaxis], xsg2[key][channel][:,np.newaxis]), axis=1)
-
-            if dim_diff is 1: # xsg1 is merged and one higher dim, promote xsg2's array
-                merged_xsg[key][channel] = np.concatenate((xsg1[key][channel], xsg2[key][channel][:,np.newaxis]), axis=1)
-
-            if dim_diff is -1: # xsg2 is merged and one higher dim, promte xsg1's array (won't happen if using reduce)
-                merged_xsg[key][channel] = np.concatenate((xsg1[key][channel][:,np.newaxis], xsg2[key][channel]), axis=1)
-
-    return merged_xsg
+    return xsg
 
 def detect_spikes():
     # extract spike times and add a field called 'spike_times'
