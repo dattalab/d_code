@@ -1,16 +1,27 @@
 import numpy as np
 import scipy
 import datetime
+import copy
 
 import scipy.io
 
-__all__ = ['parseXSG', 'parseAllXSGFiles', 'parseXSGHeader']
+__all__ = ['parseXSG', 'mergeXSGs', 'parseXSGHeader']
 
 def parseXSG(filename):
-    """Function to parse the XSG file format.  Returns a dictionary with epoch string,
-    sample rate (assuming equal sample rates on all channels), and data.  Data is stored
-    in sub-dictionaries, one for each ephus program (ephys, acquirer, etc).  In turn,
-    each of those dictionaries contains a numpy array with the raw values.
+    """Function to parse the XSG file format.  Returns a dictionary
+    with epoch string, sample rate (assuming equal sample rates on all
+    channels), and data.  Data is stored in sub-dictionaries, one for
+    each ephus program (ephys, acquirer, etc).  In turn, each of those
+    dictionaries contains a numpy array with the raw values.
+
+    There is a lot going on here to deal with the fact that different
+    programs can be active, and in particular, stimulator pulses can
+    be specified in different ways.  In the end, we have numpy arrays
+    of what was sent out and what was recorded.
+
+    There are a couple of fields that seem superfluous, but they are
+    to ensure compatibility for extracellular analysis routines from
+    spike sort.
 
     :param: filename: string of .xsg file to parse.
     :returns: dictionary of values as described above
@@ -143,10 +154,14 @@ def parseXSG(filename):
     return xsgDict
 
 def parseXSGHeader(filename):
+    """Routine to extract just the header from an XSG file.  Uses an
+    internal recursive function s2d()"""
     raw = scipy.io.loadmat(filename, squeeze_me=True)
     return s2d(raw['header'])
 
 def s2d(s):
+    """This routine takes a (possibly nested) MATLAB struct as parsed
+    by scipy.io and turns it into a dictionary"""
     d = {}
 
     if s.dtype.names is None:
@@ -164,6 +179,9 @@ def s2d(s):
     return d
 
 def matlabDateString2DateTime(dateString):
+    """This a simple routine that parses a string from Matlab
+    and turns it into a DateTime object"""
+
     months = {
         'Jan' : 1,
         'Feb' : 2,
@@ -191,59 +209,88 @@ def matlabDateString2DateTime(dateString):
 
     return datetime.datetime(year, month, day, hour, minute, second)
 
-def parseAllXSGFiles(listOfFilenames, epoch=None):
-    """Convienence function to parse multiple XSG files in one go.  Takes a list of
-    files to read in.  Easiest to generate this using the 'files = !ls *.xsg' command in
-    ipython, or the glob.glob module.
+def mergeXSGs(xsg1, xsg2):
+    """This routine merges two xsg dictionaries, concatenating every
+    numpy array on a new, last axis and combining all non-numpy fields
+    into a list.  This routine is only valid on repetitions of the
+    same sort of acquisition files, that is, xsgs that had the same
+    combo of acquirer, ephys and stimulator settings, including sample
+    rates and lengths!
 
-    Returns a dictionary with epoch and sample rate, and sub-dictionaries for each ephus
-    program (ephys, acquirer, etc).  These sub-dictionaries include 2d numpy arrays for each
-    channel acquirered.  The first dimension is the number of sampled points, and the second
-    is the number of files passed in.
-
-    :param: listOfFilenames: list of strings of the files to read
-    :param: epoch: optional parameter to filter by epoch value.  can be a string or an int.
-    :returns: dictionary of data as described above.
-    """
-    if isinstance(epoch, int):
-        epoch = unicode(epoch)
-
-    all_xsg_files = [parseXSG(i) for i in listOfFilenames]
-
-    if epoch is not None:
-        xsg_files = [i for i in all_xsg_files if i['epoch'] == epoch]
-    else:
-        xsg_files = all_xsg_files
-
-    data = {}
-    # we're assuming that the files are consistant-
-    # same channels, same sample rates, etc
-    data['epoch'] = xsg_files[0]['epoch']
-    data['sampleRate'] = xsg_files[0]['sampleRate']
-    data['acquirer'] = {}
-    data['ephys'] = {}
+    Importantly, this function can be used with reduce() to easily
+    combine multiple XSGs in a well defined manner.  For example:
     
-    acq_chans = xsg_files[0]['acquirer'].keys()
-    ephys_chans = xsg_files[0]['ephys'].keys()
+       files = !ls *xsgs
+       allXSGList = [parseXSG(f) for f in files]
+       all_xsgs = reduce(mergeXSGs, allXSGList)
+       epoch3xsgs = reduce(mergeXSGs, [x for x in allXSGList if x['epoch'] == '3'])
 
-    # acq channels
-    for acq_channel in acq_chans:
-        data['acquirer'][acq_channel] = np.zeros((xsg_files[0]['acquirer'][acq_channel].shape[0], len(xsg_files)))
-        try:
-            for i in range(len(xsg_files)):
-                data['acquirer'][acq_channel][:,i] = xsg_files[i]['acquirer'][acq_channel].copy()
-        except ValueError:
-            print "Acquirer trace size mis-match.  Make sure settings didn't change from file to file- ensure files are same all same size."
-            return None
-            
-    # ephys channels
-    for ephys_channel in ephys_chans:
-        data['ephys'][ephys_channel] = np.zeros((xsg_files[0]['ephys'][ephys_channel].shape[0], len(xsg_files)))
-        try:
-            for i in range(len(xsg_files)):
-                data['ephys'][acq_channel][:,i] = xsg_files[i]['ephys'][ephys_channel].copy()
-        except ValueError:
-            print "Ephys trace size mis-match.  Make sure settings didn't change from file to file- ensure files are same all same size."
-            return None
+    This behavior could be changed to overwrite instead of appending
+    to a list, but I'll leave that for the future.
 
-    return data
+    :param: xsg1 - a single XSG or merged XSG dictionary
+    :param: xsg2 - a single XSG dictionary
+    :returns: a merged XSG dictionary.
+    """
+    xsg1 = copy.deepcopy(xsg1)
+    xsg2 = copy.deepcopy(xsg2)
+
+    # calculate which keys will be merged via numpy concat
+    # and which by appending lists.
+
+    non_numpy_keys = xsg1.keys()
+    for prog in ['acquirer', 'ephys', 'stimulator']:
+        non_numpy_keys.remove(prog)
+    non_numpy_keys.append('merged')
+
+    numpy_keys = ['acquirer', 'ephys', 'stimulator']
+
+    for prog in ['acquirer', 'ephys', 'stimulator']:
+        if xsg1[prog] is None or xsg2[prog] is None:
+            non_numpy_keys.append(prog)
+            numpy_keys.remove(prog)
+    
+    # remove duplicate keys
+    non_numpy_keys = list(set(non_numpy_keys))
+    numpy_keys = list(set(numpy_keys))
+
+    # we need to distinguish between 'merged' and 'unmerged' xsgs xsgs
+    # have the 'merged' key set to True, otherwise the key/val doesn't
+    # exist
+
+    # the reasoning here is based around the fact that an xsg is not
+    # merged, a list is an actual value.  if it is, then it is a list
+    # of values from previous mergings.  so, we set both xsgs to
+    # 'merged' and wrap everything in a list if it wasn't already a
+    # merged XSG.  Wrapping in a list makes merging simple addition on
+    # a key by key basis
+
+    for x in [xsg1, xsg2]:
+        if 'merged' not in x.keys():
+            x['merged'] = True
+            for key in non_numpy_keys:
+                x[key] = [x[key]]
+
+    # actually merge xsgs
+    merged_xsg = {}
+    for key in non_numpy_keys:
+        merged_xsg[key] = xsg1[key] + xsg2[key]
+    for key in numpy_keys:
+        # for each program, we have dictionaries with keys of channels
+        # and vals of numpy arrays. We need to concatenate the numpy arrays
+        # so that the last dimension is trials
+
+        merged_xsg[key] = {}
+        for channel in xsg1[key].keys():
+            dim_diff = xsg1[key][channel].ndim - xsg2[key][channel].ndim 
+            if dim_diff is 0: # two unmerged numpy arrays, promote both
+                merged_xsg[key][channel] = np.concatenate((xsg1[key][channel][:,np.newaxis], xsg2[key][channel][:,np.newaxis]), axis=1)
+
+            if dim_diff is 1: # xsg1 is merged and one higher dim, promote xsg2's array
+                merged_xsg[key][channel] = np.concatenate((xsg1[key][channel], xsg2[key][channel][:,np.newaxis]), axis=1)
+
+            if dim_diff is -1: # xsg2 is merged and one higher dim, promte xsg1's array (won't happen if using reduce)
+                merged_xsg[key][channel] = np.concatenate((xsg1[key][channel][:,np.newaxis], xsg2[key][channel]), axis=1)
+
+    return merged_xsg
+
