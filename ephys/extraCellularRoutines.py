@@ -1,6 +1,6 @@
-import spike_sort as ss
-import spike_analysis as sa
-from spike_sort.core.extract import detect_spikes, extract_spikes
+#import spike_sort as ss
+#import spike_analysis as sa
+#from spike_sort.core.extract import detect_spikes, extract_spikes
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -8,7 +8,7 @@ import scipy.stats as stats
 
 import copy
 
-__all__ = ['traceToSpikeData', 'plot_raster', 'make_STH', 'make_spike_density', 'detect_spikes', 'extract_spikes', 'addDataFieldToXSG', 'detectSpikes', 'mergeXSGs']
+__all__ = ['traceToSpikeData', 'plot_raster', 'make_STH', 'make_spike_density', 'detect_spikes', 'extract_spikes', 'addDataFieldToXSG', 'mergeXSGs']
 
 def traceToSpikeData(trace, FS=10000):
     return {'data':np.atleast_2d(trace), 'FS':FS, 'n_contacts':1}
@@ -28,19 +28,21 @@ def mergeXSGs(xsg1, xsg2):
 
     # calculate which keys will be merged via numpy concat
     # and which by appending lists
-    non_numpy_keys = xsg1.keys()
-    numpy_keys = []
-    for prog in ['acquirer', 'ephys', 'stimulator']:
-        if xsg1[prog] is not None:
-            non_numpy_keys.remove(prog)
-            numpy_keys.append(prog)
 
-    # ensure that 'merged' key is in there, and only once
-    try:
-        non_numpy_keys.remove('merged')
-        non_numpy_keys.append('merged')
-    except ValueError:
-        non_numpy_keys.append('merged')
+    non_numpy_keys = xsg1.keys()
+    for prog in ['acquirer', 'ephys', 'stimulator']:
+        non_numpy_keys.remove(prog)
+    non_numpy_keys.append('merged')
+
+    numpy_keys = ['acquirer', 'ephys', 'stimulator']
+
+    for prog in ['acquirer', 'ephys', 'stimulator']:
+        if xsg1[prog] is None or xsg2[prog] is None:
+            non_numpy_keys.append(prog)
+            numpy_keys.remove(prog)
+
+    non_numpy_keys = list(set(non_numpy_keys))
+    numpy_keys = list(set(numpy_keys))
 
     # we need to distinguish between 'merged' and 'unmerged' xsgs
     # xsgs have the 'merged' key set to True, otherwise the key/val doesn't exist
@@ -55,6 +57,8 @@ def mergeXSGs(xsg1, xsg2):
 
     # since this is going to typically be used from a reduce call,
     # we will often have the first possibility, and the second.
+    # regardless, we set both xsgs to 'merged' and wrap everything in a list
+    # if it wasn't already a merged XSG
 
     for x in [xsg1, xsg2]:
         if 'merged' not in x.keys():
@@ -66,14 +70,31 @@ def mergeXSGs(xsg1, xsg2):
     for key in non_numpy_keys:
         merged_xsg[key] = xsg1[key] + xsg2[key]
     for key in numpy_keys:
-        merged_xsg[key] = xsg1[key]
+        # these are dictionaries with keys of channels and vals of numpy arrays
+        # we need to merge the numpy arrays so that the last dimension is trials
+
+        # let's implement 2 cases:  xsg is merged already, and neither is merged.
+
+        merged_xsg[key] = {}
+        for channel in xsg1[key].keys():
+            dim_diff = xsg1[key][channel].ndim - xsg2[key][channel].ndim
+            if dim_diff is 0: # two unmerged numpy arrays
+                merged_xsg[key][channel] = np.concatenate((xsg1[key][channel][:,np.newaxis], xsg2[key][channel][:,np.newaxis]), axis=1)
+
+            if dim_diff is 1: # xsg1 is merged and one higher dim, promote xsg2's array
+                merged_xsg[key][channel] = np.concatenate((xsg1[key][channel], xsg2[key][channel][:,np.newaxis]), axis=1)
+
+            if dim_diff is -1: # xsg2 is merged and one higher dim, promte xsg1's array (won't happen if using reduce)
+                merged_xsg[key][channel] = np.concatenate((xsg1[key][channel][:,np.newaxis], xsg2[key][channel]), axis=1)
 
     return merged_xsg
 
-def detectSpikes():
+def detect_spikes():
     # extract spike times and add a field called 'spike_times'
     pass
 
+def extract_spikes():
+    pass
 
 def plot_raster(spike_times, win=None, n_trials=None, ax=None, height=1.):
     """Creates raster plots of spike trains:
