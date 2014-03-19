@@ -68,7 +68,6 @@ def extract_spikes():
 
 def plot_raster(spike_times, win=None, n_trials=None, ax=None, height=1.):
     """Creates raster plots of spike trains:
-   
          spike_times - a list of spike time dictionaries, or a single dictionary
          ntrials - number of trials to plot (if None plot all)
     """
@@ -87,21 +86,20 @@ def plot_raster(spike_times, win=None, n_trials=None, ax=None, height=1.):
         win = [0, np.ceil(max(last_spike_times))]
     if ax is None:
         ax = plt.gca()
-        
+
     for trial in range(n_trials):
         try:
             plt.vlines(spike_times[trial]['data'], trial, trial+height)
         except:
             pass
-    
+
     plt.xlim(win)
     plt.ylim((0,n_trials))
     plt.xlabel('time (ms)')
     plt.ylabel('trials')
-    
+
 def make_STH(spike_times, bin_size=0.25, win=None, n_trials=None, rate=False, **kwargs):
-    """  
-    Parameters:
+    """Parameters:
         spike_times - a list of spike time dictionaries, or a single dictionary
         bin_size - float, in ms
         win - tuple of trial length in ms, eg: (0, 30000)
@@ -129,7 +127,6 @@ def make_STH(spike_times, bin_size=0.25, win=None, n_trials=None, rate=False, **
     return STH, bins
 
 def make_spike_density(sth, sigma=1):
-    
     edges = np.arange(-3*sigma, 3*sigma, 0.001)
     kernel = stats.norm.pdf(edges, 0, sigma)
     kernel *= 0.001
