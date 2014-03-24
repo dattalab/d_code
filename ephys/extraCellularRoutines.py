@@ -22,42 +22,7 @@ from itertools import repeat
 
 import copy
 
-__all__ = ['traceToSpikeData', 'plot_raster', 'make_STH', 'make_spike_density', 'detectSpikes', 'extract_spikes', 'addDataFieldToXSG']
-
-def traceToSpikeData(trace, FS=10000):
-    """Simple routine to take a 1d array and turn it into a 'spike data'
-    dictionary, appropriate for use with other routines in spike_sort and 
-    within this module.
-
-    :param: - trace - a 1d numpy array
-    :param: - FS - optional, sample rate, by default 10k
-    :returns: - a minimal spike_data dictionary
-    """
-    return {'data':np.atleast_2d(trace), 'FS':FS, 'n_contacts':1}
-
-def addDataFieldToXSG(xsg, channel='chan0'):
-    """This routine adds the key 'data' to an xsg, which is required
-    for spike_sort routines.  It is also important to note that the
-    order of the axes is reversed for spike sort - it is trials by
-    samples instead of a typical samples x trials.
-
-    We check here if the xsg is merged or not and use that information
-    accordingly in building the data field.
-
-    Note that it makes sense to call this AFTER merging XSGs!!
-
-    :param: - xsg - a single or merged XSG dictionary 
-    :param: - channel - a string, indicating the ephys channel to use for the
-              data, defaults to 'chan0' 
-    :returns: - the xsg dictionary with an added 'data' field
-    """
-
-    if 'merged' in xsg.keys():
-        xsg['data'] = xsg['ephys'][channel].T
-    else:
-        xsg['data'] = np.expand_dims(xsg['ephys'][channel], 0)
-
-    return xsg
+__all__ = ['plot_raster', 'make_STH', 'make_spike_density', 'detectSpikes', 'extract_spikes']
 
 def detectSpikes(orig_xsg, thresh=None, edge='falling', channel='chan0', filter_trace=False):
     # extract spike times and add a field called 'spikeTimes'
