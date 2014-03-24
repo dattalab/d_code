@@ -13,13 +13,13 @@ spike rate histograms and densities, and plotting a spike raster.
 """
 import numpy as np
 import matplotlib.pyplot as plt
-import scipy.stats as stats
-
-from itertools import repeat
-
 import copy
 
-__all__ = ['plotRaster', 'makeSTH', 'make_spike_density', 'detectSpikes', 'extract_spikes']
+from itertools import repeat
+from scipy.stats import norm
+from scipy.ndimage import convolve1d
+
+__all__ = ['plotRaster', 'makeSTH', 'makeSpikeDensity', 'detectSpikes', 'extract_spikes']
 
 def detectSpikes(orig_xsg, thresh, edge='falling', channel='chan0', filter_trace=False):
     """This function detects spikes in a merged or unmerged XSG
@@ -154,7 +154,7 @@ def makeSTH(orig_xsg, bin_size=10):
         sampleRate = float(xsg['sampleRate'])
 
     bins = np.arange(0, xsg['ephys']['chan0'].shape[0], bin_size)
-    rate_factor = sampleRate / bin_size
+    rate_factor = float(sampleRate / bin_size)
     
     def makeHist(params):
         spike_time, bins = params
@@ -179,18 +179,19 @@ def makeSTH(orig_xsg, bin_size=10):
 
     return xsg
 
-def make_spike_density(sth, sigma=1):
+def makeSpikeDensity(orig_xsg, sigma=1):
+    xsg = copy.deepcopy(orig_xsg)
+
     edges = np.arange(-3*sigma, 3*sigma, 0.001)
-    kernel = stats.norm.pdf(edges, 0, sigma)
+    kernel = norm.pdf(edges, 0, sigma)
     kernel *= 0.001
     
     center = np.ceil(edges.shape[0]/2)
     center = int(center)
     
-    spike_density = np.empty_like(sth)
-    for i, trial in enumerate(np.rollaxis(sth, 1)):
+    xsg['spikeDensity'] = convolve1d(xsg['spikeHist']['counts'].astype(float), kernel, axis=0)
+    xsg['spikeDensity'] = xsg['spikeDensity'][center:-center+1,:]
         
-        conv_spikes = np.convolve(trial.copy(), kernel)
-        spike_density[:,i] = conv_spikes[center:-center+1]
-        
-    return spike_density
+    xsg['kernel'] = kernel
+
+    return xsg
