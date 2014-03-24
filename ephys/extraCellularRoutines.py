@@ -1,17 +1,14 @@
 """These routines are for doing typical extracellular (cell-attached) analyses.
 
-The main data structures we use here are XSG dictionaries.  These contain keys
-by default that have a collection of meta-data, and one key for each of the three
-ephus programs (ephys, acquierer and stimulator).
+The main data structures we use here are XSG dictionaries.  These
+contain keys by default that have a collection of meta-data, and one
+key for each of the three ephus programs (ephys, acquierer and
+stimulator).
 
-We have been inspired by the spike_sort package, but re-implemented routines to better
-fit the XSG data structure.  In particular, we have 'detectSpikes' and 'extractSpikes', 
-as well as routines to calculate spike rate histograms and densities, and plotting a 
-spike raster.
-
-
-
-
+We have been inspired by the spike_sort package, but re-implemented
+routines to better fit the XSG data structure.  In particular, we have
+'detectSpikes' and 'extractSpikes', as well as routines to calculate
+spike rate histograms and densities, and plotting a spike raster.
 
 """
 import numpy as np
@@ -29,14 +26,17 @@ def detectSpikes(orig_xsg, thresh, edge='falling', channel='chan0', filter_trace
     dictionary containing cell attached-recordings.  It adds a key
     'spikeTimes' to a new copy of the XSG, which is simply an numpy
     array of events indicies (in samples), or a list of such arrays in
-    the case of a merged xsg.
+    the case of a merged xsg.  Note that this must be a list of numpy
+    arrays, instead of a 2d array, because the # of events is
+    different in each trial.
 
     Note that this routine can take different types of optional
     parameters.  Central is 'thresh', which can be either a floating
     point threshold value, an explicit wave that is exactly the same
     size as a single trial.  One can specify a list of such
     thresholds, one for each trial. This list must be the same overall
-    length, but entries can mix and match explict waves and single numbers.
+    length, but entries can mix and match explict waves and single
+    numbers.
 
     By default we're going to detect spikes in channel 0, and there is
     room here to filter the waves before detection (need to implement
@@ -157,13 +157,13 @@ def makeSTH(orig_xsg, bin_size=10):
     rate_factor = sampleRate / bin_size
     
     def makeHist(params):
-        spike_time, bins, rate_factor = params
+        spike_time, bins = params
         counts, bin_edges = np.histogram(spike_time, bins)
         bin_centers = 0.5*(bin_edges[1:]+bin_edges[:-1])
         return bin_centers, counts, bin_edges
     
     if 'merged' in xsg.keys():
-        temp_hist = map(makeHist, zip([st for st in xsg['spikeTimes']], repeat(bins), repeat(rate_factor)))
+        temp_hist = map(makeHist, zip([st for st in xsg['spikeTimes']], repeat(bins)))
 
         xsg['spikeHist']['binCenters'] = np.array([x[0] for x in temp_hist]).T
         xsg['spikeHist']['counts'] = np.array([x[1] for x in temp_hist]).T
