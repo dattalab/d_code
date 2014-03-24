@@ -4,25 +4,25 @@ The main data structures we use here are XSG dictionaries.  These contain keys
 by default that have a collection of meta-data, and one key for each of the three
 ephus programs (ephys, acquierer and stimulator).
 
-We also use some routines from the spike_sort package.  This package produces two 
-different types of dictionaries for keeping track of raw spike data and spike times.
-The routines in this module make XSG files compatible with spike sort routines.
+We have been inspired by the spike_sort package, but re-implemented routines to better
+fit the XSG data structure.  In particular, we have 'detectSpikes' and 'extractSpikes', 
+as well as routines to calculate spike rate histograms and densities, and plotting a 
+spike raster.
+
+
+
 
 
 """
-
-
-#import spike_sort as ss
-#import spike_analysis as sa
-from spike_sort.core.extract import detect_spikes, extract_spikes
-
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as stats
 
+from itertools import repeat
+
 import copy
 
-__all__ = ['traceToSpikeData', 'plot_raster', 'make_STH', 'make_spike_density', 'detect_spikes', 'extract_spikes', 'addDataFieldToXSG']
+__all__ = ['traceToSpikeData', 'plot_raster', 'make_STH', 'make_spike_density', 'detectSpikes', 'extract_spikes', 'addDataFieldToXSG']
 
 def traceToSpikeData(trace, FS=10000):
     """Simple routine to take a 1d array and turn it into a 'spike data'
@@ -59,9 +59,50 @@ def addDataFieldToXSG(xsg, channel='chan0'):
 
     return xsg
 
-def detect_spikes():
-    # extract spike times and add a field called 'spike_times'
-    pass
+def detectSpikes(orig_xsg, thresh=None, edge='falling', channel='chan0', filter_trace=False):
+    # extract spike times and add a field called 'spikeTimes'
+
+    # needs to take a merged or un-merged XSG and add a field called 'spike_times'
+    # if unmerged, spike_times is a single np.ndarray of spike times (in samples), otherwise
+    # it is a list of such np.ndarrays.
+    
+    # returns a new xsg with the added key.
+
+    assert(edge in ['falling', 'rising'], "Edge must be 'falling' or 'rising'!")
+    xsg = copy.deepcopy(orig_xsg)
+
+    # internal function to be used with a map
+    def detect(params): 
+        trace, thresh, filter_trace = params
+
+        if filter_trace:
+            #trace = filterthetrace(trace)
+            pass
+
+        # thresh is now a single value or an explicit wave the same size and shape as trace
+        # let's just make it explicit
+        if type(thresh) is not np.ndarray:
+            thresh = np.ones_like(trace) * thresh
+        
+        if edge == 'rising':
+            i, = np.where((trace[:-1] < thresh[:-1]) & (trace[1:] > thresh[1:]))
+        if edge == 'falling':
+            i, = np.where((trace[:-1] > thresh[:-1]) & (trace[1:] < thresh[1:]))
+        return i
+                
+    if 'merged' in xsg.keys():
+        # important type expectation here --- could be list of floats or a list of expicit ndarrays
+        if type(thresh) is not list:  
+            thresh = repeat(thresh)
+        if type(filter_trace) is not list:
+            filter_trace = repeat(filter_trace)
+
+        xsg['spikeTimes'] = map(detect, zip(np.rollaxis(xsg['ephys'][channel], 1, 0), thresh, filter_trace))
+    else:
+        xsg['spikeTimes'] = detect((xsg['ephys'][channel], thresh, filter_trace)) # wrapping here to make it compatible with the zip for a single trial
+
+    return xsg
+
 
 def extract_spikes():
     pass
