@@ -171,7 +171,7 @@ def makeSTH(orig_xsg, bin_size=10):
         xsg['spikeHist']['rates'] =  xsg['spikeHist']['counts'] * rate_factor
 
     else:
-        temp_hist = makeHist((xsg['spikeTimes'], bins, rate_factor))
+        temp_hist = makeHist((xsg['spikeTimes'], bins))
         xsg['spikeHist']['binCenters'] = temp_hist[0]
         xsg['spikeHist']['counts'] = temp_hist[1]
         xsg['spikeHist']['binEdges'] = temp_hist[2]
