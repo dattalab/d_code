@@ -49,10 +49,6 @@ def parseXSG(filename):
     xsgDict['date'] = matlabDateString2DateTime(header['xsgFileCreationTimestamp'])
     xsgDict['dateString'] = header['xsgFileCreationTimestamp']
 
-    # these are for extracellular recordings --- spike_sort uses these fields.
-    xsgDict['FS'] = int(header['acquirer']['acquirer']['sampleRate'])
-    xsgDict['n_contacts'] = 1
-
     # import ephys traces if needed
     try:
         ephys_trace_fields = [i for i in data['ephys'][()].dtype.names if 'trace' in i]
