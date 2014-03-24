@@ -24,14 +24,32 @@ import copy
 
 __all__ = ['plotRaster', 'makeSTH', 'make_spike_density', 'detectSpikes', 'extract_spikes']
 
-def detectSpikes(orig_xsg, thresh=None, edge='falling', channel='chan0', filter_trace=False):
-    # extract spike times and add a field called 'spikeTimes'
+def detectSpikes(orig_xsg, thresh, edge='falling', channel='chan0', filter_trace=False):
+    """This function detects spikes in a merged or unmerged XSG
+    dictionary containing cell attached-recordings.  It adds a key
+    'spikeTimes' to a new copy of the XSG, which is simply an numpy
+    array of events indicies (in samples), or a list of such arrays in
+    the case of a merged xsg.
 
-    # needs to take a merged or un-merged XSG and add a field called 'spike_times'
-    # if unmerged, spike_times is a single np.ndarray of spike times (in samples), otherwise
-    # it is a list of such np.ndarrays.
-    
-    # returns a new xsg with the added key.
+    Note that this routine can take different types of optional
+    parameters.  Central is 'thresh', which can be either a floating
+    point threshold value, an explicit wave that is exactly the same
+    size as a single trial.  One can specify a list of such
+    thresholds, one for each trial. This list must be the same overall
+    length, but entries can mix and match explict waves and single numbers.
+
+    By default we're going to detect spikes in channel 0, and there is
+    room here to filter the waves before detection (need to implement
+    soon).
+
+    :param: - orig_xsg - merged or unmerged xsg containing cell-attached ephys data
+    :param: - thresh - a single threshold or list (as specified above)
+    :param: - edge - string, one of 'rising' or 'falling'
+    :param: - channel - string- specifying which channel to use (must be a 
+                        valid key in the 'ephys' sub-dictionary)
+    :param: - filter - boolean, pre-filter traces before detection, not implemented
+    :returns: - xsg - a copy of orig_xsg, which adds a single array/list of arrays of spike indicies
+    """
 
     assert(edge in ['falling', 'rising'], "Edge must be 'falling' or 'rising'!")
     xsg = copy.deepcopy(orig_xsg)
