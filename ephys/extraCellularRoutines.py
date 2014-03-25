@@ -177,6 +177,7 @@ def makeSTH(orig_xsg, bin_size=10):
         xsg['spikeHist']['binEdges'] = temp_hist[2]
         xsg['spikeHist']['rates'] =  xsg['spikeHist']['counts'] * rate_factor
 
+    xsg['spikeHist']['binSize'] = bin_size
     return xsg
 
 def makeSpikeDensity(orig_xsg, sigma=1):
