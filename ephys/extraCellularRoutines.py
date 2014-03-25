@@ -56,7 +56,7 @@ def detectSpikes(orig_xsg, thresh, edge='falling', channel='chan0', filter_trace
 
     # internal function to be used with a map
     def detect(params): 
-        trace, thresh, filter_trace = params
+        trace, thresh, filter_trace, sample_rate = params
 
         if filter_trace:
             #trace = filterthetrace(trace)
@@ -71,7 +71,7 @@ def detectSpikes(orig_xsg, thresh, edge='falling', channel='chan0', filter_trace
             i, = np.where((trace[:-1] < thresh[:-1]) & (trace[1:] > thresh[1:]))
         if edge == 'falling':
             i, = np.where((trace[:-1] > thresh[:-1]) & (trace[1:] < thresh[1:]))
-        return i
+        return i * 1000.0 / sample_rate
                 
     if 'merged' in xsg.keys():
         # important type expectation here --- could be list of floats or a list of expicit ndarrays
@@ -80,9 +80,9 @@ def detectSpikes(orig_xsg, thresh, edge='falling', channel='chan0', filter_trace
         if type(filter_trace) is not list:
             filter_trace = repeat(filter_trace)
 
-        xsg['spikeTimes'] = map(detect, zip(np.rollaxis(xsg['ephys'][channel], 1, 0), thresh, filter_trace))
+        xsg['spikeTimes'] = map(detect, zip(np.rollaxis(xsg['ephys'][channel], 1, 0), thresh, filter_trace, repeat(xsg['sampleRate'])))
     else:
-        xsg['spikeTimes'] = detect((xsg['ephys'][channel], thresh, filter_trace)) # wrapping here to make it compatible with the zip for a single trial
+        xsg['spikeTimes'] = detect((xsg['ephys'][channel], thresh, filter_trace, xsg['sampleRate'])) # wrapping here to make it compatible with the zip for a single trial
 
     return xsg
 
@@ -194,5 +194,7 @@ def makeSpikeDensity(orig_xsg, sigma=1):
     xsg['spikeDensity'] = xsg['spikeDensity'][center:-center+1,:]
         
     xsg['kernel'] = kernel
+
+    
 
     return xsg
