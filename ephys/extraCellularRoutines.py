@@ -25,9 +25,9 @@ def detectSpikes(orig_xsg, thresh, edge='falling', channel='chan0', filter_trace
     """This function detects spikes in a merged or unmerged XSG
     dictionary containing cell attached-recordings.  It adds a key
     'spikeTimes' to a new copy of the XSG, which is simply an numpy
-    array of events indicies (in samples), or a list of such arrays in
-    the case of a merged xsg.  Note that this must be a list of numpy
-    arrays, instead of a 2d array, because the # of events is
+    array of events indicies (in milliseconds), or a list of such
+    arrays in the case of a merged xsg.  Note that this must be a list
+    of numpy arrays, instead of a 2d array, because the # of events is
     different in each trial.
 
     Note that this routine can take different types of optional
@@ -117,8 +117,8 @@ def plotRaster(xsg, ax=None, height=1.):
             plt.vlines(xsg['spikeTimes'], 0, height)
             plt.ylim((0,1))
 
-        plt.xlim(0,xsg['ephys']['chan0'].shape[0])
-        plt.xlabel('time (samples)')
+        plt.xlim(0,xsg['ephys']['chan0'].shape[0] / xsg['sampleRate'])
+        plt.xlabel('time (ms)')
         plt.ylabel('trials')
 
     except:
