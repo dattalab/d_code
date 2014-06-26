@@ -160,19 +160,22 @@ def s2d(s):
     by scipy.io and turns it into a dictionary"""
     d = {}
 
-    if s.dtype.names is None:
-        # if empty
-        if s.dtype.name == 'object' and s.ndim is 0:
-            return s2d(s[()])
-        elif s.ndim is not 0: # then we have a 1d string array or other list
-            return [s[i] for i in range(s.shape[0])]
+    if hasattr(s, 'dtype'):
+        if s.dtype.names is None:
+            # if empty
+            if s.dtype.name == 'object' and s.ndim is 0:
+                return s2d(s[()])
+            elif s.ndim is not 0: # then we have a 1d string array or other list
+                return [s[i] for i in range(s.shape[0])]
+            else:
+                return s[()]
         else:
-            return s[()]
-
+            for field in s.dtype.names:
+                d[field] = s2d(s[field][()])
+        return d
     else:
-        for field in s.dtype.names:
-            d[field] = s2d(s[field][()])
-    return d
+        return s
+
 
 def matlabDateString2DateTime(dateString):
     """This a simple routine that parses a string from Matlab
