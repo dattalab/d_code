@@ -131,8 +131,8 @@ def parseXSG(filename):
             stim_array = np.zeros(sampleRate*traceLength) + offset
 
             for pulse_number in range(number_of_pulses):
-                start = pulse_number * ISI + delay
-                end = start + width
+                start = int(pulse_number * ISI + delay)
+                end = int(start + width)
                 stim_array[start:end] = amp
             xsgDict['stimulator']['chan0'] = stim_array   # NOTE: hard coded for now for a single ephys channel
             pass
