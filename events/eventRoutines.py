@@ -123,7 +123,7 @@ def findEvents(traces, stds, std_threshold=2.5, falling_std_threshold=None, base
 
                 for event_end in np.argwhere(np.diff(events[:,cell,trial].astype(int)) == -1):
                     j = event_end
-                    while ((events[j,cell,trial]) or (falling_thresh_events[j])) and (j < cells):
+                    while (j<time) and ((events[j,cell,trial]) or (falling_thresh_events[j])):
                         events[j,cell,trial] = events[j-1,cell,trial]
                         j = j + 1
 
