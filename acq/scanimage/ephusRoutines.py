@@ -150,9 +150,11 @@ def parseXSG(filename):
                         num_literal_pulses = num_literal_pulses + 1
                         xsgDict['stimulator'][pulseName] = header['stimulator']['stimulator']['pulseParameters'][i]['signal'][()][()]
             except:
-                print 'error parsing literal pulses?'
+                pass
+                #print 'error parsing literal pulses?'
             if num_literal_pulses is 0:
-                print 'no literal pulses found'
+                pass
+                #print 'no literal pulses found'
     except:
         pass
 
