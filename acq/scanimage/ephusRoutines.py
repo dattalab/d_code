@@ -50,14 +50,14 @@ def parseXSG(filename):
     xsgDict['dateString'] = header['xsgFileCreationTimestamp']
 
     # import ephys traces if needed
-    try:
-        ephys_trace_fields = [i for i in data['ephys'][()].dtype.names if 'trace' in i]
-        # loop over channels (should just be 'chan0' and 'chan1')
-        for index, chan in enumerate(ephys_trace_fields):
-            xsgDict['ephys'][u'chan'+str(index)] = data['ephys'][()][chan][()]
-    except TypeError: #no traces
+    # right now we only support a single ephys channel, so this is relatively hardcoded
+    # my suspicion is that if there are more than one then we get a list back in acqOnArray (like for acquirer)
+
+    if header['ephys']['ephys']['acqOnArray']:
+        xsgDict['ephys']['chan0'] = data['ephys'][()]['trace_1'][()]
+    else:
         xsgDict['ephys'] = None
-    
+
     # import acquirer traces if needed    
     try:
         acq_trace_fields = [i for i in data['acquirer'][()].dtype.names if 'trace' in i]
