@@ -66,7 +66,7 @@ def parseXSG(filename):
         chanNames = header['acquirer']['acquirer']['channels']['channelName']
         for i, (on, chan_name) in enumerate(zip(acqOnArray, chanNames)):
             if on:
-                xsgDict['acquirer'][chan_name] = data['acquirer'][()]['trace_'+str(i)][()]
+                xsgDict['acquirer'][chan_name] = data['acquirer'][()]['trace_'+str(i+1)][()]
     else:
         xsgDict['acquirer'] = None
 
