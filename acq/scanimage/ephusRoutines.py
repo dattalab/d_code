@@ -52,10 +52,12 @@ def parseXSG(filename):
     # import ephys traces if needed
     # right now we only support a single ephys channel, so this is relatively hardcoded
     # my suspicion is that if there are more than one then we get a list back in acqOnArray (like for acquirer)
-
-    if header['ephys']['ephys']['acqOnArray']:
-        xsgDict['ephys']['chan0'] = data['ephys'][()]['trace_1'][()]
-    else:
+    try:
+        if header['ephys']['ephys']['acqOnArray']:
+            xsgDict['ephys']['chan0'] = data['ephys'][()]['trace_1'][()]
+        else:
+            xsgDict['ephys'] = np.array([])
+    except: 
         xsgDict['ephys'] = None
 
     # import acquirer traces if needed
@@ -103,7 +105,8 @@ def parseXSG(filename):
                     # 10: witdh 
                     # 11: delay
                     
-                    for pulse in range(header['stimulator']['stimulator']['channelList']):
+                    for on, pulse in zip(header['stimulator']['stimulator']['stimOnArray'], range(header['stimulator']['stimulator']['channelList'])):
+                        
                         delay = header['stimulator']['stimulator']['pulseParameters'][pulse][12] * sampleRate
                         offset = header['stimulator']['stimulator']['pulseParameters'][pulse][8] * sampleRate
                         amp = header['stimulator']['stimulator']['pulseParameters'][pulse][7]
@@ -117,7 +120,8 @@ def parseXSG(filename):
                             start = pulse_number * ISI + delay
                             end = start + width
                             stim_array[start:end] = amp
-                        xsgDict['stimulator'][header['stimulator']['stimulator']['channels']['channelName'][pulse]] = stim_array
+                        if on :
+                            xsgDict['stimulator'][header['stimulator']['stimulator']['channels']['channelName'][pulse]] = stim_array
                 else: #single pulse!
                     delay = header['stimulator']['stimulator']['pulseParameters']['squarePulseTrainDelay'] * sampleRate
                     offset = header['stimulator']['stimulator']['pulseParameters']['offset'] * sampleRate
