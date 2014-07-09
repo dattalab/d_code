@@ -58,15 +58,14 @@ def parseXSG(filename):
     else:
         xsgDict['ephys'] = None
 
-    # import acquirer traces if needed    
-    try:
-        acq_trace_fields = [i for i in data['acquirer'][()].dtype.names if 'trace' in i]
-        # loop over channels
-        acq_channel_field_names = [i for i in data['acquirer'][()].dtype.names if 'channelName' in i]
-        acq_chan_names = [data['acquirer'][()][i][()][()] for i in acq_channel_field_names]
-        for chan, chanName in zip(acq_trace_fields, acq_chan_names):
-            xsgDict['acquirer'][chanName] = data['acquirer'][()][chan][()]
-    except TypeError: #no traces
+    # import acquirer traces if needed
+    if np.any(header['acquirer']['acquirer']['acqOnArray']):
+        acqOnArray = np.array(header['acquirer']['acquirer']['acqOnArray'])
+        chanNames = header['acquirer']['acquirer']['channels']['channelName']
+        for i, (on, chan_name) in enumerate(zip(acqOnArray, chanNames)):
+            if on:
+                xsgDict['acquirer'][chan_name] = data['acquirer'][()]['trace_'+str(i)][()]
+    else:
         xsgDict['acquirer'] = None
 
     # rebuild stimulation pulses if needed
