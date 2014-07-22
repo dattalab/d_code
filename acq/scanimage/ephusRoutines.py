@@ -61,12 +61,15 @@ def parseXSG(filename):
         xsgDict['ephys'] = None
 
     # import acquirer traces if needed
-    if np.any(header['acquirer']['acquirer']['acqOnArray']):
-        acqOnArray = np.array(header['acquirer']['acquirer']['acqOnArray'])
-        chanNames = header['acquirer']['acquirer']['channels']['channelName']
-        for i, (on, chan_name) in enumerate(zip(acqOnArray, chanNames)):
-            if on:
-                xsgDict['acquirer'][chan_name] = data['acquirer'][()]['trace_'+str(i+1)][()]
+    if header['acquirer']['acquirer']['startButton'] or header['acquirer']['acquirer']['selfTrigger'] == 0:
+        if np.any(header['acquirer']['acquirer']['acqOnArray']):
+            acqOnArray = np.array(header['acquirer']['acquirer']['acqOnArray'])
+            chanNames = header['acquirer']['acquirer']['channels']['channelName']
+            for i, (on, chan_name) in enumerate(zip(acqOnArray, chanNames)):
+                if on:
+                    xsgDict['acquirer'][chan_name] = data['acquirer'][()]['trace_'+str(i+1)][()]
+        else:
+            xsgDict['acquirer'] = None
     else:
         xsgDict['acquirer'] = None
 
