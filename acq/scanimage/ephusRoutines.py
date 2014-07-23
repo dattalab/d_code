@@ -28,18 +28,12 @@ def parseXSG(filename):
     """
     raw = scipy.io.loadmat(filename, squeeze_me=True)
 
-    header = raw['header']
-    data = raw['data']
+    header = s2d(raw['header'])
+    data = s2d(raw['data'])
     
-    acq_fields = data.dtype.names
-
     xsgDict = {}
-
-    for i, field in enumerate(acq_fields):
-        xsgDict[field] = {}
-    xsgDict['stimulator'] = {}
-
-    header = s2d(header)
+    for prog in ['ephys', 'acquirer', 'stimulator']:
+        xsgDict[prog] = {}
 
     xsgDict['sampleRate'] = int(header['acquirer']['acquirer']['sampleRate'])
     xsgDict['epoch'] = int(header['xsg']['xsg']['epoch'])
@@ -49,29 +43,20 @@ def parseXSG(filename):
     xsgDict['date'] = matlabDateString2DateTime(header['xsgFileCreationTimestamp'])
     xsgDict['dateString'] = header['xsgFileCreationTimestamp']
 
-    # import ephys traces if needed
-    # right now we only support a single ephys channel, so this is relatively hardcoded
-    # my suspicion is that if there are more than one then we get a list back in acqOnArray (like for acquirer)
-    try:
-        if header['ephys']['ephys']['acqOnArray']:
-            xsgDict['ephys']['chan0'] = data['ephys'][()]['trace_1'][()]
-        else:
-            xsgDict['ephys'] = np.array([])
-    except: 
-        xsgDict['ephys'] = None
+    # import ephys and acquirer data
 
-    # import acquirer traces if needed
-    if header['acquirer']['acquirer']['startButton'] or header['acquirer']['acquirer']['selfTrigger'] == 0:
-        if np.any(header['acquirer']['acquirer']['acqOnArray']):
-            acqOnArray = np.array(header['acquirer']['acquirer']['acqOnArray'])
-            chanNames = header['acquirer']['acquirer']['channels']['channelName']
-            for i, (on, chan_name) in enumerate(zip(acqOnArray, chanNames)):
-                if on:
-                    xsgDict['acquirer'][chan_name] = data['acquirer'][()]['trace_'+str(i+1)][()]
-        else:
-            xsgDict['acquirer'] = None
-    else:
-        xsgDict['acquirer'] = None
+    for prog in ['ephys', 'acquirer']:
+        try:
+            unique_channel_suffixes = list(set([k.split('_')[1] for k in data[prog].keys()]))
+        except AttributeError:
+            xsgDict[prog] = None
+            continue
+
+        for suffix in unique_channel_suffixes:
+            chanName= data[prog]['channelName_'+suffix]
+            if not isinstance(chanName, (unicode, str)):
+                chanName = 'chan0' # special case of empty chan name for ephys, make it chan0
+            xsgDict[prog][chanName] = data[prog]['trace_'+suffix]
 
 
     # rebuild stimulation pulses if needed
@@ -212,7 +197,10 @@ def s2d(s):
             if s.dtype.name == 'object' and s.ndim is 0:
                 return s2d(s[()])
             elif s.ndim is not 0: # then we have a 1d string array or other list
-                return [s[i] for i in range(s.shape[0])]
+                if s.dtype == np.float64: # except when we have a real numpy array
+                    return s
+                else:
+                    return [s[i] for i in range(s.shape[0])]
             else:
                 return s[()]
         else:
@@ -221,7 +209,6 @@ def s2d(s):
         return d
     else:
         return s
-
 
 def matlabDateString2DateTime(dateString):
     """This a simple routine that parses a string from Matlab
