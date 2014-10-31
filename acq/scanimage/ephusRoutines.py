@@ -28,18 +28,12 @@ def parseXSG(filename):
     """
     raw = scipy.io.loadmat(filename, squeeze_me=True)
 
-    header = raw['header']
-    data = raw['data']
+    header = s2d(raw['header'])
+    data = s2d(raw['data'])
     
-    acq_fields = data.dtype.names
-
     xsgDict = {}
-
-    for i, field in enumerate(acq_fields):
-        xsgDict[field] = {}
-    xsgDict['stimulator'] = {}
-
-    header = s2d(header)
+    for prog in ['ephys', 'acquirer', 'stimulator']:
+        xsgDict[prog] = {}
 
     xsgDict['sampleRate'] = int(header['acquirer']['acquirer']['sampleRate'])
     xsgDict['epoch'] = int(header['xsg']['xsg']['epoch'])
@@ -49,25 +43,21 @@ def parseXSG(filename):
     xsgDict['date'] = matlabDateString2DateTime(header['xsgFileCreationTimestamp'])
     xsgDict['dateString'] = header['xsgFileCreationTimestamp']
 
-    # import ephys traces if needed
-    try:
-        ephys_trace_fields = [i for i in data['ephys'][()].dtype.names if 'trace' in i]
-        # loop over channels (should just be 'chan0' and 'chan1')
-        for index, chan in enumerate(ephys_trace_fields):
-            xsgDict['ephys'][u'chan'+str(index)] = data['ephys'][()][chan][()]
-    except TypeError: #no traces
-        xsgDict['ephys'] = None
-    
-    # import acquirer traces if needed    
-    try:
-        acq_trace_fields = [i for i in data['acquirer'][()].dtype.names if 'trace' in i]
-        # loop over channels
-        acq_channel_field_names = [i for i in data['acquirer'][()].dtype.names if 'channelName' in i]
-        acq_chan_names = [data['acquirer'][()][i][()][()] for i in acq_channel_field_names]
-        for chan, chanName in zip(acq_trace_fields, acq_chan_names):
-            xsgDict['acquirer'][chanName] = data['acquirer'][()][chan][()]
-    except TypeError: #no traces
-        xsgDict['acquirer'] = None
+    # import ephys and acquirer data
+
+    for prog in ['ephys', 'acquirer']:
+        try:
+            unique_channel_suffixes = list(set([k.split('_')[1] for k in data[prog].keys()]))
+        except AttributeError:
+            xsgDict[prog] = None
+            continue
+
+        for suffix in unique_channel_suffixes:
+            chanName= data[prog]['channelName_'+suffix]
+            if not isinstance(chanName, (unicode, str)):
+                chanName = 'chan0' # special case of empty chan name for ephys, make it chan0
+            xsgDict[prog][chanName] = data[prog]['trace_'+suffix]
+
 
     # rebuild stimulation pulses if needed
     # need to do this in two phases
@@ -77,6 +67,7 @@ def parseXSG(filename):
     # we'll put both in the 'stimulator' field.
 
     # for the stimulator program
+
     try:
         if header['stimulator']['stimulator']['startButton']: # stimulator was engaged
 
@@ -85,22 +76,59 @@ def parseXSG(filename):
                 sampleRate = int(header['stimulator']['stimulator']['sampleRate'])
                 traceLength = int(header['stimulator']['stimulator']['traceLength'])
 
-                delay = header['stimulator']['stimulator']['pulseParameters']['squarePulseTrainDelay'] * sampleRate
-                offset = header['stimulator']['stimulator']['pulseParameters']['offset'] * sampleRate
-                amp = header['stimulator']['stimulator']['pulseParameters']['amplitude']
-                ISI = header['stimulator']['stimulator']['pulseParameters']['squarePulseTrainISI'] * sampleRate
-                width = header['stimulator']['stimulator']['pulseParameters']['squarePulseTrainWidth'] * sampleRate
-                number_of_pulses = int(header['stimulator']['stimulator']['pulseParameters']['squarePulseTrainNumber'])
+                if header['stimulator']['stimulator']['channelList'] > 1:
 
-                stim_array = np.zeros(sampleRate*traceLength) + offset
+                    # list format
+                    # 0: type
+                    # 1: some date
+                    # 2: some date
+                    # 3: some date
+                    # 4: gain?
+                    # 5: name
+                    # 6: sample rate
+                    # 7: amplitude
+                    # 8: 0,  offset?
+                    # 9: number of pulses
+                    # 10: isi
+                    # 10: witdh 
+                    # 11: delay
+                    
+                    for on, pulse in zip(header['stimulator']['stimulator']['stimOnArray'], range(header['stimulator']['stimulator']['channelList'])):
+                        
+                        delay = header['stimulator']['stimulator']['pulseParameters'][pulse][12] * sampleRate
+                        offset = header['stimulator']['stimulator']['pulseParameters'][pulse][8] * sampleRate
+                        amp = header['stimulator']['stimulator']['pulseParameters'][pulse][7]
+                        ISI = header['stimulator']['stimulator']['pulseParameters'][pulse][10] * sampleRate
+                        width = header['stimulator']['stimulator']['pulseParameters'][pulse][11] * sampleRate
+                        number_of_pulses = int(header['stimulator']['stimulator']['pulseParameters'][pulse][9])
 
-                for pulse_number in range(number_of_pulses):
-                    start = pulse_number * ISI + delay
-                    end = start + width
-                    stim_array[start:end] = amp
-                xsgDict['stimulator'][header['stimulator']['stimulator']['channels']['channelName']] = stim_array
+                        stim_array = np.zeros(sampleRate*traceLength) + offset
+
+                        for pulse_number in range(number_of_pulses):
+                            start = int(pulse_number * ISI + delay)
+                            end = int(start + width)
+                            stim_array[start:end] = amp
+                        if on :
+                            xsgDict['stimulator'][header['stimulator']['stimulator']['channels']['channelName'][pulse]] = stim_array
+                else: #single pulse!
+                    delay = header['stimulator']['stimulator']['pulseParameters']['squarePulseTrainDelay'] * sampleRate
+                    offset = header['stimulator']['stimulator']['pulseParameters']['offset'] * sampleRate
+                    amp = header['stimulator']['stimulator']['pulseParameters']['amplitude']
+                    ISI = header['stimulator']['stimulator']['pulseParameters']['squarePulseTrainISI'] * sampleRate
+                    width = header['stimulator']['stimulator']['pulseParameters']['squarePulseTrainWidth'] * sampleRate
+                    number_of_pulses = int(header['stimulator']['stimulator']['pulseParameters']['squarePulseTrainNumber'])
+
+
+                    stim_array = np.zeros(sampleRate*traceLength) + offset
+
+                    for pulse_number in range(number_of_pulses):
+                        start = pulse_number * ISI + delay
+                        end = start + width
+                        stim_array[start:end] = amp
+                    xsgDict['stimulator'][header['stimulator']['stimulator']['channels']['channelName']] = stim_array
             except:
                 print 'no standard pulses?'
+           
 
             # put all the literal pulses in
             try:
@@ -110,11 +138,14 @@ def parseXSG(filename):
                         num_literal_pulses = num_literal_pulses + 1
                         xsgDict['stimulator'][pulseName] = header['stimulator']['stimulator']['pulseParameters'][i]['signal'][()][()]
             except:
-                print 'error parsing literal pulses?'
+                pass
+                #print 'error parsing literal pulses?'
             if num_literal_pulses is 0:
-                print 'no literal pulses found'
+                pass
+                #print 'no literal pulses found'
     except:
         pass
+
     # stimulation in the ephys program (a command to the amp)
     try:
         if header['ephys']['ephys']['stimOnArray']:
@@ -131,8 +162,8 @@ def parseXSG(filename):
             stim_array = np.zeros(sampleRate*traceLength) + offset
 
             for pulse_number in range(number_of_pulses):
-                start = pulse_number * ISI + delay
-                end = start + width
+                start = int(pulse_number * ISI + delay)
+                end = int(start + width)
                 stim_array[start:end] = amp
             xsgDict['stimulator']['chan0'] = stim_array   # NOTE: hard coded for now for a single ephys channel
             pass
@@ -166,7 +197,10 @@ def s2d(s):
             if s.dtype.name == 'object' and s.ndim is 0:
                 return s2d(s[()])
             elif s.ndim is not 0: # then we have a 1d string array or other list
-                return [s[i] for i in range(s.shape[0])]
+                if s.dtype == np.float64: # except when we have a real numpy array
+                    return s
+                else:
+                    return [s[i] for i in range(s.shape[0])]
             else:
                 return s[()]
         else:
@@ -175,7 +209,6 @@ def s2d(s):
         return d
     else:
         return s
-
 
 def matlabDateString2DateTime(dateString):
     """This a simple routine that parses a string from Matlab
