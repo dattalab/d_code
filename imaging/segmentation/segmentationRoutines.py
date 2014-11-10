@@ -88,6 +88,15 @@ def allPixelsFromROIInSeries(imageSeries, binaryMask):
     return pixelValues
 
 def watershedSegment(image, diskSize=20):
+    """This routine implements the watershed example from 
+    http://www.mathworks.com/help/images/examples/marker-controlled-watershed-segmentation.html, 
+    but using pymorph and mahotas.
+
+    :param image: an image (2d numpy array) to be segemented
+    :param diskSize: an integer used as a size for a structuring element used 
+                     for morphological preprocessing.
+    :returns: tuple of binarized and labeled segmention masks
+    """
 
     def gradientMagnitudue(image):
         sobel_x = nd.sobel(image.astype('double'), 0)
