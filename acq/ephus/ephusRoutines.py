@@ -257,6 +257,8 @@ def mergeXSGs(xsg1, xsg2):
        all_xsgs = reduce(mergeXSGs, allXSGList)
        epoch3xsgs = reduce(mergeXSGs, [x for x in allXSGList if x['epoch'] == '3'])
 
+    For those CS folks playing along, this is a 'reducing function'.
+
     This behavior could be changed to overwrite instead of appending
     to a list, but I'll leave that for the future.
 

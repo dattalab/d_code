@@ -1,11 +1,10 @@
 """
 ================================================================
-Scanimage analysis routines (:mod:`imaging_analysis.scanimage`)
+Scanimage analysis routines (:mod:`acq.scanimage`)
 ================================================================
 
 Routines for importing and processing scanimage files.
 
-.. currentmodule:: imaging_analysis.scanimage
+.. currentmodule:: acq.scanimage
 """
 from scanimageRoutines import *
-from ephusRoutines import *

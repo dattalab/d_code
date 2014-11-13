@@ -10,7 +10,7 @@ import copy
 import scipy.ndimage
 import imaging.io
 
-from ephusRoutines import parseXSG
+from .. import ephus
 
 
 __all__ = ['readRawSIImages', 'parseSIHeaderFile', 'importTrial']
@@ -150,7 +150,7 @@ def importTrial(tif_filename, header_filename):
     try:
         xsg_sub_dir_name = state['xsgFilename'].split('\\')[-2]
         xsg_filename = state['xsgFilename'].split('\\')[-1]
-        xsg_file = parseXSG(os.path.join(xsg_sub_dir_name, xsg_filename))
+        xsg_file = ephus.parseXSG(os.path.join(xsg_sub_dir_name, xsg_filename))
     except IOError:
         print 'Error reading associated xsg, ' + os.path.join(xsg_sub_dir_name, xsg_filename) + ', doesn\'t exist?'
         xsg_file = None
