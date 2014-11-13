@@ -8,9 +8,9 @@ and Ehpus.
 
 This package requires many core elements of the Python scientific stack,
 including Numpy and Scipy.  The simplest way to get these is to install a
-python distribution such as [Anaconda](http://continuum.io/downloads)
+Python distribution such as [Anaconda](http://continuum.io/downloads)
 (recommended) or [Enthought](https://store.enthought.com/downloads/). All of
-this code works on a python 2.7.x codebase.  Porting to Python 3 wouldn't be a
+this code works on a Python 2.7.x codebase.  Porting to Python 3 wouldn't be a
 bad idea, but right now it runs on 2.7.
 
 More explicitly, this code depends on the following non-standard library
@@ -73,6 +73,6 @@ packages from this repo.
 
 The way to use this file is to edit it to change the PYTHON_MODULES_DIR_LIST 
 variable to reflect the list of folders you'd like to automatically add to your
-python path.  These need to be full system paths.  The program is recursive, but
+Python path.  These need to be full system paths.  The program is recursive, but
 doesn't include .git folders or dive into packages.  Thus, if you keep all of 
 your code in one directory, adding that directory should be sufficient.
