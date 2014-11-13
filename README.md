@@ -44,9 +44,16 @@ tiffiflesetup.py build_ext --inplace`.  image_registration was forked from
 https://github.com/keflavich/image_registration, and I wrote a couple of
 convenience routines there.
 
-After this, you should be able to add the top level directory to your python
-path and then import anything as you see fit, e.g.: `import imaging.io as io`.
-See also the IPython startup file for a way to do this automatically.
+Presuming that you are a member of the dattalab organization with access to this repo
+(which you are, if you can read this), you should be able to install this code 
+by standard git cloning techniques, that is, run the following at a terminal prompt:
+
+    git clone git@github.com:dattalab/dattacode.git
+
+This will create a clone of the repo in the current directory.  After this, you should 
+be able to add the top level directory to your python path and then import anything 
+as you see fit, e.g.: `import imaging.io as io`.  See also the IPython startup 
+file below for a way to do this automatically.
 
 ## Overview and Summary of Packages
 
