@@ -65,7 +65,7 @@ There are 5 main packages:
 
 ## IPython startup file
 
-`ipython_load_modules.py is a file you can place in ~/.ipython/<PROFILE>/startup
+`ipython_load_modules.py` is a file you can place in ~/.ipython/<PROFILE_NAME>/startup
 that will run whenever a new ipython kernel is generated.  It is a pure python
 script that includes a lot of standard system imports (sys, os, numpy), then
 recursively adds a directory to the Python path, then imports a number of the
@@ -76,8 +76,3 @@ variable to reflect the list of folders you'd like to automatically add to your
 python path.  These need to be full system paths.  The program is recursive, but
 doesn't include .git folders or dive into packages.  Thus, if you keep all of 
 your code in one directory, adding that directory should be sufficient.
-
-
-
-
-
