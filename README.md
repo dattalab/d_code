@@ -64,7 +64,7 @@ There are 5 main packages:
   data
 - events: Routines for detecting and analyzing 'event' arrays- 2d label arrays 
   which signify discrete events.
-- imaging: Routines for io, alignment, and image processing and segmentation.
+- imaging: Routines for I/O, alignment, morphological processing and segmentation of images.
 - plotting: Some convenience routines for typical sorts of plotting and 
   visualization.
 - traces: Routines for manipulating time series data (baselining, normalizing, 
