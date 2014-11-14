@@ -2,28 +2,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats as stats
 
-from mpl_toolkits.axes_grid1 import ImageGrid
+__all__ = ['plot_avg_and_sem', 'plot_array', 'imshow_array', 'plot_avg_and_comps', 'plot_array_xy']
 
-
-__all__ = ['plot_subset_of_array', 'plot_avg_and_sem', 'plot_array', 'imshow_array', 'plot_avg_and_comps', 'plot_array_xy']
-
-def plot_subset_of_array(npArray, keep_slices, axis=1):
-    plt.figure()
-    
-    mask = np.ones_like(npArray, dtype=bool)
-    for s in keep_slices:
-        # need to make a tuple of Ellipses and an int that is the current trace number
-        slice_obj = []
-        for a in range(npArray.ndim):
-            if a is axis:
-                slice_obj.append(s)
-            else:
-                slice_obj.append(Ellipsis)
-        mask[tuple(slice_obj)] = False
-
-    plot(ma.masked_array(npArray, mask))
 
 def plot_avg_and_sem(npArray, axis=1):
+    """This routine takes a multidimenionsal numpy array and an axis and then
+    plots the average over that axis on top of a band that represents the standard
+    error of the mean.
+    """
     mean = npArray.mean(axis=axis)
     sem_plus = mean + stats.sem(npArray, axis=axis)
     sem_minus = mean - stats.sem(npArray, axis=axis)
@@ -32,7 +18,24 @@ def plot_avg_and_sem(npArray, axis=1):
     plt.fill_between(np.arange(mean.shape[0]), sem_plus, sem_minus, alpha=0.5)
     plt.plot(mean)
 
+def plot_avg_and_comps(npArray, axis=1):
+    """This routine takes a multidimenionsal numpy array and an axis and then
+    plots the average over that axis on top of fainter plots of the components of that average.
+    """
+    plt.figure()
+    plt.plot(npArray, alpha=0.25, lw=1)
+    plt.plot(npArray.mean(axis=axis), lw=2, color='black')
+
 def plot_array(npArray, axis=1, xlim=None, ylim=None, color=None, suppress_labels=True, title=None):
+    """This routine takes a multidimensional numpy array and an axis and then
+    'facets' the data across that dimension.  So, if npArray was a 100x9 array:
+
+        plot_array(npArray) would generate a 9x9 grid of a single 100 point plot each.
+
+    'color' lets you specifiy specific colors for all traces, and xlim and ylim let you set bounds.
+
+    The number of plots are based on making a sqaure grid of minimum size.
+    """
 
     f = plt.figure()
     f.suptitle(title, fontsize=14)
@@ -80,6 +83,16 @@ def plot_array(npArray, axis=1, xlim=None, ylim=None, color=None, suppress_label
     return f
 
 def plot_array_xy(npArray_x, npArray_y, axis=1, xlim=None, ylim=None):
+    """Similar to plot_array(), this routine takes a pair of multidimensional numpy arrays
+    and an axis and then 'facets' the data across that dimension.  The major
+    difference here is that you can explicitly specify the x values instead of using 
+    index.
+
+    xlim and ylim let you set bounds.
+
+    The number of plots are based on making a sqaure grid of minimum size.
+    """
+
     # ensure x and y match in dimensions
     if npArray_x.ndim is not npArray_y.ndim:
         temp_x = np.empty_like(npArray_y)
@@ -118,7 +131,15 @@ def plot_array_xy(npArray_x, npArray_y, axis=1, xlim=None, ylim=None):
 
 
 def imshow_array(npArray, axis=2, vmax=None, vmin=None, transpose=False, tight_axis=True, suppress_labels=True, title=None):
+    """This routine takes a multidimensional numpy array and an axis and then
+    'facets' the data across that dimension.  So, if npArray was a 100x100x9 array:
 
+        imshow_array(npArray) would generate a 9x9 grid of 100x100 images.
+
+    vmin and vmax let you set bounds on the image.
+
+    The number of plots are based on making a sqaure grid of minimum size.
+    """ 
     f = plt.figure()
     f.suptitle(title, fontsize=14)
 
@@ -153,9 +174,3 @@ def imshow_array(npArray, axis=2, vmax=None, vmin=None, transpose=False, tight_a
             a.set_xticklabels([])
             a.set_yticklabels([])
     return f
-
-def plot_avg_and_comps(npArray, axis=1):
-    plt.figure()
-    plt.plot(npArray, alpha=0.25, lw=1)
-    plt.plot(npArray.mean(axis=axis), lw=2, color='black')
-

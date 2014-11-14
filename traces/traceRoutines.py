@@ -13,10 +13,10 @@ import matplotlib as mpl
 from matplotlib import mlab
 
 __all__ = ['baseline', 'normalize', 'normalizeAndBaseline', \
-               'findLevels', 'findLevels1d', 'findLevelsNd', \
-               'boxcar', 'smooth', 'lowess', \
-               'fir_filter', 'butter_bandpass_filter', 'psd', 'specgram',\
-               'mask_deviations', 'baseline_splines']
+           'findLevels', 'findLevels1d', 'findLevelsNd', \
+           'boxcar', 'smooth', 'lowess', \
+           'fir_filter', 'butter_bandpass_filter', 'psd', 'specgram',\
+           'mask_deviations', 'baseline_splines']
 
 def baseline(A, baseRange, baseAxis):
     """Baseline a numpy array using a given range over a specfied axis.
@@ -132,7 +132,6 @@ def findLevelsNd(A, level, mode='rising', axis=0, boxWidth=0):
 
     Often, the crossings are noisy.  You can use np.diff() and findLevelsNd() again to help yourself out.
 
-
     :param A: 1d numpy array
     :param level: floating point to search for in A
     :param mode: optional string: mode specfication. one of 'rising', 'falling' or 'both'
@@ -157,9 +156,7 @@ def findLevelsNd(A, level, mode='rising', axis=0, boxWidth=0):
 # -------------------- SMOOTHING ROUTINES------------------------------------------
 
 def lowess(x, y, f=2./3., iters=3): 
-    """lowess(x, y, f=2./3., iter=3) -> yest 
-
-    Lowess smoother: Robust locally weighted regression. 
+    """Lowess smoother: Robust locally weighted regression. 
     The lowess function fits a nonparametric regression curve to a scatterplot. 
     The arrays x and y contain an equal number of elements; each pair 
     (x[i], y[i]) defines a data point in the scatterplot. The function returns 
@@ -172,24 +169,11 @@ def lowess(x, y, f=2./3., iters=3):
     x and y should be numpy float arrays of equal length.  The return value is 
     also a numpy float array of that length. 
 
-    This is a version in C, but seems to yield different values....
-    https://github.com/brentp/bio-playground/tree/master/lowess
-
-    e.g. 
-    >>> import numpy 
-    >>> x = np.array([4,  4,  7,  7,  8,  9, 10, 10, 10, 11, 11, 12, 12, 12, 
-    ...                 12, 13, 13, 13, 13, 14, 14, 14, 14, 15, 15, 15, 16, 16, 
-    ...                 17, 17, 17, 18, 18, 18, 18, 19, 19, 19, 20, 20, 20, 20, 
-    ...                 20, 22, 23, 24, 24, 24, 24, 25], np.float) 
-    >>> y = np.array([2, 10,  4, 22, 16, 10, 18, 26, 34, 17, 28, 14, 20, 24, 
-    ...                 28, 26, 34, 34, 46, 26, 36, 60, 80, 20, 26, 54, 32, 40, 
-    ...                 32, 40, 50, 42, 56, 76, 84, 36, 46, 68, 32, 48, 52, 56, 
-    ...                 64, 66, 54, 70, 92, 93, 120, 85], np.float) 
-    >>> result = lowess(x, y) 
-    >>> len(result) 
-    50 
-    >>> print "[%0.2f, ..., %0.2f]" % (result[0], result[-1]) 
-    [4.85, ..., 84.98] 
+    :param: x - x values
+    :param: y - y values
+    :param: f - span (region size to weight for smoothing)
+    :param: iters - number of times to apply smoothing
+    :returns: yest - a smoothed version of y
     """ 
     n = len(x) 
     r = int(np.ceil(f*n)) 
@@ -276,11 +260,36 @@ def smooth(A, window_len=11, window='hanning'):
 # -------------------- Filtering Routines ------------------------------------------
 # from http://code.google.com/p/python-neural-analysis-scripts/source/browse/trunk/scripts/Filtering/Fir.py
 
+def fir_filter(sig, sampling_freq, critical_freq, kernel_window = 'hamming', taps = 101, kind = 'band', **kwargs):
+    """This is a wrapper around scipy.signal.lfilter(), which is for finite impulse response filters.
+
+    Build a filter kernel of type <kind> and apply it to the signal
+    Returns the filtered signal.
+
+    Internally, this uses two private functions, spectral_inversion() and make_fir_filter().
+
+    :param: sig - an n element sequence
+    :param: sampling_freq - rate of data collection (Hz)
+    :param: critical_freq - high and low cutoffs for filtering, for bandpass this is a 2 element seq.
+    :param: kernel_window - a string from the list - boxcar, triang, blackman,
+                             hamming, bartlett, parzen, bohman, blackmanharris, nuttall, barthann
+    :param: taps - the number of taps in the kernel (integer)
+    :param: kind - the kind of filtering to be performed (one of 'high', 'low', 'band' (default))
+    :param: **kwargs - keywords passed onto scipy.firwin
+    :Returns: filtered signal
+    """
+
+    kernel = make_fir_filter(sampling_freq, critical_freq, kernel_window, taps, kind, **kwargs) 
+
+    return np.roll(scipy.signal.lfilter(kernel, [1], sig), -taps/2+1)
+
+# used by fir_filter
 def spectral_inversion(kernel):
     kernel = -kernel
     kernel[len(kernel)/2] += 1.0
     return kernel
 
+# used by fir_filter
 def make_fir_filter(sampling_freq, critical_freq, kernel_window, taps, kind, **kwargs):
     nyquist_freq = sampling_freq/2
     critical_freq = np.array(critical_freq, dtype = np.float64)
@@ -289,16 +298,16 @@ def make_fir_filter(sampling_freq, critical_freq, kernel_window, taps, kind, **k
     if not taps % 2: #The order must be even for high and bandpass
         taps += 1
 
-    if kind.lower() in ['low','low pass', 'low_pass']:
+    if kind.lower() in ['low', 'low pass', 'low_pass']:
         kernel = scipy.signal.firwin(taps, normalized_critical_freq,
                                window=kernel_window, **kwargs)
 
-    elif kind.lower() in ['high','high pass', 'high_pass']:
+    elif kind.lower() in ['high', 'high pass', 'high_pass']:
         lp_kernel = scipy.signal.firwin(taps, normalized_critical_freq,
                                   window = kernel_window, **kwargs)
         kernel = spectral_inversion(lp_kernel)
           
-    elif kind.lower() in ['band','band pass', 'band_pass']:
+    elif kind.lower() in ['band', 'band pass', 'band_pass']:
         lp_kernel = scipy.signal.firwin(taps, normalized_critical_freq[0],
                                   window = kernel_window, **kwargs)
         hp_kernel = scipy.signal.firwin(taps, normalized_critical_freq[1],
@@ -310,32 +319,16 @@ def make_fir_filter(sampling_freq, critical_freq, kernel_window, taps, kind, **k
     
     return kernel
 
-def fir_filter(sig, sampling_freq, critical_freq, kernel_window = 'hamming', taps = 101, kind = 'band', **kwargs):
-    """
-    Build a filter kernel of type <kind> and apply it to the signal
-    Returns the filtered signal.
-
-    Inputs:
-        sig          : an n element sequence
-        sampling_freq   : rate of data collection (Hz)
-        critical_freq   : high and low cutoffs for filtering 
-                        -- for bandpass this is a 2 element seq.
-        kernel_window   : a string from the list - boxcar, triang, blackman,
-                             hamming, bartlett, parzen, bohman, blackmanharris, nuttall, barthann
-        taps            : the number of taps in the kernel (integer)
-        kind            : the kind of filtering to be performed (high,low,band)
-        **kwargs        : keywords passed onto scipy.firwin
-    Returns:
-        filtered signal : an n element seq
-    """
-
-    kernel = make_fir_filter(sampling_freq, critical_freq, kernel_window, taps, kind, **kwargs) 
-
-    return np.roll(scipy.signal.lfilter(kernel, [1], sig), -taps/2+1)
-
-# BUTTERWORTH bandpass
-
 def butter_bandpass_filter(data, lowcut, highcut, fs, order=2):
+    """This is a wrapper for the butter bandpass filter.
+
+    :param: data - 1d numpy array to be filtered
+    :param: lowcut - low pass frequency, in Hz
+    :param: highcut - high pass frequency, in Hz
+    :param: fs - sampling frequency, in samples / second (i.e.: 10000)
+    :param: order - filter order
+    :returns: filtered data
+    """
     nyq = 0.5 * fs
     low = lowcut / nyq
     high = highcut / nyq
@@ -347,6 +340,16 @@ def butter_bandpass_filter(data, lowcut, highcut, fs, order=2):
     return y
 
 def bessel_bandpass_filter(data, lowcut, highcut, fs, order=2):
+    """This is a wrapper for the bessel bandpass filter.
+
+    :param: data - 1d numpy array to be filtered
+    :param: lowcut - low pass frequency, in Hz
+    :param: highcut - high pass frequency, in Hz
+    :param: fs - sampling frequency, in samples / second (i.e.: 10000)
+    :param: order - filter order
+    :returns: filtered data
+    """
+
     nyq = 0.5 * fs
     low = lowcut / nyq
     high = highcut / nyq
@@ -356,7 +359,6 @@ def bessel_bandpass_filter(data, lowcut, highcut, fs, order=2):
     b, a = bessel(order, [low, high], btype='band')
     y = lfilter(b, a, data)
     return y
-
 
 # -------------------- SPECTROGRAM ROUTINES------------------------------------------
 # modified from http://code.google.com/p/python-neural-analysis-scripts/source/browse/trunk/LFP/signal_utils.py
@@ -404,27 +406,17 @@ def resample_signal(signal, prev_sample_rate, new_sample_rate):
 
 def psd(signal, sampling_frequency, frequency_resolution,
         high_frequency_cutoff=None,  **kwargs):
-    """
-    This function wraps matplotlib.mlab.psd to provide a more intuitive 
-        interface.
-    Inputs:
-        signal                  : the input signal (a one dimensional array)
-
-        sampling_frequency      : the sampling frequency of signal
-
-        frequency_resolution    : the desired frequency resolution of the 
-                                    specgram.  this is the guaranteed worst
-                                    frequency resolution.
-        high_frequency_cutoff   : optional high freq. cutoff.  resamples data
-                                  to this value and then uses that for Fs parameter
-                                  probably better to just truncate the power array
-
-        --keyword arguments--
-        **kwargs                : Arguments passed on to 
-                                   matplotlib.mlab.psd
-    Returns:
-        power
-        freqs
+    """This function wraps matplotlib.mlab.psd to provide a more intuitive 
+    interface.
+    
+    :param: signal - the input signal (a one dimensional array)
+    :param: sampling_frequency - the sampling frequency of signal (i.e.: 10000)
+    :param: frequency_resolution - the desired frequency resolution of the specgram.
+        this is the guaranteed worst frequency resolution.
+    :param: high_frequency_cutoff - optional high freq. cutoff.  resamples data 
+        to this value and then uses that for Fs parameter
+    :param: **kwargs - Arguments passed on to matplotlib.mlab.psd
+    :returns: - tuple of two numpy arrays, power and freqs
     """
     if (high_frequency_cutoff is not None 
         and high_frequency_cutoff < sampling_frequency):
@@ -444,40 +436,29 @@ def psd(signal, sampling_frequency, frequency_resolution,
 def specgram(signal, sampling_frequency, time_resolution, 
              frequency_resolution, high_frequency_cutoff=None, 
              logscale=True, **kwargs):
-    """
-    This function wraps matplotlib.mlab.specgram to provide a more intuitive 
-        interface.
-    Inputs:
-        signal                  : the input signal (a one dimensional array)
-
-        sampling_frequency      : the sampling frequency of signal
-
-        time_resolution         : the desired time resolution of the specgram
-                                    this is the guaranteed worst time resolution
-
-        frequency_resolution    : the desired frequency resolution of the 
-                                    specgram.  this is the guaranteed worst
-                                    frequency resolution.
-
-        high_frequency_cutoff   : optional high freq. cutoff.  resamples data
-                                  to this value and then uses that for Fs parameter
-                                  probably better to just truncate the power array
-
-        logscale                : rescale data based on log values?  defaults is True
-
-        --keyword arguments--
-        **kwargs                : Arguments passed on to 
-                                   matplotlib.mlab.specgram
-    Returns:
-            power - 2d array of power (dB/Hz?)
-            freqs - in Hz
-            bins - in seconds
+    """This function wraps matplotlib.mlab.psd to provide a more intuitive 
+    interface.
 
     Plot with: 
         power, freqs, bins = specgram(...)
         extent = (bins[0], bins[-1], freqs[0], freqs[-1])
         imshow(power, aspect='auto', origin='lower', extent=extent) # from pyplot
+    
+    :param: signal - the input signal (a one dimensional array)
+    :param: sampling_frequency - the sampling frequency of signal (i.e.: 10000)
+    :param: frequency_resolution - the desired frequency resolution of the specgram.
+        this is the guaranteed worst frequency resolution.
+    :param: time_resolution - the desired frequency resolution of the specgram.
+        this is the guaranteed worst time resolution.
+    :param: high_frequency_cutoff - optional high freq. cutoff.  resamples data 
+        to this value and then uses that for Fs parameter
+    :param: logscale - rescale data based on log values?  defaults is True
+    :param: **kwargs - Arguments passed on to matplotlib.mlab.psd
 
+    :returns: - tuple of three numpy arrays: 
+            power - 2d array of power (dB/Hz)
+            freqs - in Hz
+            bins - in seconds
     """
     if (high_frequency_cutoff is not None 
         and high_frequency_cutoff < sampling_frequency):
