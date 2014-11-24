@@ -154,12 +154,12 @@ def plotRaster(xsg, ax=None, height=1.):
             for trial, trace in enumerate(xsg['spikeTimes']):
                 plt.vlines(trace, trial, trial+height)
             plt.ylim(len(xsg['spikeTimes']), 0)
-            plt.xlim(0,xsg['ephys']['chan0'].shape[0] / xsg['sampleRate'][0] * 1000.0)
+            plt.xlim(0,float(xsg['ephys']['chan0'].shape[0]) / xsg['sampleRate'][0] * 1000.0)
 
         else:
             plt.vlines(xsg['spikeTimes'], 0, height)
             plt.ylim((0,1))
-            plt.xlim(0,xsg['ephys']['chan0'].shape[0] / xsg['sampleRate'] * 1000.0)
+            plt.xlim(0,float(xsg['ephys']['chan0'].shape[0]) / xsg['sampleRate'] * 1000.0)
 
         plt.xlabel('time (ms)')
         plt.ylabel('trials')
