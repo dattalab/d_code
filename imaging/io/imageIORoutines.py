@@ -175,13 +175,14 @@ def play(npArray, frameRate = 6, std_cutoff=None):
 def embed():
     """Simple method for embedding all current figures in the current ipython notebook cell.
     Use at the end of a cell.  Only works when the ipython notebook has been started with '--pylab'
-    (note: NOT '--pylab=inline')"""
+    (note: NOT '--pylab=inline')
 
-    # getfigs = pylabtools.getfigs
+    NOTE:  DEPRECATED!!  Start ipython notebook with `ipython notebook` and include `%matplotlib inline`
+    in the top cell instead!
+    """
 
     display.display(*pylabtools.getfigs())
     plt.close('all')
-
 
 def imview(npArray, timeOut=8):
     """Function to view the numpy array in imageJ.  This function currently only works on OS X.
@@ -251,21 +252,6 @@ def readImagesFromList(listOfFiles):
         imageArray[:,:,i] = tifffile.imread(file)
 
     return imageArray
-
-
-#     for i, file in enumerate(listOfFiles):
-#         image = np.squeeze(tifffile.imread(file))
-#         image = np.expand_dims(image, axis=2)
-#         if i==0:
-#             imageArray = image
-#         else:
-#             imageArray = np.concatenate((imageArray, image), axis=2)
-
-#     try:
-#         return imageArray
-#     except:
-#         return []
-
 
 def npArrayFromClipboard():
     """This function pulls information off the OS X clipboard and builds a numpy array.

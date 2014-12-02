@@ -1156,6 +1156,9 @@ def pickCells(backgroundImage, mask=None, cutoff=0.8):
     except RuntimeError:
         app = QtCore.QCoreApplication.instance()
 
+    if len(backgroundImage.shape) == 2:
+        backgroundImage = np.atleast_3d(backgroundImage)
+
     MainWindow = QtGui.QMainWindow()
     gui = CellPickerGUI()
     gui.setupUi(MainWindow, backgroundImage, mask, cutoff)
