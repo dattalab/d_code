@@ -4,6 +4,8 @@ Welcome to the Datta Code repository.  This repo contains code to analyze
 imaging and electrophysiology data, especially that collected from ScanImage 
 and Ehpus.
 
+For questions regarding this codebase, please open an issue rather than sending any email!
+
 ## Requirements and Installation
 
 This package requires many core elements of the Python scientific stack,
