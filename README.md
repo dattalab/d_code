@@ -50,12 +50,14 @@ Presuming that you are a member of the dattalab organization with access to this
 (which you are, if you can read this), you should be able to install this code 
 by standard git cloning techniques, that is, run the following at a terminal prompt:
 
-    git clone git@github.com:dattalab/dattacode.git
+    git clone git@github.com:dattalab/d_code.git
 
 This will create a clone of the repo in the current directory.  After this, you should 
 be able to add the top level directory to your python path and then import anything 
 as you see fit, e.g.: `import imaging.io as io`.  See also the IPython startup 
 file below for a way to do this automatically.
+
+Alternatively, can feel free to fork the repo, and work from your own copy.
 
 ## Overview and Summary of Packages
 
