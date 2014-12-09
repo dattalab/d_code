@@ -43,12 +43,12 @@ The tifffile package was written by Christoph Gohlke
 <http://www.lfd.uci.edu/~gohlke/> for fast reading and writing of tiff files.
 It can be compiled in place with the following command:   `python
 tiffiflesetup.py build_ext --inplace`.  image_registration was forked from
-https://github.com/keflavich/image_registration, and I wrote a couple of
-convenience routines there.
+https://github.com/keflavich/image_registration, and we wrote a couple of
+convenience routines wrapping routes in our version of the code.
 
-Presuming that you are a member of the dattalab organization with access to this repo
-(which you are, if you can read this), you should be able to install this code 
-by standard git cloning techniques, that is, run the following at a terminal prompt:
+Presuming that you are a member of the dattalab organization with access to this repo, 
+you should be able to install this code by standard git cloning techniques, that is, 
+run the following at a terminal prompt:
 
     git clone git@github.com:dattalab/d_code.git
 
