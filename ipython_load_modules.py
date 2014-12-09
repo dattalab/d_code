@@ -30,7 +30,7 @@ print '\n\n------------Parsing ipython_load_modules.py------------\n'
 # Code below will recurse through all directories, ignoring .git info
 # and not diving into package directories.
 
-PYTHON_MODULES_DIR_LIST = [os.path.join(os.path.expandvars('$HOME'),'dattacode')]
+PYTHON_MODULES_DIR_LIST = [os.path.join(os.path.expandvars('$HOME'),'d_code')]
 
 
 for python_module_dir in PYTHON_MODULES_DIR_LIST:
@@ -50,7 +50,7 @@ for python_module_dir in PYTHON_MODULES_DIR_LIST:
                 sys.path.append(fulldir)
 
 
-# if you included the path to the dattacode repo above, these will do the right thing
+# if you included the path to the d_code repo above, these will do the right thing
 
 try:
     import imaging.io as io
@@ -63,7 +63,7 @@ try:
 
     import acq.scanimage as scim
 except:
-    print 'Error in dattacode repo, or not properly added to system path!'
+    print 'Error in d_code repo, or not properly added to system path!'
 
 # other custom stuff
 
