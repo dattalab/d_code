@@ -1,6 +1,6 @@
-# Datta Code
+# d_code
 
-Welcome to the Datta Code repository.  This repo contains code to analyze
+Welcome to the d_code repository.  This repo contains code to analyze
 imaging and electrophysiology data, especially that collected from ScanImage 
 and Ehpus.
 
