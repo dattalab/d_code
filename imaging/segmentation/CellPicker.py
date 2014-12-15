@@ -1001,7 +1001,7 @@ class CellPickerGUI(object):
 
         reshaped_sub_region_data = self.data_white[xmin_nmf:xmax_nmf, ymin_nmf:ymax_nmf, :].reshape(xmax_nmf-xmin_nmf * ymax_nmf-ymin_nmf, self.data.shape[2])
         n.fit(reshaped_sub_region_data-reshaped_sub_region_data.min())
-        transformed_sub_region_data = n.transform(reshaped_sub_region_data)
+        transformed_sub_region_data = n.transform(reshaped_sub_region_data-reshaped_sub_region_data.min())
         modes = transformed_sub_region_data.reshape(xmax_nmf-xmin_nmf, ymax_nmf-ymin_nmf, n_comp).copy()
 
         modes = [m for m in np.rollaxis(modes,2,0)]
