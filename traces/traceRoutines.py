@@ -254,7 +254,7 @@ def smooth(A, window_len=11, window='hanning'):
     else:
         w=eval('np.'+window+'(window_len)')
 
-    y=np.convolve(w/w.sum(),s,mode='valid')
+    y=np.convolve(w/w.sum(),s,mode='same')
     return y
 
 # -------------------- Filtering Routines ------------------------------------------
