@@ -217,7 +217,7 @@ def boxcar(A, boxWidth=3, axis=1):
     
     return nd.convolve1d(A, np.array([1]*boxWidth)/float(boxWidth), axis=axis)
 
-def smooth(A, window_len=11, window='hanning'):
+def smooth(A, window_len=11, window='hanning', mode = 'same'):
     """smooth the data (1D numpy array) using a window with requested size.
     
     This method is based on the convolution of a scaled window with the signal.
@@ -228,12 +228,30 @@ def smooth(A, window_len=11, window='hanning'):
     ripped off from http://www.scipy.org/Cookbook/SignalSmooth
   
     :param A: the input signal 
+    
     :param window_len: the dimension of the smoothing window; should be an odd integer
     :param window: the type of window from 'flat', 'hanning', 'hamming', 'bartlett', 'blackman' flat window will produce a moving average smoothing.
     :returns: the smoothed signal
-        
-    See also: numpy.hanning, numpy.hamming, numpy.bartlett, numpy.blackman, numpy.convolve
-    scipy.signal.lfilter
+    
+    from np.convolve:
+    
+    mode : {'full', 'valid', 'same'}, optional
+    'full':
+      By default, mode is 'full'.  This returns the convolution
+      at each point of overlap, with an output shape of (N+M-1,). At
+      the end-points of the convolution, the signals do not overlap
+      completely, and boundary effects may be seen.
+
+    'same':
+      Mode `same` returns output of length ``max(M, N)``.  Boundary
+      effects are still visible.
+
+    'valid':
+      Mode `valid` returns output of length
+      ``max(M, N) - min(M, N) + 1``.  The convolution product is only given
+      for points where the signals overlap completely.  Values outside
+      the signal boundary have no effect.
+     
     """
 
     if A.ndim != 1:
@@ -254,7 +272,7 @@ def smooth(A, window_len=11, window='hanning'):
     else:
         w=eval('np.'+window+'(window_len)')
 
-    y=np.convolve(w/w.sum(),s,mode='same')
+    y=np.convolve(w/w.sum(),s,mode=mode)
     return y
 
 # -------------------- Filtering Routines ------------------------------------------
