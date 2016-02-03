@@ -9,6 +9,8 @@ import numpy as np
 
 import multiprocessing as mp
 
+
+
 __all__ = ['register_images', 'register_series', 'register_series_parallel', 'dftregistration']
 
 def register_images(im1, im2, usfac=1, return_registered=False,
@@ -77,172 +79,9 @@ def register_images(im1, im2, usfac=1, return_registered=False,
         output[-1] = np.abs(np.fft.ifftshift(ifft2(output[-1])))
 
     return output
-
-def register_series(series, target=None, usfac=1, return_registered=True,
-        return_error=False, zeromean=False, DEBUG=False, maxoff=None,
-        nthreads=1, use_numpy_fft=False):
-    """
-    Sub-pixel image registration of a series of images (see dftregistration
-    for lots of details)
-
-    Parameters
-    ----------
-    series : np.ndarray, 3d, x by y by frames
-    target : np.ndarray.  If none, use the first image from the series
-    usfac : int
-        upsampling factor; governs accuracy of fit (1/usfac is best accuracy)
-    return_registered : bool
-        Return the registered image as the last parameter
-    return_error : bool
-        Does nothing at the moment, but in principle should return the "fit
-        error" (it does nothing because I don't know how to compute the "fit
-        error")
-    zeromean : bool
-        Subtract the mean from the images before cross-correlating?  If no, you
-        may get a 0,0 offset because the DC levels are strongly correlated.
-    maxoff : int
-        Maximum allowed offset to measure (setting this helps avoid spurious
-        peaks)
-    DEBUG : bool
-        Test code used during development.  Should DEFINITELY be removed.
-
-    Returns
-    -------
-    dx,dy : float,float
-        REVERSE of dftregistration order (also, signs flipped) for consistency
-        with other routines.
-        Measures the amount im2 is offset from im1 (i.e., shift im2 by these #'s
-        to match im1)
-
-    """
-    if target is None:
-        target = series[:,:,0]
-
-    # prepare the target array
-    target[np.isnan(target)] = 0
-
-    # prepare the series array
-    series[np.isnan(series)] = 0
     
-    # import the fft functions
-    fft2,ifft2 = fftn,ifftn = fast_ffts.get_ffts(nthreads=nthreads, use_numpy_fft=use_numpy_fft)
-
-    # let's pre-transform everything
-    targetfft = fft2(target)
-    seriesfft = np.empty_like(series, dtype='complex128')
-    for i in range(series.shape[2]):
-        seriesfft[:,:,i] = fft2(series[:,:,i])
-    
-    # loop over series, aligning
-    outputs = []
-    for i in range(series.shape[2]):
-        output = dftregistration(targetfft,seriesfft[:,:,i],usfac=usfac,
-                                 return_registered=return_registered, return_error=return_error,
-                                 zeromean=zeromean, DEBUG=DEBUG, maxoff=maxoff)
-        outputs.append(output)
-
-    # uh not that clear about this reordering of the outputs, but i do it for all outputs.
-    for i, output in enumerate(outputs):
-        outputs[i] = [-output[1], -output[0], ] + [o for o in output[2:]]
-        if return_registered:
-            outputs[i][-1] = np.abs(ifft2(output[-1]))
-
-    # let's re-arrange the output into a tuple of 3:
-    # the new series, the x shifts and the y shifts
-
-    newseries = np.empty_like(series)
-    for i, output in enumerate(outputs):
-        newseries[:,:,i] = output[-1]
-
-    x_shifts = np.array([o[0] for o in outputs])
-    y_shifts = np.array([o[1] for o in outputs])
-        
-    return newseries, x_shifts, y_shifts
-
-def register_series_parallel(series, target=None, usfac=1, return_registered=True,
-        return_error=False, zeromean=False, DEBUG=False, maxoff=None,
-        nthreads=1, use_numpy_fft=False):
-    """
-    Sub-pixel image registration of a series of images (see dftregistration
-    for lots of details)
-
-    Parameters
-    ----------
-    series : np.ndarray, 3d, x by y by frames
-    target : np.ndarray.  If none, use the first image from the series
-    usfac : int
-        upsampling factor; governs accuracy of fit (1/usfac is best accuracy)
-    return_registered : bool
-        Return the registered image as the last parameter
-    return_error : bool
-        Does nothing at the moment, but in principle should return the "fit
-        error" (it does nothing because I don't know how to compute the "fit
-        error")
-    zeromean : bool
-        Subtract the mean from the images before cross-correlating?  If no, you
-        may get a 0,0 offset because the DC levels are strongly correlated.
-    maxoff : int
-        Maximum allowed offset to measure (setting this helps avoid spurious
-        peaks)
-    DEBUG : bool
-        Test code used during development.  Should DEFINITELY be removed.
-
-    Returns
-    -------
-    newseries, dx,dy : 3d array, 2d array, 2d array
-    """
-    if target is None:
-        target = series[:,:,0]
-    target[np.isnan(target)] = 0
-    series[np.isnan(series)] = 0
-    
-    # import the fft functions
-    fft2,ifft2 = fftn,ifftn = fast_ffts.get_ffts(nthreads=1, use_numpy_fft=use_numpy_fft)
-
-    # let's pre-transform just the target
-    targetfft = fft2(target)
-
-    list_of_target_and_frames = [(frame, targetfft, usfac, return_registered, 
-                                  return_error, zeromean, DEBUG, 
-                                  maxoff, nthreads, use_numpy_fft) for frame in list(np.rollaxis(series, 2))]
-
-    pool = mp.Pool(processes=nthreads)
-    out = pool.map(aligner, list_of_target_and_frames) # returns image, x, y
-    pool.close()
-
-    x_shifts = np.array([o[1] for o in out])
-    y_shifts = np.array([o[2] for o in out])
-
-    newseries = np.empty_like(series)
-    for i, output in enumerate(out):
-        newseries[:,:,i] = output[0]
-    
-    return newseries, x_shifts, y_shifts
-
-def aligner(target_and_frame):
-    frame = target_and_frame[0]
-    target_fft = target_and_frame[1]
-    usfac = target_and_frame[2]
-    return_registered = target_and_frame[3]
-    return_error = target_and_frame[4]
-    zeromean = target_and_frame[5]
-    DEBUG = target_and_frame[6]
-    maxoff = target_and_frame[7]
-    nthreads = target_and_frame[8]
-    use_numpy_fft = target_and_frame[9]
-
-    fft2,ifft2 = fftn,ifftn = fast_ffts.get_ffts(nthreads=1, use_numpy_fft=use_numpy_fft)
-
-    frame_fft = fft2(frame)
-
-    output = dftregistration(target_fft, frame_fft, usfac, return_registered, return_error, 
-                             zeromean, DEBUG, maxoff, nthreads, use_numpy_fft)
-
-    output[-1] = np.abs(ifft2(output[-1]))
-    return (output[-1], -output[1], -output[0])
-
-
-def dftregistration(buf1ft,buf2ft,usfac=1, return_registered=False,
+################################################################################################
+def dftregistration(buf1ft,buf2ft,buf3ft, usfac=1, return_registered=False,
         return_error=False, zeromean=False, DEBUG=False, maxoff=None,
         nthreads=1, use_numpy_fft=False):
     """
@@ -275,6 +114,12 @@ def dftregistration(buf1ft,buf2ft,usfac=1, return_registered=False,
            DC in (1,1)   [DO NOT FFTSHIFT]
     buf2ft    Fourier transform of image to register, 
            DC in (1,1) [DO NOT FFTSHIFT]
+
+    SP 11282015:
+    buf3ft    Fourier transform of green channel image to register, 
+           DC in (1,1) [DO NOT FFTSHIFT]
+    SP end
+    
     usfac     Upsampling factor (integer). Images will be registered to 
            within 1/usfac of a pixel. For example usfac = 20 means the
            images will be registered within 1/20 of a pixel. (default = 1)
@@ -475,20 +320,237 @@ def dftregistration(buf1ft,buf2ft,usfac=1, return_registered=False,
         # simple estimate of the precision of the fft approach
         output += [1./usfac,1./usfac]
 
-    # Compute registered version of buf2ft
+    # Compute registered version of buf2ft and buf3ft
     if (return_registered):
         if (usfac > 0):
-            nr,nc=shape(buf2ft);
-            Nr = np.fft.ifftshift(np.linspace(-np.fix(nr/2),np.ceil(nr/2)-1,nr))
-            Nc = np.fft.ifftshift(np.linspace(-np.fix(nc/2),np.ceil(nc/2)-1,nc))
-            [Nc,Nr] = np.meshgrid(Nc,Nr);
-            Greg = buf2ft * np.exp(1j*2*np.pi*(-row_shift*Nr/nr-col_shift*Nc/nc));
-            Greg = Greg*np.exp(1j*diffphase);
+
+            # #apply offsets to red channel fourier transform; original portion of function.
+            # nr,nc=shape(buf2ft);
+            # Nr = np.fft.ifftshift(np.linspace(-np.fix(nr/2),np.ceil(nr/2)-1,nr))
+            # Nc = np.fft.ifftshift(np.linspace(-np.fix(nc/2),np.ceil(nc/2)-1,nc))
+            # [Nc,Nr] = np.meshgrid(Nc,Nr);
+            # Greg = buf2ft * np.exp(1j*2*np.pi*(-row_shift*Nr/nr-col_shift*Nc/nc));
+            # Greg = Greg*np.exp(1j*diffphase);
+
+
+            #apply offsets to red then green channel fourier transforms and store in output; in that order.    
+            for transform in [buf2ft, buf3ft]:
+                nr,nc=shape(transform);
+                Nr = np.fft.ifftshift(np.linspace(-np.fix(nr/2),np.ceil(nr/2)-1,nr))
+                Nc = np.fft.ifftshift(np.linspace(-np.fix(nc/2),np.ceil(nc/2)-1,nc))
+                [Nc,Nr] = np.meshgrid(Nc,Nr);
+                Greg = transform * np.exp(1j*2*np.pi*(-row_shift*Nr/nr-col_shift*Nc/nc));
+                Greg = Greg*np.exp(1j*diffphase);  
+                output.append(Greg)
+
         elif (usfac == 0):
             Greg = buf2ft*np.exp(1j*diffphase);
-        output.append(Greg)
+        #output.append(Greg) #original code
 
     return output
+
+
+################################################################################################
+
+def register_series(seriesRed, seriesGreen, target=None, usfac=1, return_registered=True,
+        return_error=False, zeromean=False, DEBUG=False, maxoff=None,
+        nthreads=1, use_numpy_fft=False):
+    """
+    Sub-pixel image registration of a series of images (see dftregistration
+    for lots of details)
+
+    Parameters
+    ----------
+    series : np.ndarray, 3d, x by y by frames
+    target : np.ndarray.  If none, use the first image from the series
+    usfac : int
+        upsampling factor; governs accuracy of fit (1/usfac is best accuracy)
+    return_registered : bool
+        Return the registered image as the last parameter
+    return_error : bool
+        Does nothing at the moment, but in principle should return the "fit
+        error" (it does nothing because I don't know how to compute the "fit
+        error")
+    zeromean : bool
+        Subtract the mean from the images before cross-correlating?  If no, you
+        may get a 0,0 offset because the DC levels are strongly correlated.
+    maxoff : int
+        Maximum allowed offset to measure (setting this helps avoid spurious
+        peaks)
+    DEBUG : bool
+        Test code used during development.  Should DEFINITELY be removed.
+
+    Returns
+    -------
+    dx,dy : float,float
+        REVERSE of dftregistration order (also, signs flipped) for consistency
+        with other routines.
+        Measures the amount im2 is offset from im1 (i.e., shift im2 by these #'s
+        to match im1)
+
+    """
+    if target is None:
+        target = seriesRed[:,:,0]
+
+    # prepare the target array
+    target[np.isnan(target)] = 0
+
+    # prepare the seriesRed and seriesGreen array
+    seriesRed[np.isnan(seriesRed)] = 0
+    seriesGreen[np.isnan(seriesGreen)] = 0
+    # import the fft functions
+    fft2,ifft2 = fftn,ifftn = fast_ffts.get_ffts(nthreads=nthreads, use_numpy_fft=use_numpy_fft)
+
+    # let's pre-transform everything
+    targetfft = fft2(target)
+
+    seriesRedfft = np.empty_like(seriesRed, dtype='complex128')
+    for i in range(seriesRed.shape[2]):
+        seriesRedfft[:,:,i] = fft2(seriesRed[:,:,i])
+
+    seriesGreenfft = np.empty_like(seriesGreen, dtype='complex128')
+    for i in range(seriesGreen.shape[2]):
+        seriesGreenfft[:,:,i] = fft2(seriesGreen[:,:,i])
+    
+    # loop over seriesRed, using this series for alignment of both red and green channels.
+    #make sure red and green sizes are the same. If not, pad. 
+    outputs = []
+    for i in range(seriesRed.shape[2]):
+        output = dftregistration(targetfft,seriesRedfft[:,:,i],seriesGreenfft[:,:,i],usfac=usfac,
+                                 return_registered=return_registered, return_error=return_error,
+                                 zeromean=zeromean, DEBUG=DEBUG, maxoff=maxoff)
+        #return a list of outputs for each image. 
+        #each output in this list contains: [row_shifts, columns_shifts, GregRed, GregGreen] 
+        outputs.append(output)
+
+    # uh not that clear about this reordering of the outputs, but i do it for all outputs.
+    for i, output in enumerate(outputs):
+        outputs[i] = [-output[1], -output[0], ] + [o for o in output[2:]]
+        if return_registered:
+            outputs[i][-1] = np.abs(ifft2(output[-1]))
+            outputs[i][-2] = np.abs(ifft2(output[-2]))
+    # let's re-arrange the output into a tuple of 3:
+    # the new series, the x shifts and the y shifts
+
+    redAligned = np.empty_like(seriesRed)
+    for i, output in enumerate(outputs):
+        redAligned[:,:,i] = output[-2]
+
+    greenAligned = np.empty_like(seriesGreen)
+    for i, output in enumerate(outputs):
+        greenAligned[:,:,i] = output[-1]
+
+    x_shifts = np.array([o[0] for o in outputs])
+    y_shifts = np.array([o[1] for o in outputs])
+        
+    return redAligned, greenAligned, x_shifts, y_shifts
+
+################################################################################################
+def aligner(target_and_frame):
+    frameRed = target_and_frame[0]
+    frameGreen = target_and_frame[1]
+    target_fft = target_and_frame[2]
+    usfac = target_and_frame[3]
+    return_registered = target_and_frame[4]
+    return_error = target_and_frame[5]
+    zeromean = target_and_frame[6]
+    DEBUG = target_and_frame[7]
+    maxoff = target_and_frame[8]
+    nthreads = target_and_frame[9]
+    use_numpy_fft = target_and_frame[10]
+
+    fft2,ifft2 = fftn,ifftn = fast_ffts.get_ffts(nthreads=1, use_numpy_fft=use_numpy_fft)
+
+    frameRed_fft = fft2(frameRed)
+    frameGreen_fft = fft2(frameGreen)
+    output = dftregistration(target_fft, frameRed_fft, frameGreen_fft, usfac, return_registered, return_error, 
+                             zeromean, DEBUG, maxoff, nthreads, use_numpy_fft)
+
+    output[-1] = np.abs(ifft2(output[-1])) #green registered fourier
+    output[-2] = np.abs(ifft2(output[-2])) #red registered fourier
+    return (output[-2], output[-1], -output[1], -output[0])
+
+
+
+
+################################################################################################
+def register_series_parallel(seriesRed, seriesGreen, target=None, usfac=1, return_registered=True,
+        return_error=False, zeromean=False, DEBUG=False, maxoff=None,
+        nthreads=1, use_numpy_fft=False):
+    """
+    Sub-pixel image registration of a series of images (see dftregistration
+    for lots of details)
+
+    Parameters
+    ----------
+    series : np.ndarray, 3d, x by y by frames
+    target : np.ndarray.  If none, use the first image from the series
+    usfac : int
+        upsampling factor; governs accuracy of fit (1/usfac is best accuracy)
+    return_registered : bool
+        Return the registered image as the last parameter
+    return_error : bool
+        Does nothing at the moment, but in principle should return the "fit
+        error" (it does nothing because I don't know how to compute the "fit
+        error")
+    zeromean : bool
+        Subtract the mean from the images before cross-correlating?  If no, you
+        may get a 0,0 offset because the DC levels are strongly correlated.
+    maxoff : int
+        Maximum allowed offset to measure (setting this helps avoid spurious
+        peaks)
+    DEBUG : bool
+        Test code used during development.  Should DEFINITELY be removed.
+
+    Returns
+    -------
+    newseries, dx,dy : 3d array, 2d array, 2d array
+    """
+    if target is None:
+        target = series[:,:,0]
+    target[np.isnan(target)] = 0
+    seriesRed[np.isnan(seriesRed)] = 0
+    seriesGreen[np.isnan(seriesGreen)] = 0
+
+    # import the fft functions
+    fft2,ifft2 = fftn,ifftn = fast_ffts.get_ffts(nthreads=1, use_numpy_fft=use_numpy_fft)
+
+    # let's pre-transform just the target
+    targetfft = fft2(target)
+
+    list_of_target_and_frames = [(frameRed, frameGreen, targetfft, usfac, return_registered, 
+                                  return_error, zeromean, DEBUG, 
+                                  maxoff, nthreads, use_numpy_fft) for frameRed, frameGreen in zip(np.rollaxis(seriesRed, 2), np.rollaxis(seriesGreen, 2))]
+
+    pool = mp.Pool(processes=nthreads)
+    out = pool.map(aligner, list_of_target_and_frames) # returns image, x, y
+    pool.close()
+
+    # redAligned = np.empty_like(seriesRed)
+    # for i, output in enumerate(outputs):
+    #     redAligned[:,:,i] = output[-2]
+
+    # greenAligned = np.empty_like(seriesGreen)
+    # for i, output in enumerate(outputs):
+    #     greenAligned[:,:,i] = output[-1]
+
+    # x_shifts = np.array([o[0] for o in outputs])
+    # y_shifts = np.array([o[1] for o in outputs])
+        
+    # return redAligned, greenAligned, x_shifts, y_shifts
+
+    x_shifts = np.array([o[2] for o in out])
+    y_shifts = np.array([o[3] for o in out])
+
+
+    redAligned = np.empty_like(seriesRed)
+    for i, output in enumerate(out):
+        redAligned[:,:,i] = output[0]
+    
+    greenAligned = np.empty_like(seriesGreen)
+    for i, output in enumerate(out):
+        greenAligned[:,:,i] = output[1]
+    return redAligned, greenAligned, x_shifts, y_shifts
 
 
 

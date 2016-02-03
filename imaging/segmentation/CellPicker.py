@@ -1,13 +1,13 @@
 import matplotlib as mpl
 
-from PySide import QtCore, QtGui
+from PyQt4 import QtCore, QtGui
 import sys
-mpl.rcParams['backend.qt4']='PySide'
+
 import matplotlib.pyplot as plt
 
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-
+mpl.rcParams['backend.qt4']='PySide'
 import numpy as np
 
 import scipy.ndimage as nd
@@ -26,7 +26,7 @@ from sklearn.decomposition import NMF
 import pdb
 
 class Communicate(QtCore.QObject):
-    keyPressed = QtCore.Signal(tuple)
+    keyPressed = QtCore.Signal(int)
     mouseSingleClicked = QtCore.Signal(tuple)
     mouseSingleShiftClicked = QtCore.Signal(tuple)
     mouseDoubleClicked = QtCore.Signal(tuple)
@@ -110,7 +110,7 @@ class MatplotlibWidget(FigureCanvas):
     
     # signal
     def keyPressEvent(self, event):
-        # self.c.keyPressed.emit(event.text())
+        #self.c.keyPressed.emit(event.text())
         self.c.keyPressed.emit(event.key())
         event.accept()
         
@@ -136,7 +136,7 @@ class MatplotlibWidget(FigureCanvas):
             y = int( (float(event.pos().x()) - y_offset) / (self.width - 2 * y_offset) * self.image.shape[1])
         
         # switch here for shift-click (emit different signal)
-        if QtCore.Qt.Modifier.SHIFT and event.modifiers():
+        if QtCore.Qt.ShiftModifier and event.modifiers():
             self.c.mouseSingleShiftClicked.emit((x, y))
         else: 
             self.c.mouseSingleClicked.emit((x, y))
@@ -369,7 +369,7 @@ class CellPickerGUI(object):
         self.listOfMasks.append(self.currentMask)
         self.diskSize = 4
         self.contrastThreshold = 0.95
-        self.cellRadius = 4
+        self.cellRadius = 5
         self.currentMaskNumber = 1
         
         self.mode = None # can be standard (None), 'poly', or 'square'
@@ -1171,3 +1171,5 @@ def pickCells(backgroundImage, mask=None, cutoff=0.8):
         return gui.currentMask
     except IndexError:
         print 'No mask to return!'
+
+        
